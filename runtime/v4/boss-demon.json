@@ -1,0 +1,308 @@
+{
+ "image": "boss-demon.png",
+ "source_master": "masters/v4/astral-boss-demon-atlas.png",
+ "frames": {
+  "fly_0": {
+   "rect": [
+    15,
+    10,
+    205,
+    297
+   ],
+   "pivot": [
+    102.5,
+    148.5
+   ]
+  },
+  "fly_1": {
+   "rect": [
+    227,
+    18,
+    170,
+    292
+   ],
+   "pivot": [
+    85.0,
+    146.0
+   ]
+  },
+  "fly_2": {
+   "rect": [
+    407,
+    19,
+    190,
+    279
+   ],
+   "pivot": [
+    95.0,
+    139.5
+   ]
+  },
+  "fly_3": {
+   "rect": [
+    602,
+    21,
+    176,
+    289
+   ],
+   "pivot": [
+    88.0,
+    144.5
+   ]
+  },
+  "fly_4": {
+   "rect": [
+    786,
+    18,
+    197,
+    292
+   ],
+   "pivot": [
+    98.5,
+    146.0
+   ]
+  },
+  "fly_5": {
+   "rect": [
+    992,
+    20,
+    177,
+    290
+   ],
+   "pivot": [
+    88.5,
+    145.0
+   ]
+  },
+  "fly_6": {
+   "rect": [
+    1170,
+    15,
+    169,
+    295
+   ],
+   "pivot": [
+    84.5,
+    147.5
+   ]
+  },
+  "fly_7": {
+   "rect": [
+    1345,
+    14,
+    175,
+    296
+   ],
+   "pivot": [
+    87.5,
+    148.0
+   ]
+  },
+  "fracture_0": {
+   "rect": [
+    36,
+    314,
+    290,
+    342
+   ],
+   "pivot": [
+    145.0,
+    171.0
+   ]
+  },
+  "fracture_1": {
+   "rect": [
+    326,
+    310,
+    292,
+    344
+   ],
+   "pivot": [
+    146.0,
+    172.0
+   ]
+  },
+  "fracture_2": {
+   "rect": [
+    643,
+    310,
+    267,
+    343
+   ],
+   "pivot": [
+    133.5,
+    171.5
+   ]
+  },
+  "fracture_3": {
+   "rect": [
+    938,
+    310,
+    272,
+    346
+   ],
+   "pivot": [
+    136.0,
+    173.0
+   ]
+  },
+  "fracture_4": {
+   "rect": [
+    1210,
+    310,
+    297,
+    337
+   ],
+   "pivot": [
+    148.5,
+    168.5
+   ]
+  },
+  "lunge_0": {
+   "rect": [
+    24,
+    656,
+    621,
+    352
+   ],
+   "pivot": [
+    310.5,
+    176.0
+   ]
+  },
+  "death_0": {
+   "rect": [
+    635,
+    663,
+    274,
+    334
+   ],
+   "pivot": [
+    137.0,
+    167.0
+   ]
+  },
+  "death_1": {
+   "rect": [
+    909,
+    679,
+    323,
+    327
+   ],
+   "pivot": [
+    161.5,
+    163.5
+   ]
+  },
+  "death_2": {
+   "rect": [
+    1265,
+    688,
+    255,
+    317
+   ],
+   "pivot": [
+    127.5,
+    158.5
+   ]
+  }
+ },
+ "animations": {
+  "fly_S": {
+   "frames": [
+    "fly_0"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "fly_SE": {
+   "frames": [
+    "fly_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "fly_E": {
+   "frames": [
+    "fly_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "fly_NE": {
+   "frames": [
+    "fly_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "fly_N": {
+   "frames": [
+    "fly_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "fly_NW": {
+   "frames": [
+    "fly_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "fly_W": {
+   "frames": [
+    "fly_6"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "fly_SW": {
+   "frames": [
+    "fly_7"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "fracture": {
+   "frames": [
+    "fracture_0",
+    "fracture_1",
+    "fracture_2",
+    "fracture_3",
+    "fracture_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "lunge": {
+   "frames": [
+    "lunge_0"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "death": {
+   "frames": [
+    "death_0",
+    "death_1",
+    "death_2"
+   ],
+   "frame_duration": 0.45,
+   "loop": false,
+   "events": {
+    "2": "end"
+   }
+  }
+ }
+}

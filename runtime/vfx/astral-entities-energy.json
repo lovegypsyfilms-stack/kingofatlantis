@@ -1,0 +1,426 @@
+{
+ "image": "astral-entities-energy.png",
+ "source_master": "masters/vfx/astral-entities-energy-atlas.png",
+ "frames": {
+  "shade_s": {
+   "rect": [
+    26,
+    78,
+    168,
+    213
+   ],
+   "pivot": [
+    84.0,
+    106.5
+   ]
+  },
+  "shade_m": {
+   "rect": [
+    223,
+    36,
+    245,
+    278
+   ],
+   "pivot": [
+    122.5,
+    139.0
+   ]
+  },
+  "shade_l": {
+   "rect": [
+    480,
+    13,
+    382,
+    341
+   ],
+   "pivot": [
+    191.0,
+    170.5
+   ]
+  },
+  "bubble_0": {
+   "rect": [
+    888,
+    146,
+    123,
+    121
+   ],
+   "pivot": [
+    61.5,
+    60.5
+   ]
+  },
+  "bubble_1": {
+   "rect": [
+    1047,
+    103,
+    174,
+    174
+   ],
+   "pivot": [
+    87.0,
+    87.0
+   ]
+  },
+  "bubble_2": {
+   "rect": [
+    1264,
+    45,
+    243,
+    240
+   ],
+   "pivot": [
+    121.5,
+    120.0
+   ]
+  },
+  "charge_0": {
+   "rect": [
+    35,
+    389,
+    123,
+    117
+   ],
+   "pivot": [
+    61.5,
+    58.5
+   ]
+  },
+  "charge_1": {
+   "rect": [
+    178,
+    343,
+    204,
+    193
+   ],
+   "pivot": [
+    102.0,
+    96.5
+   ]
+  },
+  "charge_2": {
+   "rect": [
+    397,
+    303,
+    290,
+    279
+   ],
+   "pivot": [
+    145.0,
+    139.5
+   ]
+  },
+  "wave_0": {
+   "rect": [
+    769,
+    387,
+    118,
+    123
+   ],
+   "pivot": [
+    59.0,
+    61.5
+   ]
+  },
+  "wave_1": {
+   "rect": [
+    897,
+    352,
+    237,
+    192
+   ],
+   "pivot": [
+    118.5,
+    96.0
+   ]
+  },
+  "wave_2": {
+   "rect": [
+    1147,
+    306,
+    368,
+    264
+   ],
+   "pivot": [
+    184.0,
+    132.0
+   ]
+  },
+  "sonic_0": {
+   "rect": [
+    16,
+    578,
+    221,
+    177
+   ],
+   "pivot": [
+    110.5,
+    88.5
+   ]
+  },
+  "sonic_1": {
+   "rect": [
+    237,
+    581,
+    185,
+    172
+   ],
+   "pivot": [
+    92.5,
+    86.0
+   ]
+  },
+  "sonic_2": {
+   "rect": [
+    422,
+    571,
+    300,
+    187
+   ],
+   "pivot": [
+    150.0,
+    93.5
+   ]
+  },
+  "fists_0": {
+   "rect": [
+    745,
+    611,
+    148,
+    122
+   ],
+   "pivot": [
+    74.0,
+    61.0
+   ]
+  },
+  "fists_1": {
+   "rect": [
+    899,
+    590,
+    219,
+    167
+   ],
+   "pivot": [
+    109.5,
+    83.5
+   ]
+  },
+  "fists_2": {
+   "rect": [
+    1100,
+    579,
+    416,
+    215
+   ],
+   "pivot": [
+    208.0,
+    107.5
+   ]
+  },
+  "impact_0": {
+   "rect": [
+    20,
+    804,
+    145,
+    176
+   ],
+   "pivot": [
+    72.5,
+    88.0
+   ]
+  },
+  "impact_1": {
+   "rect": [
+    176,
+    775,
+    192,
+    214
+   ],
+   "pivot": [
+    96.0,
+    107.0
+   ]
+  },
+  "impact_2": {
+   "rect": [
+    384,
+    773,
+    296,
+    230
+   ],
+   "pivot": [
+    148.0,
+    115.0
+   ]
+  },
+  "break_0": {
+   "rect": [
+    699,
+    804,
+    146,
+    150
+   ],
+   "pivot": [
+    73.0,
+    75.0
+   ]
+  },
+  "break_1": {
+   "rect": [
+    857,
+    801,
+    146,
+    172
+   ],
+   "pivot": [
+    73.0,
+    86.0
+   ]
+  },
+  "break_2": {
+   "rect": [
+    1022,
+    800,
+    161,
+    194
+   ],
+   "pivot": [
+    80.5,
+    97.0
+   ]
+  },
+  "wisp_0": {
+   "rect": [
+    1231,
+    827,
+    51,
+    164
+   ],
+   "pivot": [
+    25.5,
+    82.0
+   ]
+  },
+  "wisp_1": {
+   "rect": [
+    1316,
+    810,
+    70,
+    197
+   ],
+   "pivot": [
+    35.0,
+    98.5
+   ]
+  },
+  "wisp_2": {
+   "rect": [
+    1406,
+    766,
+    100,
+    246
+   ],
+   "pivot": [
+    50.0,
+    123.0
+   ]
+  }
+ },
+ "animations": {
+  "charge": {
+   "frames": [
+    "charge_0",
+    "charge_1",
+    "charge_2"
+   ],
+   "frame_duration": 0.1,
+   "duration": 0.3,
+   "loop": false,
+   "events": {
+    "2": "launch"
+   }
+  },
+  "wave": {
+   "frames": [
+    "wave_0",
+    "wave_1",
+    "wave_2"
+   ],
+   "frame_duration": 0.08,
+   "duration": 0.24,
+   "loop": false,
+   "events": {}
+  },
+  "sonic": {
+   "frames": [
+    "sonic_0",
+    "sonic_1",
+    "sonic_2"
+   ],
+   "frame_duration": 0.15,
+   "duration": 0.45,
+   "loop": true,
+   "events": {}
+  },
+  "fists": {
+   "frames": [
+    "fists_0",
+    "fists_1",
+    "fists_2"
+   ],
+   "frame_duration": 0.12,
+   "duration": 0.36,
+   "loop": false,
+   "events": {}
+  },
+  "impact": {
+   "frames": [
+    "impact_0",
+    "impact_1",
+    "impact_2"
+   ],
+   "frame_duration": 0.1,
+   "duration": 0.3,
+   "loop": false,
+   "events": {
+    "0": "hit"
+   }
+  },
+  "break": {
+   "frames": [
+    "break_0",
+    "break_1",
+    "break_2"
+   ],
+   "frame_duration": 0.14,
+   "duration": 0.42,
+   "loop": false,
+   "events": {
+    "2": "shatter"
+   }
+  },
+  "wisp": {
+   "frames": [
+    "wisp_0",
+    "wisp_1",
+    "wisp_2"
+   ],
+   "frame_duration": 0.2,
+   "duration": 0.6,
+   "loop": true,
+   "events": {}
+  },
+  "bubble": {
+   "frames": [
+    "bubble_0",
+    "bubble_1",
+    "bubble_2"
+   ],
+   "frame_duration": 0.2,
+   "duration": 0.6,
+   "loop": true,
+   "events": {}
+  }
+ }
+}

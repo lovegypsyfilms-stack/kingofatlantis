@@ -1,0 +1,286 @@
+{
+ "image": "guinea-pig.png",
+ "source_master": "masters/v4/guinea-pig-carrot-atlas.png",
+ "frames": {
+  "run_0": {
+   "rect": [
+    48,
+    167,
+    219,
+    178
+   ],
+   "pivot": [
+    109.5,
+    176
+   ]
+  },
+  "run_1": {
+   "rect": [
+    267,
+    167,
+    244,
+    178
+   ],
+   "pivot": [
+    122.0,
+    176
+   ]
+  },
+  "run_2": {
+   "rect": [
+    511,
+    166,
+    244,
+    176
+   ],
+   "pivot": [
+    122.0,
+    174
+   ]
+  },
+  "run_3": {
+   "rect": [
+    794,
+    168,
+    229,
+    177
+   ],
+   "pivot": [
+    114.5,
+    175
+   ]
+  },
+  "run_4": {
+   "rect": [
+    1028,
+    167,
+    238,
+    179
+   ],
+   "pivot": [
+    119.0,
+    177
+   ]
+  },
+  "run_5": {
+   "rect": [
+    1266,
+    170,
+    224,
+    177
+   ],
+   "pivot": [
+    112.0,
+    175
+   ]
+  },
+  "sit_0": {
+   "rect": [
+    50,
+    467,
+    272,
+    210
+   ],
+   "pivot": [
+    136.0,
+    208
+   ]
+  },
+  "sit_1": {
+   "rect": [
+    322,
+    375,
+    206,
+    293
+   ],
+   "pivot": [
+    103.0,
+    291
+   ]
+  },
+  "sit_2": {
+   "rect": [
+    528,
+    419,
+    237,
+    254
+   ],
+   "pivot": [
+    118.5,
+    252
+   ]
+  },
+  "sit_3": {
+   "rect": [
+    765,
+    461,
+    214,
+    210
+   ],
+   "pivot": [
+    107.0,
+    208
+   ]
+  },
+  "sit_4": {
+   "rect": [
+    979,
+    464,
+    216,
+    208
+   ],
+   "pivot": [
+    108.0,
+    206
+   ]
+  },
+  "sit_5": {
+   "rect": [
+    1232,
+    487,
+    267,
+    179
+   ],
+   "pivot": [
+    133.5,
+    177
+   ]
+  },
+  "item_0": {
+   "rect": [
+    158,
+    733,
+    328,
+    173
+   ],
+   "pivot": [
+    164.0,
+    171
+   ]
+  },
+  "item_1": {
+   "rect": [
+    557,
+    803,
+    138,
+    98
+   ],
+   "pivot": [
+    69.0,
+    96
+   ]
+  },
+  "item_2": {
+   "rect": [
+    791,
+    758,
+    225,
+    154
+   ],
+   "pivot": [
+    112.5,
+    152
+   ]
+  },
+  "item_3": {
+   "rect": [
+    1130,
+    767,
+    167,
+    130
+   ],
+   "pivot": [
+    83.5,
+    128
+   ]
+  }
+ },
+ "animations": {
+  "run_E": {
+   "frames": [
+    "run_0",
+    "run_1",
+    "run_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "run_W": {
+   "frames": [
+    "run_3",
+    "run_4",
+    "run_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "idle": {
+   "frames": [
+    "sit_0"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "alert": {
+   "frames": [
+    "sit_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "eat": {
+   "frames": [
+    "sit_2",
+    "sit_3",
+    "sit_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "loaf": {
+   "frames": [
+    "sit_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "carrot": {
+   "frames": [
+    "item_0"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "carrot_bitten": {
+   "frames": [
+    "item_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "carrot_top": {
+   "frames": [
+    "item_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "sparkle": {
+   "frames": [
+    "item_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  }
+ }
+}

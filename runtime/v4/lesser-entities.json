@@ -1,0 +1,496 @@
+{
+ "image": "lesser-entities.png",
+ "source_master": "masters/v4/astral-lesser-entities-atlas.png",
+ "frames": {
+  "entity1_0": {
+   "rect": [
+    27,
+    12,
+    181,
+    257
+   ],
+   "pivot": [
+    90.5,
+    128.5
+   ]
+  },
+  "entity1_1": {
+   "rect": [
+    227,
+    11,
+    187,
+    246
+   ],
+   "pivot": [
+    93.5,
+    123.0
+   ]
+  },
+  "entity1_2": {
+   "rect": [
+    427,
+    29,
+    168,
+    229
+   ],
+   "pivot": [
+    84.0,
+    114.5
+   ]
+  },
+  "entity1_3": {
+   "rect": [
+    616,
+    16,
+    192,
+    256
+   ],
+   "pivot": [
+    96.0,
+    128.0
+   ]
+  },
+  "entity1_4": {
+   "rect": [
+    826,
+    25,
+    301,
+    247
+   ],
+   "pivot": [
+    150.5,
+    123.5
+   ]
+  },
+  "entity1_5": {
+   "rect": [
+    1127,
+    22,
+    212,
+    244
+   ],
+   "pivot": [
+    106.0,
+    122.0
+   ]
+  },
+  "entity1_6": {
+   "rect": [
+    1358,
+    25,
+    157,
+    237
+   ],
+   "pivot": [
+    78.5,
+    118.5
+   ]
+  },
+  "entity2_0": {
+   "rect": [
+    14,
+    292,
+    217,
+    202
+   ],
+   "pivot": [
+    108.5,
+    101.0
+   ]
+  },
+  "entity2_1": {
+   "rect": [
+    231,
+    288,
+    190,
+    199
+   ],
+   "pivot": [
+    95.0,
+    99.5
+   ]
+  },
+  "entity2_2": {
+   "rect": [
+    421,
+    296,
+    205,
+    195
+   ],
+   "pivot": [
+    102.5,
+    97.5
+   ]
+  },
+  "entity2_3": {
+   "rect": [
+    630,
+    287,
+    220,
+    210
+   ],
+   "pivot": [
+    110.0,
+    105.0
+   ]
+  },
+  "entity2_4": {
+   "rect": [
+    850,
+    278,
+    276,
+    227
+   ],
+   "pivot": [
+    138.0,
+    113.5
+   ]
+  },
+  "entity2_5": {
+   "rect": [
+    1126,
+    276,
+    208,
+    216
+   ],
+   "pivot": [
+    104.0,
+    108.0
+   ]
+  },
+  "entity2_6": {
+   "rect": [
+    1337,
+    305,
+    184,
+    189
+   ],
+   "pivot": [
+    92.0,
+    94.5
+   ]
+  },
+  "entity3_0": {
+   "rect": [
+    16,
+    508,
+    175,
+    253
+   ],
+   "pivot": [
+    87.5,
+    126.5
+   ]
+  },
+  "entity3_1": {
+   "rect": [
+    217,
+    507,
+    167,
+    254
+   ],
+   "pivot": [
+    83.5,
+    127.0
+   ]
+  },
+  "entity3_2": {
+   "rect": [
+    406,
+    509,
+    186,
+    252
+   ],
+   "pivot": [
+    93.0,
+    126.0
+   ]
+  },
+  "entity3_3": {
+   "rect": [
+    601,
+    510,
+    198,
+    251
+   ],
+   "pivot": [
+    99.0,
+    125.5
+   ]
+  },
+  "entity3_4": {
+   "rect": [
+    822,
+    505,
+    272,
+    256
+   ],
+   "pivot": [
+    136.0,
+    128.0
+   ]
+  },
+  "entity3_5": {
+   "rect": [
+    1094,
+    507,
+    245,
+    254
+   ],
+   "pivot": [
+    122.5,
+    127.0
+   ]
+  },
+  "entity3_6": {
+   "rect": [
+    1358,
+    519,
+    162,
+    242
+   ],
+   "pivot": [
+    81.0,
+    121.0
+   ]
+  },
+  "entity4_0": {
+   "rect": [
+    18,
+    779,
+    174,
+    237
+   ],
+   "pivot": [
+    87.0,
+    118.5
+   ]
+  },
+  "entity4_1": {
+   "rect": [
+    215,
+    765,
+    173,
+    242
+   ],
+   "pivot": [
+    86.5,
+    121.0
+   ]
+  },
+  "entity4_2": {
+   "rect": [
+    416,
+    772,
+    175,
+    244
+   ],
+   "pivot": [
+    87.5,
+    122.0
+   ]
+  },
+  "entity4_3": {
+   "rect": [
+    611,
+    765,
+    202,
+    248
+   ],
+   "pivot": [
+    101.0,
+    124.0
+   ]
+  },
+  "entity4_4": {
+   "rect": [
+    813,
+    765,
+    278,
+    250
+   ],
+   "pivot": [
+    139.0,
+    125.0
+   ]
+  },
+  "entity4_5": {
+   "rect": [
+    1104,
+    771,
+    222,
+    245
+   ],
+   "pivot": [
+    111.0,
+    122.5
+   ]
+  },
+  "entity4_6": {
+   "rect": [
+    1327,
+    803,
+    196,
+    211
+   ],
+   "pivot": [
+    98.0,
+    105.5
+   ]
+  }
+ },
+ "animations": {
+  "entity1_move": {
+   "frames": [
+    "entity1_0",
+    "entity1_1",
+    "entity1_2",
+    "entity1_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity1_attack": {
+   "frames": [
+    "entity1_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity1_hit": {
+   "frames": [
+    "entity1_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity1_dissolve": {
+   "frames": [
+    "entity1_5",
+    "entity1_6"
+   ],
+   "frame_duration": 0.45,
+   "loop": false,
+   "events": {
+    "1": "end"
+   }
+  },
+  "entity2_move": {
+   "frames": [
+    "entity2_0",
+    "entity2_1",
+    "entity2_2",
+    "entity2_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity2_attack": {
+   "frames": [
+    "entity2_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity2_hit": {
+   "frames": [
+    "entity2_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity2_dissolve": {
+   "frames": [
+    "entity2_5",
+    "entity2_6"
+   ],
+   "frame_duration": 0.45,
+   "loop": false,
+   "events": {
+    "1": "end"
+   }
+  },
+  "entity3_move": {
+   "frames": [
+    "entity3_0",
+    "entity3_1",
+    "entity3_2",
+    "entity3_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity3_attack": {
+   "frames": [
+    "entity3_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity3_hit": {
+   "frames": [
+    "entity3_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity3_dissolve": {
+   "frames": [
+    "entity3_5",
+    "entity3_6"
+   ],
+   "frame_duration": 0.45,
+   "loop": false,
+   "events": {
+    "1": "end"
+   }
+  },
+  "entity4_move": {
+   "frames": [
+    "entity4_0",
+    "entity4_1",
+    "entity4_2",
+    "entity4_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity4_attack": {
+   "frames": [
+    "entity4_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity4_hit": {
+   "frames": [
+    "entity4_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "entity4_dissolve": {
+   "frames": [
+    "entity4_5",
+    "entity4_6"
+   ],
+   "frame_duration": 0.45,
+   "loop": false,
+   "events": {
+    "1": "end"
+   }
+  }
+ }
+}

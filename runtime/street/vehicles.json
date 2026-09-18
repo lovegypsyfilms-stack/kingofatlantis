@@ -1,0 +1,224 @@
+{
+ "image": "vehicles.png",
+ "source_master": "masters/street/vehicles-kpd-atlas.png",
+ "frames": {
+  "truck_0": {
+   "rect": [
+    19,
+    31,
+    186,
+    161
+   ],
+   "pivot": [
+    93.0,
+    80.5
+   ]
+  },
+  "truck_1": {
+   "rect": [
+    209,
+    36,
+    163,
+    152
+   ],
+   "pivot": [
+    81.5,
+    76.0
+   ]
+  },
+  "truck_2": {
+   "rect": [
+    380,
+    38,
+    164,
+    150
+   ],
+   "pivot": [
+    82.0,
+    75.0
+   ]
+  },
+  "truck_3": {
+   "rect": [
+    553,
+    34,
+    184,
+    159
+   ],
+   "pivot": [
+    92.0,
+    79.5
+   ]
+  },
+  "hatch_0": {
+   "rect": [
+    28,
+    227,
+    165,
+    119
+   ],
+   "pivot": [
+    82.5,
+    59.5
+   ]
+  },
+  "hatch_1": {
+   "rect": [
+    213,
+    231,
+    168,
+    108
+   ],
+   "pivot": [
+    84.0,
+    54.0
+   ]
+  },
+  "hatch_2": {
+   "rect": [
+    393,
+    227,
+    165,
+    109
+   ],
+   "pivot": [
+    82.5,
+    54.5
+   ]
+  },
+  "hatch_3": {
+   "rect": [
+    558,
+    227,
+    183,
+    119
+   ],
+   "pivot": [
+    91.5,
+    59.5
+   ]
+  },
+  "police_0": {
+   "rect": [
+    18,
+    530,
+    189,
+    151
+   ],
+   "pivot": [
+    94.5,
+    75.5
+   ]
+  },
+  "police_1": {
+   "rect": [
+    211,
+    542,
+    160,
+    130
+   ],
+   "pivot": [
+    80.0,
+    65.0
+   ]
+  },
+  "police_2": {
+   "rect": [
+    391,
+    535,
+    162,
+    138
+   ],
+   "pivot": [
+    81.0,
+    69.0
+   ]
+  },
+  "police_3": {
+   "rect": [
+    558,
+    529,
+    184,
+    152
+   ],
+   "pivot": [
+    92.0,
+    76.0
+   ]
+  }
+ },
+ "animations": {
+  "truck_S": {
+   "frames": [
+    "truck_0"
+   ],
+   "frame_duration": 1,
+   "loop": true,
+   "events": {}
+  },
+  "truck_N": {
+   "frames": [
+    "truck_1"
+   ],
+   "frame_duration": 1,
+   "loop": true,
+   "events": {}
+  },
+  "truck_E": {
+   "frames": [
+    "truck_3"
+   ],
+   "frame_duration": 1,
+   "loop": true,
+   "events": {}
+  },
+  "hatch_S": {
+   "frames": [
+    "hatch_0"
+   ],
+   "frame_duration": 1,
+   "loop": true,
+   "events": {}
+  },
+  "hatch_N": {
+   "frames": [
+    "hatch_1"
+   ],
+   "frame_duration": 1,
+   "loop": true,
+   "events": {}
+  },
+  "hatch_E": {
+   "frames": [
+    "hatch_3"
+   ],
+   "frame_duration": 1,
+   "loop": true,
+   "events": {}
+  },
+  "police_S": {
+   "frames": [
+    "police_0"
+   ],
+   "frame_duration": 1,
+   "loop": true,
+   "events": {}
+  },
+  "police_N": {
+   "frames": [
+    "police_1"
+   ],
+   "frame_duration": 1,
+   "loop": true,
+   "events": {}
+  },
+  "police_E": {
+   "frames": [
+    "police_3"
+   ],
+   "frame_duration": 1,
+   "loop": true,
+   "events": {}
+  }
+ }
+}

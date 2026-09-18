@@ -1,0 +1,406 @@
+{
+ "image": "daily-props.png",
+ "source_master": "masters/v4/daily-loop-props-atlas.png",
+ "frames": {
+  "bag_0": {
+   "rect": [
+    38,
+    50,
+    214,
+    308
+   ],
+   "pivot": [
+    107.0,
+    154.0
+   ]
+  },
+  "bag_1": {
+   "rect": [
+    304,
+    71,
+    212,
+    289
+   ],
+   "pivot": [
+    106.0,
+    144.5
+   ]
+  },
+  "bag_2": {
+   "rect": [
+    516,
+    45,
+    252,
+    315
+   ],
+   "pivot": [
+    126.0,
+    157.5
+   ]
+  },
+  "bag_3": {
+   "rect": [
+    818,
+    67,
+    201,
+    292
+   ],
+   "pivot": [
+    100.5,
+    146.0
+   ]
+  },
+  "bag_4": {
+   "rect": [
+    1074,
+    90,
+    202,
+    241
+   ],
+   "pivot": [
+    101.0,
+    120.5
+   ]
+  },
+  "bag_5": {
+   "rect": [
+    1292,
+    89,
+    207,
+    246
+   ],
+   "pivot": [
+    103.5,
+    123.0
+   ]
+  },
+  "icecream_0": {
+   "rect": [
+    50,
+    399,
+    206,
+    193
+   ],
+   "pivot": [
+    103.0,
+    96.5
+   ]
+  },
+  "icecream_1": {
+   "rect": [
+    313,
+    395,
+    199,
+    197
+   ],
+   "pivot": [
+    99.5,
+    98.5
+   ]
+  },
+  "icecream_2": {
+   "rect": [
+    512,
+    395,
+    254,
+    197
+   ],
+   "pivot": [
+    127.0,
+    98.5
+   ]
+  },
+  "icecream_3": {
+   "rect": [
+    766,
+    406,
+    197,
+    183
+   ],
+   "pivot": [
+    98.5,
+    91.5
+   ]
+  },
+  "icecream_4": {
+   "rect": [
+    1026,
+    381,
+    202,
+    204
+   ],
+   "pivot": [
+    101.0,
+    102.0
+   ]
+  },
+  "icecream_5": {
+   "rect": [
+    1228,
+    388,
+    276,
+    197
+   ],
+   "pivot": [
+    138.0,
+    98.5
+   ]
+  },
+  "item_0": {
+   "rect": [
+    54,
+    632,
+    301,
+    147
+   ],
+   "pivot": [
+    150.5,
+    73.5
+   ]
+  },
+  "item_1": {
+   "rect": [
+    355,
+    664,
+    183,
+    103
+   ],
+   "pivot": [
+    91.5,
+    51.5
+   ]
+  },
+  "item_2": {
+   "rect": [
+    624,
+    626,
+    157,
+    158
+   ],
+   "pivot": [
+    78.5,
+    79.0
+   ]
+  },
+  "item_3": {
+   "rect": [
+    841,
+    622,
+    159,
+    162
+   ],
+   "pivot": [
+    79.5,
+    81.0
+   ]
+  },
+  "item_4": {
+   "rect": [
+    1039,
+    607,
+    203,
+    182
+   ],
+   "pivot": [
+    101.5,
+    91.0
+   ]
+  },
+  "item_5": {
+   "rect": [
+    1242,
+    607,
+    257,
+    182
+   ],
+   "pivot": [
+    128.5,
+    91.0
+   ]
+  },
+  "sparkle_0": {
+   "rect": [
+    209,
+    843,
+    85,
+    101
+   ],
+   "pivot": [
+    42.5,
+    50.5
+   ]
+  },
+  "sparkle_1": {
+   "rect": [
+    413,
+    818,
+    178,
+    144
+   ],
+   "pivot": [
+    89.0,
+    72.0
+   ]
+  },
+  "sparkle_2": {
+   "rect": [
+    693,
+    800,
+    245,
+    184
+   ],
+   "pivot": [
+    122.5,
+    92.0
+   ]
+  },
+  "sparkle_3": {
+   "rect": [
+    1021,
+    803,
+    311,
+    181
+   ],
+   "pivot": [
+    155.5,
+    90.5
+   ]
+  }
+ },
+ "animations": {
+  "bag": {
+   "frames": [
+    "bag_0",
+    "bag_1",
+    "bag_2",
+    "bag_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "bag_tiltL": {
+   "frames": [
+    "bag_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "bag_tiltR": {
+   "frames": [
+    "bag_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "tub_closed": {
+   "frames": [
+    "icecream_0"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "tub_full": {
+   "frames": [
+    "icecream_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "tub_scraped": {
+   "frames": [
+    "icecream_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "spoon": {
+   "frames": [
+    "icecream_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "tub_eating": {
+   "frames": [
+    "icecream_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "tub_aside": {
+   "frames": [
+    "icecream_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "carrot": {
+   "frames": [
+    "item_0"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "carrot_bitten": {
+   "frames": [
+    "item_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "keys": {
+   "frames": [
+    "item_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "phone": {
+   "frames": [
+    "item_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "portal": {
+   "frames": [
+    "item_4"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "shop_portal": {
+   "frames": [
+    "item_5"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "sparkle": {
+   "frames": [
+    "sparkle_0",
+    "sparkle_1",
+    "sparkle_2",
+    "sparkle_3"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  }
+ }
+}

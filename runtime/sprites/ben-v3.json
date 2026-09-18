@@ -1,0 +1,440 @@
+{
+ "image": "ben-v3.png",
+ "source_master": "masters/sprites/ben-directional-walk-v3-gold-crown.png",
+ "frames": {
+  "S_0": {
+   "rect": [
+    271,
+    5,
+    108,
+    175
+   ],
+   "pivot": [
+    54.0,
+    173
+   ]
+  },
+  "S_1": {
+   "rect": [
+    493,
+    5,
+    105,
+    173
+   ],
+   "pivot": [
+    52.5,
+    171
+   ]
+  },
+  "S_2": {
+   "rect": [
+    706,
+    5,
+    107,
+    174
+   ],
+   "pivot": [
+    53.5,
+    172
+   ]
+  },
+  "SE_0": {
+   "rect": [
+    272,
+    185,
+    104,
+    174
+   ],
+   "pivot": [
+    52.0,
+    172
+   ]
+  },
+  "SE_1": {
+   "rect": [
+    495,
+    185,
+    92,
+    175
+   ],
+   "pivot": [
+    46.0,
+    173
+   ]
+  },
+  "SE_2": {
+   "rect": [
+    707,
+    186,
+    118,
+    174
+   ],
+   "pivot": [
+    59.0,
+    172
+   ]
+  },
+  "E_0": {
+   "rect": [
+    265,
+    364,
+    100,
+    175
+   ],
+   "pivot": [
+    50.0,
+    173
+   ]
+  },
+  "E_1": {
+   "rect": [
+    487,
+    368,
+    112,
+    171
+   ],
+   "pivot": [
+    56.0,
+    169
+   ]
+  },
+  "E_2": {
+   "rect": [
+    720,
+    365,
+    101,
+    174
+   ],
+   "pivot": [
+    50.5,
+    172
+   ]
+  },
+  "NE_0": {
+   "rect": [
+    275,
+    545,
+    108,
+    176
+   ],
+   "pivot": [
+    54.0,
+    174
+   ]
+  },
+  "NE_1": {
+   "rect": [
+    490,
+    549,
+    109,
+    175
+   ],
+   "pivot": [
+    54.5,
+    173
+   ]
+  },
+  "NE_2": {
+   "rect": [
+    709,
+    548,
+    115,
+    175
+   ],
+   "pivot": [
+    57.5,
+    173
+   ]
+  },
+  "N_0": {
+   "rect": [
+    269,
+    729,
+    105,
+    176
+   ],
+   "pivot": [
+    52.5,
+    174
+   ]
+  },
+  "N_1": {
+   "rect": [
+    490,
+    729,
+    104,
+    176
+   ],
+   "pivot": [
+    52.0,
+    174
+   ]
+  },
+  "N_2": {
+   "rect": [
+    708,
+    730,
+    105,
+    175
+   ],
+   "pivot": [
+    52.5,
+    173
+   ]
+  },
+  "NW_0": {
+   "rect": [
+    272,
+    911,
+    102,
+    175
+   ],
+   "pivot": [
+    51.0,
+    173
+   ]
+  },
+  "NW_1": {
+   "rect": [
+    490,
+    905,
+    98,
+    181
+   ],
+   "pivot": [
+    49.0,
+    179
+   ]
+  },
+  "NW_2": {
+   "rect": [
+    699,
+    910,
+    110,
+    176
+   ],
+   "pivot": [
+    55.0,
+    174
+   ]
+  },
+  "W_0": {
+   "rect": [
+    264,
+    1091,
+    112,
+    171
+   ],
+   "pivot": [
+    56.0,
+    169
+   ]
+  },
+  "W_1": {
+   "rect": [
+    477,
+    1092,
+    112,
+    171
+   ],
+   "pivot": [
+    56.0,
+    169
+   ]
+  },
+  "W_2": {
+   "rect": [
+    589,
+    1091,
+    225,
+    173
+   ],
+   "pivot": [
+    112.5,
+    171
+   ]
+  },
+  "SW_0": {
+   "rect": [
+    265,
+    1272,
+    111,
+    172
+   ],
+   "pivot": [
+    55.5,
+    170
+   ]
+  },
+  "SW_1": {
+   "rect": [
+    487,
+    1272,
+    107,
+    172
+   ],
+   "pivot": [
+    53.5,
+    170
+   ]
+  },
+  "SW_2": {
+   "rect": [
+    712,
+    1272,
+    102,
+    172
+   ],
+   "pivot": [
+    51.0,
+    170
+   ]
+  }
+ },
+ "animations": {
+  "walk_S": {
+   "frames": [
+    "S_0",
+    "S_1",
+    "S_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "idle_S": {
+   "frames": [
+    "S_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "walk_SE": {
+   "frames": [
+    "SE_0",
+    "SE_1",
+    "SE_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "idle_SE": {
+   "frames": [
+    "SE_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "walk_E": {
+   "frames": [
+    "E_0",
+    "E_1",
+    "E_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "idle_E": {
+   "frames": [
+    "E_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "walk_NE": {
+   "frames": [
+    "NE_0",
+    "NE_1",
+    "NE_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "idle_NE": {
+   "frames": [
+    "NE_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "walk_N": {
+   "frames": [
+    "N_0",
+    "N_1",
+    "N_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "idle_N": {
+   "frames": [
+    "N_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "walk_NW": {
+   "frames": [
+    "NW_0",
+    "NW_1",
+    "NW_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "idle_NW": {
+   "frames": [
+    "NW_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "walk_W": {
+   "frames": [
+    "W_0",
+    "W_1",
+    "W_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "idle_W": {
+   "frames": [
+    "W_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "walk_SW": {
+   "frames": [
+    "SW_0",
+    "SW_1",
+    "SW_2"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  },
+  "idle_SW": {
+   "frames": [
+    "SW_1"
+   ],
+   "frame_duration": 0.12,
+   "loop": true,
+   "events": {}
+  }
+ }
+}
