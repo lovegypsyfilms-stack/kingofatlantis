@@ -19,6 +19,12 @@ const CFG = {
   streetShotCost: 1, streetCooldown: 0.6, streetWaveSpeed: 950, streetWaveRange: 650,
   benStreetSpeed: 215, benStreetHeight: 66, ingressDrain: 10, ingressOverload: 25, vehicleDamage: 15,
   // room/backyard
+  // camera framing (1 = previous framing). Night fight zooms back in after the reveal; day room + street sit closer.
+  battleZoom: 2.25, demonZoom: 1.9, roomZoom: 2.3, streetZoom: 3.0,
+  // difficulty: night N runs at daySpeedUp^(N-1) speed; the act ends after night finalNight's demon
+  daySpeedUp: 1.5, finalNight: 3,
+  // beach barrier wave
+  beachFoes: 4, beachFoeScale: 0.34, beachFoeSpeed: 0.55, beachContactDrain: 8, beachContactHurt: 6,
   benRoomSpeed: 330, benRoomHeight: 235, benYardHeight: 118,
 };
 
@@ -285,6 +291,7 @@ const Assets = {
       const m = this.meta[k];
       if (m.image) want['atlas_' + k] = m._dir + '/' + m.image;
       if (m.tiles) for (const t of m.tiles) want[`tile_${m.district}_${t.row}_${t.col}`] = t.path;
+      if (m.image && k in { kben: 1 }) { /* Kalalau Ben is the only Ben sheet used in Act 2 */ }
     }
     // hard guard: obsolete Ben sheets must never load
     for (const k in want) {

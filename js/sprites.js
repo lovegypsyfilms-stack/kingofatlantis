@@ -315,7 +315,7 @@ function drawDemon(ctx, x, y, size, stage, heading, flap, opts = {}) {
     if (opts.dying) { const d = Assets.anim('demon', 'death'); nm = d.frames[Math.min(d.frames.length - 1, Math.floor((opts.dieT || 0) / 0.6))]; }
     else if (opts.lunging) { nm = 'lunge_0'; flip = left; }
     else if (stage > 0) { nm = 'fracture_' + Math.min(stage, 4); flip = left; }
-    else nm = 'fly_' + DIRS[dirFromVec(Math.cos(heading), Math.sin(heading))];
+    else { const an = Assets.anim('demon', 'fly_' + DIRS[dirFromVec(Math.cos(heading), Math.sin(heading))]); nm = an && an.frames[0]; }
     if (Assets.frame('demon', nm)) {
       const bob = Math.sin(flap * 4) * size * 0.02;
       if (opts.flare) { const g = ctx.createRadialGradient(x, y, 10, x, y, size * 0.6); g.addColorStop(0, `rgba(255,140,40,${0.35 * opts.flare})`); g.addColorStop(1, 'rgba(255,80,20,0)');
