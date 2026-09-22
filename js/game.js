@@ -18,7 +18,7 @@ const YARD = { // 03-state-housing-backyard.png (Asset Pack v1): Ben's ground-fl
     [1500, 560], [1450, 600], [1300, 625], [1200, 700], [1000, 760], [880, 735], [720, 735], [600, 705], [485, 725], [470, 935],
     [300, 935], [300, 770], [330, 640], [445, 605], [425, 500], [330, 470], [290, 330]],
   block: [[240, 520, 455, 650], [1060, 540, 1165, 610]],
-  door: [1345, 478], gate: [385, 905], hutch: [560, 560],
+  door: [1345, 478], gate: [385, 905], hutch: [430, 770], burrow: [300, 700],
   nodes: [[385, 900], [400, 780], [540, 660], [560, 560], [700, 560], [900, 600], [1100, 540], [1320, 500], [1345, 478], [480, 400], [360, 250], [260, 80], [800, 420]],
   walkInDoor: [-0.35, 1], walkInGate: [0.15, -1],
 };
@@ -195,9 +195,10 @@ const Game = {
     if (this.mode === 'street') { // daytime battle: the shade barrier, or people charging at Ben (holds 5 s after the last one)
       if (s.foes && s.foesLeft > 0 && s.barrierY) this.lastFight = this.time;
       let seeking = false; this.peds.each(p => { if (p.seek > 0 && p.energetic) seeking = true; }); if (seeking) this.lastFight = this.time;
-      if (this.time - (this.lastFight || -99) < 5) return 'battle-day';
+      if (this.time - (this.lastFight || -99) < 4) return 'battle-day';
     }
-    if (this.mode === 'street' || this.mode === 'yard') return 'town';
+    // otherwise Act 1 sits on the house music (Mountain Dreamers) — the drums fade up for a fight and back down to this after
+    if (this.mode === 'street' || this.mode === 'yard') return 'town'; // the house music cue, if it's armed and not used up
     return null;
   },
   onAnyInput() {
@@ -248,7 +249,7 @@ const Game = {
     this.go(NEXT[this.state], S[this.state].exitFade || { fade: 0.5 });
   },
   // Ben's own voice: a small subtitle in the lower third + the browser voice (lower, slower than the street callouts)
-  benLine(text, delay = 0, dur = 5) { this.line = { text, t: -delay, dur, spoken: false }; },
+  benLine(text, delay = 0, dur = 5, big = false) { this.line = { text, t: -delay, dur, spoken: false, big }; },
 
   /* ---------------- per-frame ---------------- */
   frame(dt) {
@@ -637,9 +638,32 @@ function drawRoomActors(ctx) {
     return;
   }
   const battle = this.state === 'LESSER_ENTITIES' || this.state === 'DEMON_BATTLE';
+  if (battle || this.state === 'ASTRAL_REVEAL') { // his body stays asleep in bed; the astral form is the one that got up
+    drawBodyAsleep.call(this, ctx); drawAstralBen.call(this, ctx, b); return;
+  }
   ctx.save(); ctx.globalAlpha = b.alpha;
   drawBen(ctx, b.x, b.y, b.h, b.dir, b.phase, { moving: b.moving, pose: b.pose, poseT: b.poseT, bag: this.inv.carryingBag, crownGlow: battle ? 0.9 : 0 });
   ctx.restore();
+}
+function drawBodyAsleep(ctx) {
+  drawBenAsleep(ctx, ROOM.sleep[0], ROOM.sleep[1], CFG.benRoomHeight, Math.sin(this.time * 1.6));
+  if (Assets.has('ben_gold')) { const poly = ROOM.blanket; ctx.save(); ctx.beginPath(); poly.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.clip(); ctx.drawImage(this.layer, 0, 0); ctx.restore(); }
+}
+// astral form: Ben drawn to an offscreen canvas, tinted spirit-blue, shown translucent with a soft glow and a faint silver cord back to the body
+let _astralCanvas = null;
+function drawAstralBen(ctx, b) {
+  const S = Math.ceil(b.h * 3.2);
+  if (!_astralCanvas || _astralCanvas.width !== S) { _astralCanvas = document.createElement('canvas'); _astralCanvas.width = S; _astralCanvas.height = S; }
+  const a = _astralCanvas.getContext('2d'); a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'source-over'; a.globalAlpha = 1; a.clearRect(0, 0, S, S);
+  drawBen(a, S / 2, S * 0.78, b.h, b.dir, b.phase, { moving: b.moving, pose: b.pose, poseT: b.poseT, crownGlow: 0.9 });
+  a.globalCompositeOperation = 'source-atop'; a.fillStyle = 'rgba(90,170,255,0.52)'; a.fillRect(0, 0, S, S); a.globalCompositeOperation = 'source-over';
+  const bob = Math.sin(this.time * 2.1) * 4;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(170,215,255,0.22)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ROOM.sleep[0] + 40, ROOM.sleep[1] + 10);
+  ctx.quadraticCurveTo((ROOM.sleep[0] + b.x) / 2, Math.min(ROOM.sleep[1], b.y) - 120, b.x, b.y - b.h * 0.5 + bob); ctx.stroke();
+  const g = ctx.createRadialGradient(b.x, b.y - b.h * 0.5, 10, b.x, b.y - b.h * 0.5, b.h * 0.8); g.addColorStop(0, 'rgba(110,180,255,0.28)'); g.addColorStop(1, 'rgba(110,180,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(b.x - b.h, b.y - b.h * 1.4, b.h * 2, b.h * 2); ctx.restore();
+  ctx.save(); ctx.globalAlpha = 0.72 * b.alpha; ctx.drawImage(_astralCanvas, b.x - S / 2, b.y - S * 0.78 + bob);
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.18 * b.alpha; ctx.drawImage(_astralCanvas, b.x - S / 2, b.y - S * 0.78 + bob); ctx.restore();
 }
 
 /* ------------------------------------------------------------------ psychic combat (shared by lesser + demon) */
@@ -985,6 +1009,10 @@ function yardUpdate(dt, live) {
   p.t += dt;
   // guinea pig notices Ben and scurries over
   if (p.state === 'idle') { s.noticeT -= dt; if (s.noticeT <= 0) { p.state = 'run'; Audio.sfx('squeak'); } }
+  if (p.bubble) { p.bubble.t += dt; if (p.bubble.t > p.bubble.dur) p.bubble = null; }
+  if (p.leaveT > 0) { p.leaveT -= dt; if (p.leaveT <= 0) { p.state = 'leaving'; Audio.sfx('squeak'); } }
+  if (p.state === 'leaving') { const tx = YARD.burrow[0], ty = YARD.burrow[1], dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy); p.facing = dx >= 0 ? 1 : -1;
+    if (d > 8) { const sp = Math.min(d, 380 * dt); p.x += dx / d * sp; p.y += dy / d * sp; p.alpha = clamp(d / 120, 0, 1); } else { p.state = 'gone'; p.alpha = 0; } }
   if (p.state === 'run' || p.state === 'follow') {
     const tx = b.x + (p.x < b.x ? -55 : 55), ty = b.y + 12; const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
     p.facing = dx >= 0 ? 1 : -1;
@@ -999,7 +1027,14 @@ function yardUpdate(dt, live) {
       this.stats.astral = Math.min(100, this.stats.astral + amt); this.sparkle(p.x, p.y - 30, 30); this.propFx = { x: (p.x + b.x) / 2, y: b.y - b.h * 0.6, t: 0 }; Audio.sfx('sparkle');
       this.say(`Warm gold — astral defence +${amt}`); this.feedLog = (this.feedLog || []).concat([{ state: this.state, amt }]);
     }
-    if (f.t > 3.0) { s.feeding = null; s.fed = true; p.state = 'follow'; this.objective = s.evening ? 'Go inside' : 'Head out the gate'; }
+    if (f.t > 3.0) {
+      s.feeding = null; s.fed = true; this.objective = s.evening ? 'Go inside' : 'Head out the gate';
+      if (s.evening && this.day === 1) { // after the second carrot of day 1 the guinea pig makes its vow, then goes back to its hiding place
+        p.bubble = { text: 'I will journey with you, oh benefactor and lost king!', t: 0, dur: 5 }; Audio.say('I will journey with you, oh benefactor and lost king!', { pitch: 1.7, rate: 1.05 }); Audio.sfx('sparkle'); this.sparkle(p.x, p.y - 30, 30);
+        this.pigVow = true; p.state = 'follow'; p.leaveT = 5.2;
+      } else if (this.day === 1) { p.state = 'follow'; p.leaveT = 0.6; } // day 1 morning: munch, then scurry off
+      else p.state = 'follow'; // day 2: it's coming with him
+    }
     return;
   }
   if (!live) return;
@@ -1017,7 +1052,11 @@ function yardUpdate(dt, live) {
 }
 function yardDraw(ctx) {
   const s = this.sub, b = this.ben, p = s.pig;
-  const items = [{ y: p.y, f: () => drawGuineaPig(ctx, p.x, p.y, 58, p.state, p.t, p.facing, p.eatFrame, p.state === 'follow' && !s.fed) },
+  const items = [{ y: p.y, f: () => { if (p.state === 'gone') return; ctx.save(); ctx.globalAlpha = p.alpha == null ? 1 : p.alpha; drawGuineaPig(ctx, p.x, p.y, 58, p.state === 'leaving' ? 'run' : p.state, p.t, p.facing, p.eatFrame, p.state === 'follow' && !s.fed); ctx.restore();
+      if (p.bubble) { const a = Math.min(1, (p.bubble.dur - p.bubble.t) * 2, p.bubble.t * 4); ctx.save(); ctx.globalAlpha = a; ctx.font = 'bold 22px system-ui, sans-serif'; ctx.textAlign = 'center';
+        const words = p.bubble.text.split(' '), l1 = words.slice(0, 4).join(' '), l2 = words.slice(4).join(' '), w = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + 28;
+        ctx.fillStyle = 'rgba(255,255,255,0.94)'; rr(ctx, p.x - w / 2, p.y - 150, w, 66, 12); ctx.fill(); ctx.beginPath(); ctx.moveTo(p.x - 8, p.y - 84); ctx.lineTo(p.x + 8, p.y - 84); ctx.lineTo(p.x, p.y - 66); ctx.fill();
+        ctx.fillStyle = '#3a2410'; ctx.fillText(l1, p.x, p.y - 124); ctx.fillText(l2, p.x, p.y - 98); ctx.restore(); } } },
     { y: b.y, f: () => drawBen(ctx, b.x, b.y, b.h, b.dir, b.phase, { moving: b.moving, bag: this.inv.carryingBag, carrot: s.feeding && s.feeding.t < 0.6 }) }];
   items.sort((a, c) => a.y - c.y).forEach(i => i.f());
   if (this.propFx && Assets.anim('props', 'sparkle')) { const f = this.propFx; f.t += 1 / 60; const an = Assets.anim('props', 'sparkle'); const i = Math.min(an.frames.length - 1, Math.floor(f.t / 0.22));
@@ -1030,7 +1069,7 @@ function yardPrompt() {
   if (s.nearExit) return s.evening ? 'Go inside' : 'Out the gate';
   return null;
 }
-S.BACKYARD_MORNING = { enter() { yardEnter.call(this, false); }, update: yardUpdate, draw: yardDraw, prompt: yardPrompt, exitFade: { fade: 0.9, style: 'cross' } };
+S.BACKYARD_MORNING = { enter() { yardEnter.call(this, false); Music.arm('town'); }, update: yardUpdate, draw: yardDraw, prompt: yardPrompt, exitFade: { fade: 0.9, style: 'cross' } };
 S.BACKYARD_EVENING = { enter() { yardEnter.call(this, true); }, update: yardUpdate, draw: yardDraw, prompt: yardPrompt, exitFade: { fade: 0.6 } };
 
 /* ---- Street (v3 near-top-down orthographic) ---- */
@@ -1428,7 +1467,7 @@ S.TOWN_RETURN = {
   debugSkip() { this.ben.x = TOWN.southIn[0]; this.ben.y = TOWN.southIn[1] + 2; },
 };
 S.BEACH_RETURN = {
-  enter() { mapEnter.call(this, COAST, COAST.northSpawn, 4, COAST.south, true, 'beach-ret'); this.objective = 'GET HOME — ALONG THE COAST PATH'; },
+  enter() { Music.arm('town'); mapEnter.call(this, COAST, COAST.northSpawn, 4, COAST.south, true, 'beach-ret'); this.objective = 'GET HOME — ALONG THE COAST PATH'; },
   update(dt, live) { streetUpdate.call(this, dt, live); if (live && this.ben.y > COAST.south[1] - 24) this.complete(); },
   draw: streetDraw, prompt: streetPrompt, exitFade: { fade: 0.9, style: 'cross' },
   debugSkip() { this.ben.x = COAST.south[0]; this.ben.y = COAST.south[1] + 4; },
@@ -1477,7 +1516,7 @@ S.BED = {
       if (!live) return;
       this.moveBen(dt, CFG.benRoomSpeed, benRoomCanStand);
       s.nearBed = dist(b.x, b.y, ROOM.bedZone[0], ROOM.bedZone[1]) < 170;
-      if (s.nearBed && Input.action()) { s.phase = 'getIn'; s.t = 0; Audio.sfx('sleep'); b.asleep = true; b.x = ROOM.sleep[0]; b.y = ROOM.sleep[1]; this.benLine('The nights are the hardest.', 0.4, 3.6); }
+      if (s.nearBed && Input.action()) { s.phase = 'getIn'; s.t = 0; Audio.sfx('sleep'); b.asleep = true; b.x = ROOM.sleep[0]; b.y = ROOM.sleep[1]; this.benLine('The nights are the hardest.', 0.4, 4.2, true); }
     } else {
       // fade the room toward night: day -> astral-night plate, lights down
       const k = clamp(s.t / 4.2, 0, 1); this.room.mix = ease(k); this.room.evening = 1 - k;
@@ -1596,12 +1635,19 @@ const UI = {
     if (G.toast) { const a = Math.min(1, (G.toast.dur - G.toast.t) * 2, G.toast.t * 5); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.font = '13px system-ui, sans-serif'; ctx.fillStyle = '#fff4d6'; ctx.fillText(G.toast.text, G.W / 2, G.H * 0.22); ctx.globalAlpha = 1; }
     if (G.line) { const L = G.line;
       if (L.t >= 0 && !L.spoken) { L.spoken = true; Audio.say(L.text, { pitch: 0.75, rate: 0.92 }); }
-      if (L.t >= 0) { const a = clamp(Math.min(L.t / 0.6, (L.dur - L.t) / 0.8), 0, 1); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.font = `italic ${Math.min(19, G.W / 34)}px Georgia, serif`;
-        const w = Math.min(G.W - 60, ctx.measureText(L.text).width + 40); ctx.fillStyle = 'rgba(0,0,0,0.5)'; rr(ctx, G.W / 2 - w / 2, G.H * 0.72 - 24, w, 36, 10); ctx.fill();
-        ctx.fillStyle = '#f3ead2'; ctx.fillText(L.text, G.W / 2, G.H * 0.72, G.W - 80); ctx.globalAlpha = 1; }
+      if (L.t >= 0) { const a = clamp(Math.min(L.t / 0.6, (L.dur - L.t) / 0.8), 0, 1); ctx.globalAlpha = a; ctx.textAlign = 'center';
+        // size to the screen, wrapping onto extra lines on narrow (portrait) screens instead of shrinking
+        const fs = L.big ? clamp(G.W / 16, 26, 40) : clamp(G.W / 34, 19, 22), maxW = G.W - 56; ctx.font = `italic ${fs}px Georgia, serif`;
+        const lines = []; let cur = ''; for (const w of L.text.split(' ')) { const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW - 24 && cur) { lines.push(cur); cur = w; } else cur = t; } if (cur) lines.push(cur);
+        const lh = fs * 1.3, bw = Math.min(maxW, Math.max(...lines.map(l => ctx.measureText(l).width)) + 36), bh = lines.length * lh + fs * 0.7;
+        const cy = L.big ? G.H * 0.6 : G.H * (G.W < G.H ? 0.66 : 0.72), y0 = cy - bh / 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; rr(ctx, G.W / 2 - bw / 2, y0, bw, bh, 12); ctx.fill();
+        ctx.fillStyle = '#f3ead2'; lines.forEach((l, i) => ctx.fillText(l, G.W / 2, y0 + fs * 0.35 + (i + 0.8) * lh)); ctx.globalAlpha = 1; }
       if (L.t > L.dur) G.line = null; }
     if (G.center) { const c = G.center; const a = Math.min(1, c.t / 0.8, (c.dur - c.t) / 0.6);
-      if (a > 0) { ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe6a0'; ctx.shadowColor = '#e0a030'; ctx.shadowBlur = 18; ctx.font = `600 ${Math.min(34, G.W / 18)}px Georgia, serif`; ctx.fillText(c.text, G.W / 2, G.H / 2); ctx.shadowBlur = 0; ctx.globalAlpha = 1; }
+      if (a > 0) { ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe6a0'; ctx.shadowColor = '#e0a030'; ctx.shadowBlur = 18; const fs = clamp(G.W / 16, 22, 34); ctx.font = `600 ${fs}px Georgia, serif`;
+        const lines = []; let cur = ''; for (const w of c.text.split(' ')) { const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > G.W - 48 && cur) { lines.push(cur); cur = w; } else cur = t; } if (cur) lines.push(cur);
+        lines.forEach((l, i) => ctx.fillText(l, G.W / 2, G.H / 2 + (i - (lines.length - 1) / 2) * fs * 1.25)); ctx.shadowBlur = 0; ctx.globalAlpha = 1; }
       if (c.t > c.dur) G.center = null; }
     this.standinTag(ctx);
     this.touch(ctx);

@@ -287,23 +287,35 @@ const Audio = {
 // Tracks: battle-day = Rhythm Scott "Action Drums", battle-night = Rhythm Scott "Full Strength".
 // town = Mountain Dreamers "Spirits Over The High Ridge" — the everyday Kapaʻa music (yard + streets + coast, outside fights).
 const Music = {
+  // Cues, not wallpaper: only one track is ever audible. A new cue waits for the old one to fade out first.
+  //   town = Mountain Dreamers (plays once when armed: each morning going out, and on the way home)
+  //   battle-day / battle-night = Rhythm Scott (loop for the length of a fight, then fade away)
   tracks: { 'battle-day': 'runtime/music/battle-day.mp3', 'battle-night': 'runtime/music/battle-night.mp3', town: 'runtime/music/town.mp3' },
-  el: {}, want: null, vol: 0.55, fade: 1.6, enabled: true, unlocked: false,
+  loops: { 'battle-day': true, 'battle-night': true, town: false },
+  el: {}, want: null, vol: 0.22, fadeIn: 2.0, fadeOut: 3.0, handoff: 0.7, armed: {}, enabled: true, unlocked: false,
   get muted() { try { return localStorage.getItem('koa-music') === '0'; } catch (e) { return false; } },
   set muted(v) { try { localStorage.setItem('koa-music', v ? '0' : '1'); } catch (e) { } },
   unlock() { // browsers only allow audio after a gesture: create + prime the elements on the first input
     if (this.unlocked) return; this.unlocked = true;
-    for (const k in this.tracks) { const a = new window.Audio(this.tracks[k]); a.loop = true; a.preload = 'auto'; a.volume = 0; this.el[k] = a; }
+    for (const k in this.tracks) { const a = new window.Audio(this.tracks[k]); a.loop = !!this.loops[k]; a.preload = 'auto'; a.volume = 0; a.addEventListener('ended', () => { this.armed[k] = false; }); this.el[k] = a; }
   },
+  arm(name) { this.armed[name] = true; const a = this.el[name]; if (a && a.paused) { try { a.currentTime = 0; } catch (e) { } } }, // a one-shot cue: play from the top next time it is wanted
   set(name) { this.want = name && this.tracks[name] ? name : null; },
   update(dt) {
     if (!this.unlocked) return;
-    const target = this.muted ? null : this.want;
+    let target = this.muted ? null : this.want;
+    if (target && this.loops[target]) for (const k in this.loops) if (!this.loops[k]) this.armed[k] = false; // a fight uses up the house cue: after the drums fade, quiet
+    if (target && !this.loops[target] && !this.armed[target]) target = null; // one-shot cue already used up
+    let others = false; for (const k in this.el) if (k !== target && this.el[k].volume > 0.002) others = true;
     for (const k in this.el) {
-      const a = this.el[k], goal = k === target ? this.vol : 0;
-      if (goal > 0 && a.paused) { try { const p = a.play(); if (p && p.catch) p.catch(() => { }); } catch (e) { } }
-      const step = dt / this.fade * this.vol; a.volume = clamp(goal > a.volume ? Math.min(goal, a.volume + step) : Math.max(goal, a.volume - step), 0, 1);
-      if (goal === 0 && a.volume <= 0.001 && !a.paused) a.pause();
+      const a = this.el[k], mine = k === target;
+      if (mine && !others) { // fade in only once the stage is clear
+        if (a.paused) { try { const p = a.play(); if (p && p.catch) p.catch(() => { }); } catch (e) { } }
+        a.volume = Math.min(this.vol, a.volume + dt / this.fadeIn * this.vol);
+      } else if (!mine) { // leaving: fast hand-off when another cue is waiting, slow fade when going to silence
+        const t = target ? this.handoff : this.fadeOut; a.volume = Math.max(0, a.volume - dt / t * this.vol);
+        if (a.volume <= 0.002 && !a.paused) { a.pause(); if (this.loops[k]) { try { a.currentTime = 0; } catch (e) { } } }
+      }
     }
   },
   pauseAll() { for (const k in this.el) this.el[k].pause(); },

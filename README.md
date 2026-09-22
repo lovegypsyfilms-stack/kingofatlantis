@@ -138,3 +138,11 @@ All packs were found on the Mac at `Desktop/GAMES DESIGN/KING OF ATLANTIS/ASSETS
 - **Night marchers**: kneel (E) and they pass, or push them (Space) and the whole procession recoils, veers off the path and fades into the dark.
 - Guide chain after the camp: valley → Red Dirt Hill → trail out (Kamapuaʻa) → west to Crawler's Ledge → top-left exit. Exits are bigger (radius 100), Ben arrives further inside a map, and taps are ignored for half a second after arriving (stops accidental double-exits).
 - Kalalau guinea pig stays behind the title-screen test toggle (default OFF).
+
+## Play-test 10
+- **Music as cues**: only one track is ever audible (a new cue waits for the old one to fade). Much quieter (`Music.vol 0.22`). Mountain Dreamers plays once (not looped) going out each morning and again on the way home; the Rhythm Scott drums fade up for a fight, loop while it lasts, then fade away to quiet (a fight uses up the house cue for that stretch).
+- **Astral Ben**: during the night reveal and fights Ben's body stays asleep in bed; his astral form (blue, translucent, glowing, joined by a faint silver cord) is the one that gets up and fights. Everything else is unchanged.
+- **Guinea pig**: lives by the front gate now. Day 1 morning it munches and scurries off; after the second carrot (day 1 evening) it says *"I will journey with you, oh benefactor and lost king!"* (speech bubble + voice) and leaves; from day 2 it comes along.
+- **Text on portrait phones**: Ben's lines and the centre titles (MADE IT THROUGH ANOTHER NIGHT…) wrap onto extra lines instead of running off screen; "The nights are the hardest." is shown large.
+- **Home-screen icon**: Ben's face and crown from the poster (`icons/`).
+- **Auto-deploy**: builds are pushed to GitHub directly (token stored outside the repo); the site updates ~2 minutes later.
