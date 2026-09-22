@@ -135,7 +135,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
-const GLB='assets/ben.glb', SKIN='assets/ben-skin.jpg', MUS_BATTLE='assets/battle.mp3', MUS_TOWN='assets/town.mp3';
+const GLB='assets/ben.glb?v=051', SKIN='assets/ben-skin.jpg?v=051', MUS_BATTLE='assets/battle.mp3', MUS_TOWN='assets/town.mp3';
 const $=id=>document.getElementById(id);
 const rnd=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), lerp=(a,b,t)=>a+(b-a)*t;
 const V=()=>new THREE.Vector3();
@@ -382,14 +382,15 @@ function makeChar(clone){
   for(const n in CLIPS) ch.A[n]=ch.mixer.clipAction(CLIPS[n]);
   return ch;
 }
+const FALLBACK={PIdle:'Idle',PWalk:'Walk',PRun:'Run'};
 function play(ch,name,{fade=.2,once=false,speed=1}={}){
-  const a=ch.A[name]; if(!a) return null;
+  let a=ch.A[name]; if(!a&&FALLBACK[name]) a=ch.A[FALLBACK[name]]; if(!a){ if(typeof log==='function'&&!play.miss?.[name]){ (play.miss=play.miss||{})[name]=1; log('bug','missing animation '+name); } return null; }
   if(ch.cur===a && !once){ a.timeScale=speed; return a; }
   a.reset(); a.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat); a.clampWhenFinished=once; a.timeScale=speed; a.setEffectiveWeight(1); a.play();
   if(ch.cur && ch.cur!==a) ch.cur.crossFadeTo(a,fade,false);
   ch.cur=a; ch.curName=name; return a;
 }
-const done=a=>a && (a.timeScale>=0 ? a.time>=a.getClip().duration-1e-3 : a.time<=1e-3);
+const done=a=>!a || (a.timeScale>=0 ? a.time>=a.getClip().duration-1e-3 : a.time<=1e-3);
 const prog=a=>a? a.time/a.getClip().duration : 0;
 const tv=V();
 function anchor(ch){ if(!ch.hips) return; ch.root.position.set(0,0,0); ch.g.updateMatrixWorld(true); ch.hips.getWorldPosition(tv); ch.g.worldToLocal(tv); ch.root.position.x=-tv.x; ch.root.position.z=-tv.z; }
@@ -403,7 +404,7 @@ function astralMat(hue,wob){
 }
 
 /* ---------------- bug safety: log, crash guard, autosave, unstuck, report ---------------- */
-const BUILD='3D street test v0.5 · 22 Sep 2026';
+const BUILD='3D street test v0.5.1 · 22 Sep 2026';
 const LOG=[]; let errBurst=0, errWindow=0, lastToast=0;
 function log(type,msg,extra){ const e={t:+(performance.now()/1000).toFixed(1),type,msg:String(msg).slice(0,300)}; if(extra) e.x=extra; LOG.push(e); if(LOG.length>80) LOG.shift();
   try{ localStorage.setItem('koa3d-log',JSON.stringify(LOG.slice(-40))); }catch(_){} }
@@ -432,10 +433,11 @@ function unstuck(auto){
   toast(auto?'Ben was stuck — moved to a safe spot':'Moved Ben to a safe spot');
 }
 // stuck detector: trying to move for 3s but barely moving, not at a wall
-let stuckT=0, stuckFrom=null, lowFpsT=0, lastFpsLog=-99;
+let busyT=0, stuckT=0, stuckFrom=null, lowFpsT=0, lastFpsLog=-99;
 function watchdog(dt,il){
   if(!ben) return;
   const p=ben.g.position;
+  if(B.busy && B.busy!=='down'){ busyT+=dt; if(busyT>4){ log('bug','Ben stuck in "'+B.busy+'" — released'); B.busy=null; busyT=0; } } else busyT=0;
   if(!isFinite(p.x)||!isFinite(p.z)){ log('bug','Ben position became invalid'); p.set(-1,0,12); unstuck(true); return; }
   if(il>.5 && !B.busy && started && !won && !ben.m.blocked){
     if(!stuckFrom){ stuckFrom=p.clone(); stuckT=0; } stuckT+=dt;
@@ -735,7 +737,7 @@ function resetGame(){
 }
 
 /* ---------------- load ---------------- */
-let buf=null; const bufP=fetch(GLB).then(r=>r.arrayBuffer()).then(b=>buf=b);
+let buf=null; const bufP=fetch(GLB,{cache:'no-cache'}).then(r=>r.arrayBuffer()).then(b=>buf=b);
 const img=new Image();
 img.onload=()=>{ TEX=new THREE.Texture(img); TEX.flipY=false; TEX.colorSpace=THREE.SRGBColorSpace; TEX.anisotropy=4; TEX.needsUpdate=true;
   bufP.then(()=>loader.parse(buf,'',gltf=>{
