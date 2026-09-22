@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="../icons/icon-180.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0} [hidden]{display:none!important}</style>
+</head><body>
+<title>Ben 3D Room Test</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Karla:wght@400;600&display=swap">
+<style>
+  :root{
+    --ink:#efe7d4; --deep:#08141c; --panel:rgba(8,20,28,.82); --gold:#d9b45a; --astral:#6fb6ff; --line:rgba(217,180,90,.35); --red:#e0785a;
+  }
+  html,body{height:100%;}
+  body{background:var(--deep);color:var(--ink);font-family:Karla,system-ui,sans-serif;overflow:hidden;}
+  #stage{position:fixed;inset:0;touch-action:none;}
+  #bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:none;}
+  #gl{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .bar{position:fixed;left:0;right:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-inline:16px;pointer-events:none;}
+  .bar > *{pointer-events:auto;}
+  .top{top:0;padding-top:calc(env(safe-area-inset-top,0px) + 12px);}
+  .bottom{bottom:0;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);justify-content:center;}
+  .spacer{flex:1;pointer-events:none;}
+  .chip{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;backdrop-filter:blur(6px);}
+  h1{font-family:Cinzel,Georgia,serif;font-size:15px;letter-spacing:.08em;margin:0;color:var(--gold);}
+  #status{font-size:13px;opacity:.9;}
+  button{font:600 14px Karla,system-ui,sans-serif;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 13px;cursor:pointer;display:inline-flex;gap:7px;align-items:center;}
+  button kbd{font:600 11px ui-monospace,Menlo,monospace;color:var(--gold);border:1px solid var(--line);border-radius:5px;padding:1px 5px;opacity:.9;}
+  button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);}
+  #astral[aria-pressed="true"]{border-color:var(--astral);color:var(--astral);}
+  #punch,#push{border-color:rgba(224,120,90,.55);}
+  button:active{transform:translateY(1px);}
+  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  label.chip{display:flex;gap:8px;align-items:center;font-size:13px;}
+  input[type=range]{width:90px;accent-color:var(--gold);}
+  #hint{font-size:12px;opacity:.78;width:100%;text-align:center;pointer-events:none;}
+  @media (max-width:520px){ button kbd{display:none;} button{padding:9px 11px;font-size:13px;} }
+</style>
+
+<div id="stage">
+  <img id="bg" alt="Ben's bedroom" src="assets/day.jpg">
+  <canvas id="gl"></canvas>
+</div>
+
+<div class="bar top">
+  <div class="chip"><h1>King of Atlantis · 3D Ben</h1></div>
+  <div class="chip" id="status">Loading Ben…</div>
+  <div class="spacer"></div>
+  <button id="night" type="button" aria-pressed="false">Night <kbd>N</kbd></button>
+  <button id="astral" type="button" aria-pressed="false">Astral <kbd>V</kbd></button>
+</div>
+
+<div class="bar bottom">
+  <button id="punch" type="button">Punch <kbd>Space</kbd></button>
+  <button id="push" type="button">Push <kbd>F</kbd></button>
+  <button id="bow" type="button">Bow <kbd>B</kbd></button>
+  <button id="hit" type="button">Get hit <kbd>H</kbd></button>
+  <button id="lie" type="button">Lie down <kbd>L</kbd></button>
+  <button id="run" type="button" aria-pressed="false">Run <kbd>Shift</kbd></button>
+  <label class="chip" for="size">Size <input id="size" type="range" min="120" max="320" value="200"></label>
+  <div id="hint">Tap the floor or use WASD / arrow keys to walk · hold Shift to run</div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const DAY='assets/day.jpg', NIGHT='assets/night.jpg', GLB='assets/ben.glb', SKIN='assets/ben-skin.jpg';
+const PLATE={w:1400,h:1400*941/1672}, K=1400/1672;           // plate px (scaled from the game's 1672 plate)
+const FLOOR=[[770,420],[1100,330],[1160,480],[1330,610],[1310,770],[1000,870],[640,870],[500,770],[560,690],[700,620],[760,560]].map(p=>[p[0]*K,p[1]*K]);
+const START=[820*K,560*K];
+const SPEED={walk:.75,run:2.1};
+
+const $=id=>document.getElementById(id);
+const canvas=$('gl'), bg=$('bg'), status=$('status');
+const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=0.95;
+
+const scene=new THREE.Scene();
+const pmrem=new THREE.PMREMGenerator(renderer); scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture; scene.environmentIntensity=0.6;
+const cam=new THREE.OrthographicCamera(-1,1,1,-1,0.1,100);
+const PITCH=THREE.MathUtils.degToRad(48);
+cam.position.set(0,20*Math.sin(PITCH),20*Math.cos(PITCH)); cam.lookAt(0,0,0);
+
+const hemi=new THREE.HemisphereLight(0xfff1dc,0x3a2a1c,1.1); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffd9a0,2.0); sun.position.set(4,8,-3); sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024); Object.assign(sun.shadow.camera,{left:-4,right:4,top:4,bottom:-4,near:0.5,far:30});
+scene.add(sun,sun.target);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.ShadowMaterial({opacity:.38}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+
+// astral push wave
+const wave=new THREE.Mesh(new THREE.RingGeometry(.2,.32,48),new THREE.MeshBasicMaterial({color:0x7cc4ff,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+scene.add(wave); let waveT=-1;
+
+// cover-fit of plate to screen, and plate px <-> world
+let cover={s:1,ox:0,oy:0}, pxPerM=200;
+function layout(){
+  const W=innerWidth,H=innerHeight; renderer.setSize(W,H,false);
+  const s=Math.max(W/PLATE.w,H/PLATE.h); cover={s,ox:(W-PLATE.w*s)/2,oy:(H-PLATE.h*s)/2};
+  const u=pxPerM*K*s;
+  cam.left=-W/2/u; cam.right=W/2/u; cam.top=H/2/u; cam.bottom=-H/2/u; cam.updateProjectionMatrix();
+}
+const ray=new THREE.Raycaster(), plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+function screenToGround(x,y){
+  ray.setFromCamera(new THREE.Vector2(x/innerWidth*2-1,-(y/innerHeight)*2+1),cam);
+  const p=new THREE.Vector3(); return ray.ray.intersectPlane(plane,p)?p:null;
+}
+function groundToPlate(v){ const p=v.clone().project(cam); return screenToPlate((p.x+1)/2*innerWidth,(1-p.y)/2*innerHeight); }
+const plateToScreen=([px,py])=>[px*cover.s+cover.ox,py*cover.s+cover.oy];
+const screenToPlate=(x,y)=>[(x-cover.ox)/cover.s,(y-cover.oy)/cover.s];
+function inside(pt,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const[a,b]=poly[i],[d,e]=poly[j];if((b>pt[1])!==(e>pt[1])&&pt[0]<(d-a)*(pt[1]-b)/(e-b)+a)c=!c;}return c;}
+const onFloor=v=>inside(groundToPlate(v),FLOOR);
+
+// Ben
+const ben=new THREE.Group(); scene.add(ben);
+let model,mixer,hips,A={},cur=null,oneShot=null,lying=false,origMats=[],astralMats=[];
+let target=null, heading=THREE.MathUtils.degToRad(-20), runToggle=false;
+const keys=new Set();
+
+function placeAt(platePt){ const [sx,sy]=plateToScreen(platePt); const g=screenToGround(sx,sy); if(g) ben.position.copy(g); }
+
+const LABEL={Punch:'Punch!',Push:'Astral push!',Bow:'Bowing',Hit:'Ouch — hit',StandUp:'Waking up…',LieDown:'Lying down…'};
+function to(a,fade=.3){ if(!a||a===cur) return; a.reset().play(); if(cur) cur.crossFadeTo(a,fade,false); cur=a; }
+function doOnce(name){
+  if(!mixer || oneShot) return;
+  if(lying && name!=='StandUp') { doOnce('StandUp'); return; }
+  const a=name==='LieDown'?A.StandUp:A[name]; if(!a) return;
+  target=null; oneShot=name;
+  a.setLoop(THREE.LoopOnce); a.clampWhenFinished=true;
+  if(name==='LieDown'){ a.reset(); a.timeScale=-1; a.time=a.getClip().duration; a.play(); if(cur&&cur!==a) cur.crossFadeTo(a,.4,false); cur=a; }
+  else { a.timeScale=1; if(cur===a) a.reset().play(); else to(a,name==='StandUp'?0.15:0.12); }
+  if(name==='Push'){ waveT=0; }
+  status.textContent=LABEL[name];
+}
+function afterOnce(name){
+  oneShot=null;
+  if(name==='LieDown'){ lying=true; $('lie').innerHTML='Wake up <kbd>L</kbd>'; status.textContent='Asleep · press L or Wake up'; return; }
+  if(name==='StandUp'){ lying=false; $('lie').innerHTML='Lie down <kbd>L</kbd>'; }
+  to(A.Idle,.35); status.textContent='Idle';
+}
+
+fetch(GLB).then(x=>x.arrayBuffer()).then(buf=>new GLTFLoader().parse(buf,'',gltf=>{
+  model=gltf.scene; ben.add(model);
+  model.traverse(o=>{
+    if(o.isMesh){ o.castShadow=true; o.frustumCulled=false;
+      o.material=new THREE.MeshStandardMaterial({color:0xffffff,metalness:0,roughness:.85,side:THREE.DoubleSide});
+      origMats.push([o,o.material]);
+      astralMats.push([o,new THREE.MeshStandardMaterial({color:0x7fb8ff,emissive:0x2c6cff,emissiveIntensity:.55,transparent:true,opacity:.55,depthWrite:false})]); }
+    if(o.isBone && !hips && /hips/i.test(o.name)) hips=o;
+  });
+  const img=new Image();   // colour texture via the browser's <img> decoder (iOS can drop GLB-embedded textures)
+  img.onload=()=>{ const tex=new THREE.Texture(img); tex.flipY=false; tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=4; tex.needsUpdate=true;
+    [...origMats,...astralMats].forEach(([o,m])=>{m.map=tex; m.needsUpdate=true;}); };
+  img.onerror=()=>{ status.textContent='Colour texture failed to load'; };
+  img.src=SKIN;
+  mixer=new THREE.AnimationMixer(model);
+  gltf.animations.forEach(c=>A[c.name]=mixer.clipAction(c));
+  mixer.addEventListener('finished',e=>{ if(oneShot) afterOnce(oneShot); });
+  doOnce('StandUp');
+},err=>{status.textContent='Could not load Ben: '+err.message;}));
+
+const tmp=new THREE.Vector3();
+function keepHipsAnchored(){                // cancel root drift so Ben stays where he stands
+  if(!hips) return; model.position.set(0,0,0); ben.updateMatrixWorld(true);
+  hips.getWorldPosition(tmp); ben.worldToLocal(tmp); model.position.x=-tmp.x; model.position.z=-tmp.z;
+}
+function turnTo(dx,dz,dt){ const want=Math.atan2(dx,dz); let dh=want-heading; dh=Math.atan2(Math.sin(dh),Math.cos(dh)); heading+=dh*Math.min(1,dt*8); }
+
+const clock=new THREE.Clock();
+function frame(){
+  requestAnimationFrame(frame);
+  const dt=Math.min(clock.getDelta(),.05);
+  if(mixer) mixer.update(dt);
+  if(mixer && !oneShot && !lying){
+    const running=runToggle||keys.has('Shift');
+    let dir=new THREE.Vector3(
+      (keys.has('d')||keys.has('ArrowRight'))-(keys.has('a')||keys.has('ArrowLeft')),0,
+      (keys.has('s')||keys.has('ArrowDown'))-(keys.has('w')||keys.has('ArrowUp')));
+    if(dir.lengthSq()) target=null;
+    else if(target){ dir=target.clone().sub(ben.position); dir.y=0; if(dir.length()<.04){ target=null; dir.set(0,0,0); } }
+    if(dir.lengthSq()){
+      dir.normalize(); to(running?A.Run:A.Walk,.25);
+      const step=(running?SPEED.run:SPEED.walk)*dt, next=ben.position.clone().addScaledVector(dir,target?Math.min(step,target.distanceTo(ben.position)):step);
+      if(onFloor(next)) ben.position.copy(next); else target=null;
+      turnTo(dir.x,dir.z,dt); status.textContent=running?'Running':'Walking';
+    } else if(cur===A.Walk||cur===A.Run){ to(A.Idle,.3); status.textContent='Idle'; }
+  }
+  ben.rotation.y=heading;
+  keepHipsAnchored();
+  if(waveT>=0){ waveT+=dt; const k=waveT/.7;
+    if(waveT>.25 && k<1){ const f=new THREE.Vector3(Math.sin(heading),0,Math.cos(heading));
+      wave.position.copy(ben.position).addScaledVector(f,.5+(k-.35)*1.6); wave.position.y=1.05;
+      wave.lookAt(wave.position.clone().add(f)); wave.scale.setScalar(1+k*2.5); wave.material.opacity=.9*(1-k); }
+    else if(k>=1){ wave.material.opacity=0; waveT=-1; } }
+  sun.target.position.copy(ben.position);
+  renderer.render(scene,cam);
+}
+
+addEventListener('resize',()=>{ const p=groundToPlate(ben.position); layout(); placeAt(p); });
+layout(); placeAt(START); frame();
+
+$('stage').addEventListener('pointerdown',e=>{
+  if(lying){ doOnce('StandUp'); return; }
+  const pp=screenToPlate(e.clientX,e.clientY);
+  if(!inside(pp,FLOOR)){ status.textContent='Tap the open floor to walk'; return; }
+  const g=screenToGround(e.clientX,e.clientY); if(g && !oneShot) target=g;
+});
+const KEYMAP={' ':'Punch',f:'Push',b:'Bow',h:'Hit'};
+addEventListener('keydown',e=>{
+  const k=e.key.length===1?e.key.toLowerCase():e.key;
+  if(KEYMAP[k]){ e.preventDefault(); if(!e.repeat) doOnce(KEYMAP[k]); return; }
+  if(k==='l'){ if(!e.repeat) doOnce(lying?'StandUp':'LieDown'); return; }
+  if(k==='u'){ if(!e.repeat && lying) doOnce('StandUp'); return; }
+  if(k==='n'){ $('night').click(); return; }
+  if(k==='v'){ $('astral').click(); return; }
+  if(['w','a','s','d','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Shift'].includes(k)){ e.preventDefault(); keys.add(k); if(lying && k!=='Shift' && !e.repeat) doOnce('StandUp'); }
+});
+addEventListener('keyup',e=>{ const k=e.key.length===1?e.key.toLowerCase():e.key; keys.delete(k); });
+addEventListener('blur',()=>keys.clear());
+
+$('punch').onclick=()=>doOnce('Punch');
+$('push').onclick=()=>doOnce('Push');
+$('bow').onclick=()=>doOnce('Bow');
+$('hit').onclick=()=>doOnce('Hit');
+$('lie').onclick=()=>doOnce(lying?'StandUp':'LieDown');
+$('run').onclick=e=>{ runToggle=!runToggle; e.currentTarget.setAttribute('aria-pressed',runToggle); };
+document.querySelectorAll('button').forEach(b=>b.addEventListener('keydown',e=>{ if(e.key===' ') e.preventDefault(); }));
+$('night').onclick=e=>{
+  const on=e.currentTarget.getAttribute('aria-pressed')!=='true'; e.currentTarget.setAttribute('aria-pressed',on);
+  bg.src=on?NIGHT:DAY;
+  sun.color.set(on?0x8fb0ff:0xffd9a0); sun.intensity=on?.9:2.0;
+  hemi.color.set(on?0x5b7cc4:0xfff1dc); hemi.intensity=on?.55:1.1;
+};
+$('astral').onclick=e=>{
+  const on=e.currentTarget.getAttribute('aria-pressed')!=='true'; e.currentTarget.setAttribute('aria-pressed',on);
+  (on?astralMats:origMats).forEach(([o,m])=>o.material=m);
+};
+$('size').oninput=e=>{ const p=groundToPlate(ben.position); pxPerM=+e.target.value; layout(); placeAt(p); };
+window.DBG=()=>({pos:ben.position.toArray().map(v=>+v.toFixed(2)),cur:cur?cur.getClip().name:null,oneShot,lying,clips:Object.keys(A)});
+</script>
+
+</body></html>
