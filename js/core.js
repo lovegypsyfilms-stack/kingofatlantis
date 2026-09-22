@@ -20,11 +20,13 @@ const CFG = {
   benStreetSpeed: 215, benStreetHeight: 66, ingressDrain: 10, ingressOverload: 25, vehicleDamage: 15,
   // room/backyard
   // camera framing (1 = previous framing). Night fight zooms back in after the reveal; day room + street sit closer.
-  battleZoom: 2.25, demonZoom: 1.9, roomZoom: 2.3, streetZoom: 3.0,
+  battleZoom: 2.25, demonZoom: 1.9, roomZoom: 1.55, streetZoom: 1.5,
   // difficulty: night N runs at daySpeedUp^(N-1) speed; the act ends after night finalNight's demon
-  daySpeedUp: 1.5, finalNight: 3,
+  daySpeedUp: 1.5, lastDay: 2,
+  // guinea pig guardian (day 2+): circles Ben and knocks back anything that comes within range
+  pigGuardRange: 170, pigOrbitRadius: 46, pigOrbitSpeed: 6.5, pigAttacksPerCarrot: 2,
   // beach barrier wave
-  beachFoes: 4, beachFoeScale: 0.34, beachFoeSpeed: 0.55, beachContactDrain: 8, beachContactHurt: 6,
+  beachFoes: 4, beachFoeHp: 2, beachFoeSpeed: 115, beachContactDrain: 8, beachContactHurt: 6,
   benRoomSpeed: 330, benRoomHeight: 235, benYardHeight: 118,
 };
 
@@ -153,6 +155,7 @@ const Input = {
 const Audio = {
   ctx: null, master: null, layers: {}, noise: null, enabled: true,
   init() {
+    Music.unlock();
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -278,6 +281,32 @@ const Audio = {
       case 'bird': this.tone(2600 + Math.random() * 900, 0.09, { to: 3400, vol: 0.04 }); this.tone(3000, 0.07, { to: 2400, vol: 0.035, delay: 0.12 }); break;
     }
   },
+};
+
+/* ------------------------------------------------------------------ music (streamed <audio>, crossfaded) */
+// Tracks: battle-day = Rhythm Scott "Action Drums", battle-night = Rhythm Scott "Full Strength".
+// town = Mountain Dreamers "Spirits Over The High Ridge" — the everyday Kapaʻa music (yard + streets + coast, outside fights).
+const Music = {
+  tracks: { 'battle-day': 'runtime/music/battle-day.mp3', 'battle-night': 'runtime/music/battle-night.mp3', town: 'runtime/music/town.mp3' },
+  el: {}, want: null, vol: 0.55, fade: 1.6, enabled: true, unlocked: false,
+  get muted() { try { return localStorage.getItem('koa-music') === '0'; } catch (e) { return false; } },
+  set muted(v) { try { localStorage.setItem('koa-music', v ? '0' : '1'); } catch (e) { } },
+  unlock() { // browsers only allow audio after a gesture: create + prime the elements on the first input
+    if (this.unlocked) return; this.unlocked = true;
+    for (const k in this.tracks) { const a = new window.Audio(this.tracks[k]); a.loop = true; a.preload = 'auto'; a.volume = 0; this.el[k] = a; }
+  },
+  set(name) { this.want = name && this.tracks[name] ? name : null; },
+  update(dt) {
+    if (!this.unlocked) return;
+    const target = this.muted ? null : this.want;
+    for (const k in this.el) {
+      const a = this.el[k], goal = k === target ? this.vol : 0;
+      if (goal > 0 && a.paused) { try { const p = a.play(); if (p && p.catch) p.catch(() => { }); } catch (e) { } }
+      const step = dt / this.fade * this.vol; a.volume = clamp(goal > a.volume ? Math.min(goal, a.volume + step) : Math.max(goal, a.volume - step), 0, 1);
+      if (goal === 0 && a.volume <= 0.001 && !a.paused) a.pause();
+    }
+  },
+  pauseAll() { for (const k in this.el) this.el[k].pause(); },
 };
 
 /* ------------------------------------------------------------------ assets */

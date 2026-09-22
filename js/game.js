@@ -123,8 +123,8 @@ const COMPLETE_WHEN = {
   BEACH_RETURN: 'Ben reaches the south end of the coastal path (home)',
   BACKYARD_EVENING: 'guinea pig fed again, Ben enters the building',
   ROOM_EATING: 'groceries put away, ice cream eaten, tub set aside',
-  BED: 'player interacts with bed; room fades to night',
-  DREAM: 'final night only: Ben dreams (7 s)',
+  BED: 'player interacts with bed ("The nights are the hardest."); day 1 -> night fight, day 2 -> DREAM',
+  DREAM: 'night 2 (no fight): the guinea pig offers a spirit journey (9 s)',
   ACT_END: 'end card: It wasn\'t always like this… / ACT 2: KALALAU / TO BE CONTINUED; tap returns to title',
 };
 const MODE_OF = {
@@ -163,8 +163,14 @@ const Game = {
     Assets.load(() => { this.ready = true; });
     let last = performance.now();
     const loop = (now) => {
+      requestAnimationFrame(loop);
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      this.frame(dt); requestAnimationFrame(loop);
+      try { this.frame(dt); }
+      catch (err) { // never freeze: log it, show it small in the corner, keep running
+        this.errors = (this.errors || 0) + 1; this.lastError = `${this.state || 'title'}: ${err && err.message}`; console.error(err);
+        try { Input.endFrame(); const c = this.ctx; c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(0, this.H - 22, this.W, 22); c.fillStyle = '#ff9a8a'; c.font = '12px system-ui'; c.textAlign = 'left'; c.fillText('Glitch (game kept running) — ' + this.lastError, 8, this.H - 7); } catch (e2) { }
+      }
+      try { Music.set(this.musicCue()); Music.update(dt); } catch (e3) { }
     };
     requestAnimationFrame(loop);
   },
@@ -174,20 +180,40 @@ const Game = {
     this.canvas.width = this.W * this.dpr; this.canvas.height = this.H * this.dpr;
     this.canvas.style.width = this.W + 'px'; this.canvas.style.height = this.H + 'px';
   },
-  pause() { if (this.started && !this.paused && !this.gameOver) { this.paused = true; Audio.suspend(); Input.keys.clear(); } },
+  pause() { if (this.started && !this.paused && !this.gameOver) { this.paused = true; Audio.suspend(); Music.pauseAll(); Input.keys.clear(); } },
+  // which music should be playing right now (null = none / ambience only)
+  musicCue() {
+    if (!this.started || !this.state || this.paused || this.gameOver) return null;
+    const st = this.state, s = this.sub || {};
+    if (st === 'LESSER_ENTITIES' || st === 'DEMON_BATTLE') return 'battle-night';
+    if (st === 'KALALAU' && typeof Kal !== 'undefined') {
+      if (Kal.kama && Kal.kama.mode !== 'mist') return 'battle-night';
+      if (Kal.marchers && Kal.marchers.map === Kal.mapId && Kal.marchers.warned) return 'battle-night';
+      if (Kal.phase === 'FIGHT' || Kal.phase === 'HELICOPTER_RESPONSE' || (Kal.chase && !Kal.hidden) || Kal.camp.state === 'burning') return 'battle-day';
+      return null;
+    }
+    if (this.mode === 'street') { // daytime battle: the shade barrier, or people charging at Ben (holds 5 s after the last one)
+      if (s.foes && s.foesLeft > 0 && s.barrierY) this.lastFight = this.time;
+      let seeking = false; this.peds.each(p => { if (p.seek > 0 && p.energetic) seeking = true; }); if (seeking) this.lastFight = this.time;
+      if (this.time - (this.lastFight || -99) < 5) return 'battle-day';
+    }
+    if (this.mode === 'street' || this.mode === 'yard') return 'town';
+    return null;
+  },
   onAnyInput() {
     Audio.init();
     if (this.paused) { this.paused = false; Audio.resume(); Input.pressed.clear(); Input.pointer.tapQueue.length = 0; }
   },
-  dayK() { return Math.pow(CFG.daySpeedUp, Math.max(0, this.day - 1)); }, // 1x, 1.5x, 2.25x …
+  dayK() { return Math.pow(CFG.daySpeedUp, Math.max(0, this.day - 1)); }, // street/coast pace: day 1 ×1, day 2 ×1.5
+  nightK() { return Math.pow(CFG.daySpeedUp, Math.max(0, this.day - 2)); }, // the night after day 1 is the first fight (×1); any later ones speed up
   wantsStick() { return this.state && !['LESSER_ENTITIES', 'DEMON_BATTLE'].includes(this.state); },
   rngFor(tag) { let h = this.seed ^ 0x9e3779b9; for (const c of tag + this.day) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return mulberry32(h); },
 
   /* ---------------- new game / save / load ---------------- */
   newGame() {
     this.stats = { health: 100, astral: 100, overload: 0, money: CFG.startMoney, hunger: 35, fatigue: 60 };
-    this.inv = { carrots: CFG.startCarrots, groceries: false, carryingBag: false, groceriesStored: false };
-    this.day = 1; this.go('NIGHT_CLOSE', { fade: 0.8 });
+    this.inv = { carrots: CFG.startCarrots, groceries: false, carryingBag: false, groceriesStored: false, pigCharges: 0 };
+    this.day = 1; this.go('ROOM_MORNING', { fade: 0.8 });
   },
   snapshotSave(state) { return { v: 4, state, day: this.day, seed: this.seed, stats: { ...this.stats }, inv: { ...this.inv } }; },
   loadSave(s) { this.stats = { ...s.stats }; this.inv = { ...s.inv }; this.day = s.day; if (s.state === 'KALALAU' && s.kal) { Kal.restore(s.kal); } this.go(s.state, { fade: 0.8 }); },
@@ -219,9 +245,10 @@ const Game = {
     }
   },
   complete() {
-    if (this.state === 'DEMON_BATTLE' && this.day >= CFG.finalNight) { this.go('DREAM', { fade: 1.2, style: 'cross' }); return; }
     this.go(NEXT[this.state], S[this.state].exitFade || { fade: 0.5 });
   },
+  // Ben's own voice: a small subtitle in the lower third + the browser voice (lower, slower than the street callouts)
+  benLine(text, delay = 0, dur = 5) { this.line = { text, t: -delay, dur, spoken: false }; },
 
   /* ---------------- per-frame ---------------- */
   frame(dt) {
@@ -253,8 +280,10 @@ const Game = {
     if (this.toast) { this.toast.t += dt; if (this.toast.t > this.toast.dur) this.toast = null; }
     const s = this.stats; s.overload = Math.max(0, s.overload - CFG.overloadDecay * dt * (this.mode === 'street' ? 0.4 : 1));
     if (this.center) this.center.t += dt;
+    if (this.line) this.line.t += dt;
     if (this.debug && this.state && Input.pressed.has('KeyN') && !this.trans) S[this.state].debugSkip ? S[this.state].debugSkip.call(this) : this.complete();
     if (Input.pressed.has('Backquote') || Input.pressed.has('F2')) this.debug = !this.debug;
+    if (Input.pressed.has('KeyM') && !(this.debug && this.mode === 'kal')) { Music.muted = !Music.muted; this.say(Music.muted ? 'Music off (M)' : 'Music on (M)', 1.2); }
   },
   say(text, dur = 2.2) { this.toast = { text, t: 0, dur }; },
   triggerGameOver(reason) {
@@ -338,6 +367,8 @@ const Game = {
     if (prompt) { Input.actionTap = true; this.walkTarget = null; return; }
     const [wx, wy] = this.screenToWorld(t.x, t.y);
     if (this.mode === 'kal' && (Kal.choice || Kal.dialog || Kal.hidden || Kal.phase === 'TENT_WAKE' || Kal.phase === 'ARRESTED')) { if (Kal.prompt && Kal.prompt.fn) Input.actionTap = true; return; }
+    if (this.mode === 'kal' && Kal.portalCd > 0.5) { this.walkTarget = null; return; } // just arrived on a new map: ignore taps meant for the old one
+    if (this.mode === 'kal') { const [px, py] = this.screenToWorld(t.x, t.y); const hit = Kal.pushTargets().find(o => dist(px, py, o.x, o.y) < 90); if (hit) { Kal.pushAt(hit); return; } }
     if (this.mode === 'kal' && Kal.prompt) { const [px, py] = this.screenToWorld(t.x, t.y); const n = Kal.nearestPt; // act only when the tap lands near Ben or the thing offered
       if (dist(px, py, this.ben.x, this.ben.y - 30) < 70 || (n && dist(px, py, n[0], n[1]) < 80)) { Input.actionTap = true; this.walkTarget = null; return; } }
     if (this.mode === 'street') { let hitP = null; this.peds.each(p => { if (p.mode === 'walk' && dist(wx, wy, p.x, p.y - 34) < 55) hitP = p; });
@@ -517,8 +548,15 @@ const Game = {
     const btn = (label, fn) => { ctx.fillStyle = 'rgba(8,14,26,0.78)'; ctx.strokeStyle = '#e9c46a'; ctx.lineWidth = 1.5; rr(ctx, bx, by, bw, 44, 10); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#f3e2b0'; ctx.font = '600 16px system-ui, sans-serif'; ctx.fillText(label, bx + bw / 2, by + 28); this.titleButtons.push({ x: bx, y: by, w: bw, h: 44, fn }); by += 56; };
     if (save) btn(save.state === 'KALALAU' ? `Continue — Act 2: ${save.kal && save.kal.mapId ? save.kal.mapId.replace(/-/g, ' ') : 'Kalalau'}` : `Continue — Day ${save.day}, ${save.state === 'NIGHT_CLOSE' ? 'night' : 'morning'}`, () => this.loadSave(save));
-    btn(save ? 'Start over (Act 1, Day 1 night)' : 'Begin the night (Act 1)', () => { Save.clear(); this.newGame(); });
+    btn(save ? 'Start over (Act 1, Day 1)' : 'Begin (Act 1)', () => { Save.clear(); this.newGame(); });
     btn('Act 2: Kalalau', () => { Save.clear(); this.startKalalau(); });
+    // play-test option (small toggle under the buttons): guinea pig companion in Kalalau
+    { const on = KalOpts.pig, tw = 250, tx = bx + bw / 2 - tw / 2, ty = by - 4; ctx.fillStyle = 'rgba(8,14,26,0.7)'; rr(ctx, tx, ty, tw, 30, 8); ctx.fill(); ctx.strokeStyle = on ? '#9fe08a' : 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = on ? '#c9f5b8' : '#b9c2d8'; ctx.font = '600 13px system-ui, sans-serif'; ctx.fillText(`Test: guinea pig in Kalalau — ${on ? 'ON' : 'OFF'}`, tx + tw / 2, ty + 20);
+      this.titleButtons.push({ x: tx, y: ty, w: tw, h: 30, toggle: true, fn: () => { KalOpts.pig = !KalOpts.pig; } });
+      const my = ty + 36, mon = !Music.muted; ctx.fillStyle = 'rgba(8,14,26,0.7)'; rr(ctx, tx, my, tw, 30, 8); ctx.fill(); ctx.strokeStyle = mon ? '#9fd0ff' : 'rgba(255,255,255,0.35)'; ctx.stroke();
+      ctx.fillStyle = mon ? '#cfe6ff' : '#b9c2d8'; ctx.fillText(`Music — ${mon ? 'ON' : 'OFF'}  (M in game)`, tx + tw / 2, my + 20);
+      this.titleButtons.push({ x: tx, y: my, w: tw, h: 30, toggle: true, music: true, fn: () => { Music.muted = !Music.muted; } }); }
     ctx.fillStyle = '#7d869c'; ctx.font = '12px system-ui, sans-serif';
     if (this.W >= 900) ctx.fillText('Move: WASD / arrows / drag · Act or walk: click / E · Fire: click / Space', this.W / 2, this.H - 22);
     else ctx.fillText('Tap to play · best in landscape', this.W / 2, this.H - 14);
@@ -526,7 +564,10 @@ const Game = {
     let pick = null;
     if (tap) pick = this.titleButtons.find(b => tap.x >= b.x && tap.x <= b.x + b.w && tap.y >= b.y && tap.y <= b.y + b.h);
     if (Input.pressed.has('Enter')) pick = this.titleButtons[0];
-    if (pick) { Audio.init(); this.started = true; pick.fn(); }
+    if (Input.pressed.has('KeyG')) pick = this.titleButtons.find(b => b.toggle && !b.music);
+    if (Input.pressed.has('KeyM')) pick = this.titleButtons.find(b => b.music);
+    if (pick && pick.toggle) { pick.fn(); Audio.init(); Audio.sfx('squeak'); }
+    else if (pick) { Audio.init(); this.started = true; pick.fn(); }
   },
 };
 
@@ -678,7 +719,7 @@ S.LESSER_ENTITIES = {
     const types = [0, 1, 2, 3]; // weak first, brute last
     const plan = []; for (let i = 0; i < CFG.lesserEncounters; i++) plan.push({ type: LESSER_TYPES[types[i % 4]], side: sides[i % 4], jit: (r() - 0.5) * 0.7 });
     this.sub = { plan, idx: 0, cur: null, silence: 1.2, resolved: 0, sidesUsed: [] };
-    this.objective = this.day > 1 ? `Hold the room — night ${this.day}, they're faster` : 'Hold the room';
+    this.objective = this.nightK() > 1 ? "Hold the room — they're faster tonight" : 'Hold the room';
     Object.assign(this.ben, { x: ROOM.battle[0], y: ROOM.battle[1], asleep: false, pose: 'idle', moving: false, h: CFG.benRoomHeight });
     Object.assign(this.room, { void: 1, plate: 'night', mix: 0 });
     Audio.ambience({ astral: 0.55, room: 0.05 }, 1);
@@ -713,9 +754,9 @@ S.LESSER_ENTITIES = {
     e.alpha = Math.min(1, e.alpha + dt / 1.4);
     const dx = b.x - e.x, dy = (b.y - b.h * 0.45) - e.y, d = Math.hypot(dx, dy);
     if (e.hitT > 0) { e.hitT -= dt; e.x -= dx / d * 240 * dt; e.y -= dy / d * 240 * dt; return; } // pause + recoil
-    let sp = e.type.speed * this.dayK();
+    let sp = e.type.speed * this.nightK();
     if (e.type.stalk) { e.stalkT += dt; if (e.stalkT % 2.0 > 1.25) sp = 0; }
-    const px = -dy / d, py = dx / d, weave = Math.sin(e.t * 2.2 * this.dayK()) * e.type.weave;
+    const px = -dy / d, py = dx / d, weave = Math.sin(e.t * 2.2 * this.nightK()) * e.type.weave;
     e.vx = dx / d * sp + px * weave; e.vy = dy / d * sp + py * weave;
     e.x += e.vx * dt; e.y += e.vy * dt;
     if (d < e.type.radius * 0.6 + 45) { // reached Ben: drains defence and bursts
@@ -765,7 +806,7 @@ S.DEMON_BATTLE = {
     this.pulses.each(p => targets.push({ x: p.x, y: p.y, r: 70, hittable: () => true, onHit: () => { p.alive = false; this.spawnFx('impact', p.x, p.y, { h: 120 }); } }));
     if (live) Combat.update(this, dt, targets);
     d.t += dt; d.flap += dt; d.invuln = Math.max(0, d.invuln - dt);
-    const speed = CFG.demonAngSpeed[Math.min(d.hits, 4)] * this.dayK();
+    const speed = CFG.demonAngSpeed[Math.min(d.hits, 4)] * this.nightK();
     switch (d.mode) {
       case 'enter':
         d.alpha = Math.min(1, d.t / 2); d.r = lerp(d.r, d.targetR, 1 - Math.exp(-1.2 * dt)); d.ang += d.dirSign * speed * dt;
@@ -798,7 +839,7 @@ S.DEMON_BATTLE = {
         if (d.t > 1.3) { d.mode = 'lunge'; d.t = 0; }
         break;
       case 'lunge':
-        d.lean = Math.min(1, d.lean + dt / 1.8 * (0.4 + d.t) * Math.sqrt(this.dayK())); // accelerating final inward lunge
+        d.lean = Math.min(1, d.lean + dt / 1.8 * (0.4 + d.t) * Math.sqrt(this.nightK())); // accelerating final inward lunge
         if (d.lean >= 0.985) { this.triggerGameOver('demon reached Ben'); return; }
         break;
       case 'dying':
@@ -902,6 +943,8 @@ S.ROOM_MORNING = {
     this.roomCam(0, true);
     this.sub = { phase: 'asleep', t: 0 }; this.objective = 'Get out of bed';
     Audio.ambience({ morning: 0.5, room: 0.35 }, 1);
+    this.benLine(this.day <= 1 ? 'Okay. Better get up and get some food at Safeway.'
+      : 'Made it through another night. Alright… better get to Safeway. Not sure how much longer I can live like this.', 1.2, this.day <= 1 ? 4.5 : 7);
   },
   update(dt, live) {
     const s = this.sub, b = this.ben; s.t += dt;
@@ -931,7 +974,7 @@ function yardEnter(evening) {
     noticeT: 0.9, fed: false, feeding: null, walkIn: evening ? 0.8 : 0.6 };
   this.objective = this.inv.carrots > 0 ? 'Feed the guinea pig' : 'Head out the gate';
   if (!evening) this.inv.pigWithBen = false;
-  if (!evening && this.day >= 2) this.say("Day 2 — Ben won't go to town without his guinea pig friend", 3.5);
+
   Audio.ambience(evening ? { evening: 0.5, room: 0.1 } : { morning: 0.55 }, 1.2);
 }
 function yardUpdate(dt, live) {
@@ -968,7 +1011,7 @@ function yardUpdate(dt, live) {
   const allowed = s.fed || this.inv.carrots <= 0;
   if (s.nearExit && Input.action()) {
     if (!allowed) this.say('The guinea pig is waiting for a carrot');
-    else if (!s.evening && this.day >= 2) { this.inv.pigWithBen = true; Audio.sfx('squeak'); this.say('Come on, little buddy'); this.pigLog = (this.pigLog || 0) + 1; this.complete(); }
+    else if (!s.evening && this.day >= 2) { this.inv.pigWithBen = true; Audio.sfx('squeak'); this.say('The guinea pig trots out the gate after him', 2.2); this.pigLog = (this.pigLog || 0) + 1; this.complete(); }
     else { if (s.evening) this.inv.pigWithBen = false; Audio.sfx(s.evening ? 'door' : 'bag'); this.complete(); }
   }
 }
@@ -984,7 +1027,7 @@ function yardDraw(ctx) {
 function yardPrompt() {
   const s = this.sub; if (s.feeding) return null;
   if (s.nearPig) return `Feed a carrot (${this.inv.carrots} left)`;
-  if (s.nearExit) return s.evening ? 'Go inside' : this.day >= 2 ? 'Bring Guinea Pig friend' : 'Out the gate';
+  if (s.nearExit) return s.evening ? 'Go inside' : 'Out the gate';
   return null;
 }
 S.BACKYARD_MORNING = { enter() { yardEnter.call(this, false); }, update: yardUpdate, draw: yardDraw, prompt: yardPrompt, exitFade: { fade: 0.9, style: 'cross' } };
@@ -1143,7 +1186,7 @@ function pedStep(p, mx, my) { // people stay on streets/sidewalks (slide along e
   if (streetCanStand(p.x + mx, p.y + my)) { p.x += mx; p.y += my; } else if (streetCanStand(p.x + mx, p.y)) p.x += mx; else if (streetCanStand(p.x, p.y + my)) p.y += my;
 }
 function hitPed(p, w) {
-  const s = this.sub, b = this.ben;
+  const s = this.sub, b = this.ben; if (p.mode !== 'walk') return;
   const dx = p.x - b.x, dy = p.y - b.y, d = Math.hypot(dx, dy) || 1;
   p.mode = 'knock'; p.kt = 0.45; p.kvx = dx / d * 420; p.kvy = dy / d * 420; p.seek = 0;
   const was = p.energetic; p.energetic = false;
@@ -1188,8 +1231,8 @@ function streetDraw(ctx) {
   const items = [];
   this.peds.each(p => items.push({ y: p.y, f: () => drawPed.call(this, ctx, p) }));
   this.cars.each(c => items.push({ y: c.y + 20, f: () => drawCar(ctx, c) }));
-  if (this.pigF) { const q = this.pigF; items.push({ y: q.y, f: () => drawGuineaPig(ctx, q.x, q.y, 34, q.moving ? 'run' : 'idle', q.t, q.facing) }); }
-  if (s.foes) s.foes.forEach(f => items.push({ y: f.y + 40, f: () => drawLesser(ctx, f, this.time) }));
+  if (this.pigF) { const q = this.pigF; items.push({ y: q.y, f: () => { if (q.guarding) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(q.x, q.y - 12, 2, q.x, q.y - 12, 34); g.addColorStop(0, 'rgba(255,220,120,0.5)'); g.addColorStop(1, 'rgba(255,200,80,0)'); ctx.fillStyle = g; ctx.fillRect(q.x - 34, q.y - 46, 68, 68); ctx.restore(); } drawGuineaPig(ctx, q.x, q.y, 34, q.moving ? 'run' : 'idle', q.t, q.facing, 0, q.guarding); } }); }
+  if (s.foes) s.foes.forEach(f => items.push({ y: f.y + 34, f: () => f.person ? drawBarrierPerson(ctx, f) : drawLesser(ctx, f, this.time) }));
   items.push({ y: b.y, f: () => {
     ctx.save(); if (s.invuln > 0 && Math.floor(this.time * 12) % 2) ctx.globalAlpha = 0.5;
     drawBen(ctx, b.x, b.y, b.h, b.dir, b.phase, { moving: b.moving && b.pose !== 'fall', bag: this.inv.carryingBag && b.pose !== 'fall', pose: b.pose, poseT: b.poseT }); ctx.restore(); } });
@@ -1234,57 +1277,87 @@ function drawCar(ctx, c) {
 }
 function streetPrompt() { return null; }
 
-/* ---- beach barrier wave: 4 lesser entities guard the north end; shoot them all to pass ---- */
+/* ---- coast barrier: four charged-up locals block the road into town; push each one back to pass ---- */
+const BARRIER_KINDS = ['drifter', 'local', 'jogger', 'office'];
 function spawnBeachFoes() {
-  const s = this.sub, r = s.rng, types = [0, 1, 2, 3];
-  for (let i = types.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [types[i], types[j]] = [types[j], types[i]]; }
+  const s = this.sub, r = s.rng;
   s.foes = []; s.foesLeft = CFG.beachFoes;
   for (let i = 0; i < CFG.beachFoes; i++) {
-    const T = LESSER_TYPES[types[i % 4]], k = CFG.beachFoeScale;
     const sp = COAST.foeSpots[i % COAST.foeSpots.length];
-    s.foes.push({ type: { ...T, size: T.size * k }, hp: T.hp, x: sp[0] + (r() - 0.5) * 40, y: sp[1] + (r() - 0.5) * 40, homeX: 0, homeY: 0,
-      vx: 0, vy: 0, alpha: 0, hitT: 0, dying: false, dieT: 0, t: r() * 5, seed: i * 2.3, r: Math.max(34, T.radius * 0.5), wake: 0.6 + i * 1.1, active: false, stalkT: 0 });
+    s.foes.push({ person: true, kind: BARRIER_KINDS[i % BARRIER_KINDS.length], hp: CFG.beachFoeHp, x: sp[0] + (r() - 0.5) * 40, y: sp[1] + (r() - 0.5) * 40, homeX: 0, homeY: 0,
+      vx: 0, vy: 1, alpha: 0, hitT: 0, dying: false, dieT: 0, t: r() * 5, seed: i * 2.3, r: 38, wake: 0.5 + i * 0.9, active: false, phase: r() * 3 });
   }
   s.foes.forEach(f => { f.homeX = f.x; f.homeY = f.y; });
-  s.barrierY = COAST.barrierY; Audio.sfx('growl'); Audio.sfx('distant');
-  this.say(`${CFG.beachFoes} shades block the road to town — shoot them!`, 3); this.objective = 'CLEAR THE WAY NORTH';
+  s.barrierY = COAST.barrierY; Audio.sfx('ingress');
+  this.say(`${CFG.beachFoes} charged-up people are blocking the road to town — push them back!`, 3); this.objective = 'CLEAR THE WAY NORTH';
 }
 function beachFoes(dt, live) {
   const s = this.sub, b = this.ben, st = this.stats, k = this.dayK();
-  const hx = b.x, hy = b.y - b.h * 0.5;
+  const hx = b.x, hy = b.y - 34;
   s.foes.forEach(f => {
-    f.t += dt;
-    if (f.dying) { f.dieT += dt; f.alpha = Math.max(0, 1 - f.dieT / 1.0); return; }
-    f.alpha = Math.min(1, f.alpha + dt / 1.2);
+    f.t += dt; f.phase += dt;
+    if (f.dying) { // beaten: they back off down the road and fade
+      f.dieT += dt; f.alpha = Math.max(0, 1 - f.dieT / 1.4); const d0 = Math.hypot(f.x - b.x, f.y - b.y) || 1; f.vx = (f.x - b.x) / d0 * 140; f.vy = (f.y - b.y) / d0 * 140; f.x += f.vx * dt; f.y += f.vy * dt; return; }
+    f.alpha = Math.min(1, f.alpha + dt / 0.8);
     const dx = hx - f.x, dy = hy - f.y, d = Math.hypot(dx, dy) || 1;
-    if (!f.active) { // hover at their post until Ben comes close
-      f.x = f.homeX + Math.sin(f.t * 1.3 + f.seed) * 22; f.y = f.homeY + Math.cos(f.t * 0.9 + f.seed) * 12; f.vx = Math.cos(f.t * 1.3 + f.seed) * 20;
-      if (d < 720) { f.wake -= dt; if (f.wake <= 0) { f.active = true; Audio.sfx('ingress'); } }
+    if (!f.active) { // loiter at their spot until Ben comes near
+      f.x = f.homeX + Math.sin(f.t * 0.9 + f.seed) * 16; f.vx = Math.cos(f.t * 0.9 + f.seed) * 14; f.vy = 0.1;
+      if (d < 720) { f.wake -= dt; if (f.wake <= 0) { f.active = true; Audio.sfx('ingress');
+        if ((s.calloutCd || 0) <= 0) { const line = CALLOUTS[Math.floor(s.rng() * CALLOUTS.length)]; f.bubble = { text: line, t: 0 }; s.calloutCd = 2.4; Audio.say(line, { pitch: 0.85, rate: 1.1 }); } } }
       return;
     }
-    if (f.hitT > 0) { f.hitT -= dt; f.x -= dx / d * 220 * dt; f.y -= dy / d * 220 * dt; return; }
-    let sp = f.type.speed * CFG.beachFoeSpeed * k; if (f.type.stalk) { f.stalkT += dt; if (f.stalkT % 2 > 1.3) sp *= 0.15; }
-    const w = Math.sin(f.t * 2.2) * f.type.weave * 0.5;
-    f.vx = dx / d * sp - dy / d * w; f.vy = dy / d * sp + dx / d * w; f.x += f.vx * dt; f.y += f.vy * dt;
-    if (d < f.r * 0.6 + 26 && s.invuln <= 0) { // contact: drains Ben, the shade recoils
+    if (f.bubble) { f.bubble.t += dt; if (f.bubble.t > 2.2) f.bubble = null; }
+    if (f.hitT > 0) { f.hitT -= dt; f.x -= dx / d * 260 * dt; f.y -= dy / d * 260 * dt; f.vx = -dx; f.vy = -dy; return; }
+    const sp = CFG.beachFoeSpeed * k; f.vx = dx / d * sp; f.vy = dy / d * sp; f.x += f.vx * dt; f.y += f.vy * dt;
+    if (d < 40 && s.invuln <= 0) { // they grab at him
       st.astral = Math.max(0, st.astral - CFG.beachContactDrain); st.health = Math.max(0, st.health - CFG.beachContactHurt);
-      s.invuln = 1.0; f.hitT = 0.7; b.pose = 'fall'; b.poseT = 0.3; Audio.sfx('drain'); this.spawnFx('bubble', hx, hy, { h: 120, dur: 0.5 });
-      this.say('A shade got through!'); s.foeContacts = (s.foeContacts || 0) + 1;
-      if (st.health <= 0) this.triggerGameOver('overrun on the beach');
+      s.invuln = 1.0; f.hitT = 0.6; b.pose = 'fall'; b.poseT = 0.3; Audio.sfx('drain'); this.spawnFx('bubble', hx, hy, { h: 120, dur: 0.5 });
+      this.say('One of them got a hand on him!'); s.foeContacts = (s.foeContacts || 0) + 1;
+      if (st.health <= 0) this.triggerGameOver('mobbed on the coast road');
     }
   });
-  if (s.foesLeft <= 0 && s.barrierY && s.foes.every(f => f.dieT > 1)) {
-    s.barrierY = 0; s.cleared = true; Audio.sfx('victory'); this.say('The way to town is clear', 2.5); this.objective = 'HEAD NORTH INTO TOWN';
+  if (s.foesLeft <= 0 && s.barrierY && s.foes.every(f => f.dieT > 1.2)) {
+    s.barrierY = 0; s.cleared = true; Audio.sfx('victory'); this.say('They scatter. The way to town is clear', 2.5); this.objective = 'HEAD NORTH INTO TOWN';
   }
 }
+function drawBarrierPerson(ctx, f) {
+  const side = Math.abs(f.vx) > Math.abs(f.vy), fr = Assets.animFrame('pedestrians', f.kind + (side ? '_side' : '_front'), f.phase);
+  if (!f.dying) { const g = ctx.createRadialGradient(f.x, f.y, 4, f.x, f.y, 60); g.addColorStop(0, `rgba(170,90,255,${f.active ? 0.55 : 0.3})`); g.addColorStop(1, 'rgba(120,60,255,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, 60, 0, TAU); ctx.fill(); }
+  ctx.save(); ctx.globalAlpha = f.alpha; shadow(ctx, f.x, f.y + 34, 14); if (f.hitT > 0) ctx.translate((Math.random() - 0.5) * 6, 0);
+  if (fr) Assets.draw(ctx, 'pedestrians', fr, f.x, f.y + 34, { h: 66, flip: side && f.vx < 0 }); ctx.restore();
+  if (!f.dying) for (let i = 0; i < CFG.beachFoeHp; i++) { ctx.fillStyle = i < f.hp ? '#c9a0ff' : 'rgba(255,255,255,0.2)'; ctx.fillRect(f.x - CFG.beachFoeHp * 7 + i * 14, f.y - 52, 10, 4); }
+  if (f.bubble) { const a = Math.min(1, (2.2 - f.bubble.t) * 3); ctx.save(); ctx.globalAlpha = a; ctx.font = 'bold 15px system-ui, sans-serif'; ctx.textAlign = 'center'; const w = ctx.measureText(f.bubble.text).width + 16; ctx.fillStyle = 'rgba(255,255,255,0.92)'; rr(ctx, f.x - w / 2, f.y - 82, w, 26, 9); ctx.fill(); ctx.fillStyle = '#2a1840'; ctx.fillText(f.bubble.text, f.x, f.y - 64); ctx.restore(); }
+}
 function hitFoe(f, w) {
-  const s = this.sub; f.hp--; f.hitT = 0.4; f.active = true; Audio.sfx('hit'); this.spawnFx('impact', f.x, f.y, { h: 90, dur: 0.35 });
-  if (f.hp <= 0) { f.dying = true; f.dieT = 0; s.foesLeft--; Audio.sfx('dissolve'); this.stats.astral = Math.min(100, this.stats.astral + CFG.killRestore);
-    this.spawnFx('wisp', f.x, f.y, { h: 90, vy: -60, dur: 1.1 }); this.beachKills = (this.beachKills || 0) + 1; }
+  const s = this.sub; if (f.dying) return; f.hp--; f.hitT = 0.5; f.active = true; Audio.sfx('hit'); this.spawnFx('impact', f.x, f.y, { h: 90, dur: 0.35 });
+  if (f.hp <= 0) { f.dying = true; f.dieT = 0; f.bubble = null; s.foesLeft--; Audio.sfx('dissolve'); this.stats.astral = Math.min(100, this.stats.astral + CFG.killRestore);
+    this.spawnFx('wisp', f.x, f.y - 10, { h: 80, vy: -50, dur: 1.0 }); this.beachKills = (this.beachKills || 0) + 1; }
 }
 /* the little guinea pig friend trots after Ben on the maps (from day 2) */
+// a carrot fuels CFG.pigAttacksPerCarrot attacks; the pig eats one automatically when it needs to fight
+function pigFuel(q) {
+  const inv = this.inv; if (inv.pigCharges > 0) return true;
+  if (inv.carrots > 0) { inv.carrots--; inv.pigCharges = CFG.pigAttacksPerCarrot; Audio.sfx('munch'); this.sparkle(q.x, q.y - 20, 10, [255, 170, 90]); this.say(`Carrot! The guinea pig is ready to fight (×${CFG.pigAttacksPerCarrot})`, 2); return true; }
+  if (!q.hungryT || this.time - q.hungryT > 6) { q.hungryT = this.time; this.say('The guinea pig needs a carrot to fight', 1.8); }
+  return false;
+}
 function pigFollow(dt) {
-  const q = this.pigF, b = this.ben; q.t += dt;
+  const q = this.pigF, b = this.ben, s = this.sub; q.t += dt; q.cool = Math.max(0, (q.cool || 0) - dt);
+  // guardian: when a charged person or a shade comes within reach, the guinea pig circles Ben fast and knocks them back
+  let threat = null, td = CFG.pigGuardRange;
+  this.peds.each(p => { if (p.mode === 'walk' && p.energetic) { const d = dist(p.x, p.y, b.x, b.y); if (d < td) { td = d; threat = { x: p.x, y: p.y - 20, hit: () => hitPed.call(this, p, null), r: 40 }; } } });
+  if (s.foes) s.foes.forEach(f => { if (!f.dying && f.active && f.alpha > 0.3) { const d = dist(f.x, f.y, b.x, b.y); if (d < td) { td = d; threat = { x: f.x, y: f.y, hit: () => hitFoe.call(this, f, null), r: f.r + 10 }; } } });
+  if (threat && !pigFuel.call(this, q)) threat = null; // no carrot, no attack: the pig just keeps close
+  if (threat) {
+    q.orbit = (q.orbit || 0) + dt * CFG.pigOrbitSpeed; q.moving = true; q.guarding = true;
+    // orbit that bulges toward the threat so the circle clips them
+    const ang = Math.atan2(threat.y - b.y, threat.x - b.x), rel = q.orbit - ang, R = CFG.pigOrbitRadius + Math.max(0, Math.cos(rel)) * Math.max(0, Math.min(td - 20, 90));
+    const nx = b.x + Math.cos(q.orbit) * R, ny = b.y + Math.sin(q.orbit) * R * 0.7;
+    q.facing = nx > q.x ? 1 : -1; q.x = nx; q.y = ny;
+    if (q.cool <= 0 && dist(q.x, q.y, threat.x, threat.y) < threat.r) { q.cool = 1.1; threat.hit(); this.inv.pigCharges--; this.sparkle(q.x, q.y - 20, 14, [255, 220, 120]); Audio.sfx('squeak'); this.pigHits = (this.pigHits || 0) + 1; if ((s.pigMsg || 0) <= 0) { s.pigMsg = 6; this.say(`The guinea pig goes for them! (${this.inv.pigCharges} left on this carrot)`, 1.8); } }
+    s.pigMsg = Math.max(0, (s.pigMsg || 0) - dt); return;
+  }
+  q.guarding = false;
   const a = b.dir * TAU / 8, tx = b.x - Math.sin(a) * 34 + 14, ty = b.y + Math.cos(a) * 34 + 6;
   const dx = tx - q.x, dy = ty - q.y, d = Math.hypot(dx, dy);
   if (d > 420) { q.x = tx; q.y = ty; q.moving = false; return; }
@@ -1301,7 +1374,7 @@ S.BEACH_OUTBOUND = { // coastal map: south end of the footpath -> lower avenue -
     if (live && s.cleared && b.y < COAST.northOut[1] + 10) this.complete();
   },
   draw: streetDraw, prompt: streetPrompt, exitFade: { fade: 0.6 },
-  debugSkip() { const s = this.sub; if (!s.foes) spawnBeachFoes.call(this); s.foes.forEach(f => { if (!f.dying) { f.dying = true; f.dieT = 1.1; s.foesLeft--; } }); this.ben.x = COAST.northOut[0]; this.ben.y = COAST.northOut[1] - 2; },
+  debugSkip() { const s = this.sub; if (!s.foes) spawnBeachFoes.call(this); s.foes.forEach(f => { if (!f.dying) { f.dying = true; f.dieT = 1.3; s.foesLeft--; } }); this.ben.x = COAST.northOut[0]; this.ben.y = COAST.northOut[1] - 2; },
 };
 S.TOWN_OUTBOUND = { // residential grid: west edge on the lower avenue -> north up the first through street
   enter() { mapEnter.call(this, TOWN, TOWN.southSpawn, 0, TOWN.northOut, false, 'town-out'); this.objective = 'THROUGH TOWN TO THE SAFEWAY DISTRICT'; },
@@ -1404,13 +1477,13 @@ S.BED = {
       if (!live) return;
       this.moveBen(dt, CFG.benRoomSpeed, benRoomCanStand);
       s.nearBed = dist(b.x, b.y, ROOM.bedZone[0], ROOM.bedZone[1]) < 170;
-      if (s.nearBed && Input.action()) { s.phase = 'getIn'; s.t = 0; Audio.sfx('sleep'); b.asleep = true; b.x = ROOM.sleep[0]; b.y = ROOM.sleep[1]; }
+      if (s.nearBed && Input.action()) { s.phase = 'getIn'; s.t = 0; Audio.sfx('sleep'); b.asleep = true; b.x = ROOM.sleep[0]; b.y = ROOM.sleep[1]; this.benLine('The nights are the hardest.', 0.4, 3.6); }
     } else {
       // fade the room toward night: day -> astral-night plate, lights down
-      const k = clamp(s.t / 3, 0, 1); this.room.mix = ease(k); this.room.evening = 1 - k;
+      const k = clamp(s.t / 4.2, 0, 1); this.room.mix = ease(k); this.room.evening = 1 - k;
       Audio.ambience({ room: 0.5, evening: 0.2 * (1 - k) }, 0.5);
       this.camTo(ROOM.closeCam[0], ROOM.closeCam[1], this.roomFitZoom() * lerp(1.08, 2.3, ease(k)), 1.5, dt);
-      if (k >= 1) { this.day++; this.complete(); }
+      if (k >= 1) { if (this.day >= CFG.lastDay) { this.go('DREAM', { fade: 1.4, style: 'cross' }); return; } this.day++; this.complete(); }
     }
   },
   draw(ctx) {
@@ -1421,14 +1494,16 @@ S.BED = {
   exitFade: { fade: 0 },
 };
 
-/* ---- DREAM (final night only): after the demon falls, Ben sleeps and dreams ---- */
+/* ---- DREAM (the last night of Act 1, no fight): the guinea pig takes Ben on a spirit journey ---- */
 S.DREAM = {
   enter() {
     Object.assign(this.ben, { x: ROOM.sleep[0], y: ROOM.sleep[1], asleep: true, pose: 'idle', moving: false, h: CFG.benRoomHeight });
     Object.assign(this.room, { plate: 'night', mix: 0, void: 1 });
     this.waves.clear(); this.pulses.clear(); this.combat = null; this.objective = '';
     Audio.ambience({ astral: 0.25, room: 0.1 }, 3); Audio.sfx('tonal');
-    this.center = { text: 'He dreams…', t: 0, dur: 5 };
+    this.center = { text: 'He dreams…', t: 0, dur: 3.2 };
+    // the guinea pig is the guide into the dream world
+    this.sub = { pig: { x: ROOM.sleep[0] + 210, y: ROOM.sleep[1] + 150, t: 0, facing: -1 }, said: 0 };
   },
   update(dt) {
     const k = clamp(this.stateT / 6, 0, 1);
@@ -1437,9 +1512,12 @@ S.DREAM = {
     this.camTo(ROOM.closeCam[0], ROOM.closeCam[1], this.roomFitZoom() * lerp(1.4, 2.6, ease(k)), 1.2, dt);
     if (Math.random() < dt * 6) { const p = this.parts.get(), a = Math.random() * TAU, r = 200 + Math.random() * 500;
       Object.assign(p, { x: ROOM.sleep[0] + Math.cos(a) * r, y: ROOM.sleep[1] + Math.sin(a) * r * 0.6, vx: 0, vy: -30 - Math.random() * 40, g: 0, t: 0, life: 2.5, size: 3 + Math.random() * 5, col: Math.random() < 0.5 ? [255, 215, 140] : [150, 220, 255] }); }
-    if (this.stateT > 7) this.complete();
+    const pg = this.sub.pig; pg.t += dt; pg.x = ROOM.sleep[0] + 210 + Math.sin(this.stateT * 0.8) * 30; pg.y = ROOM.sleep[1] + 150 - Math.abs(Math.sin(this.stateT * 3)) * 6;
+    if (this.stateT > 3.4 && !this.sub.said) { this.sub.said = 1; this.center = { text: '"Let me take you on a spirit journey."', t: 0, dur: 4.6 }; Audio.say('Let me take you on a spirit journey.', { pitch: 1.6, rate: 1.0 }); Audio.sfx('sparkle'); this.sparkle(pg.x, pg.y - 30, 40); }
+    if (this.stateT > 5 && Math.random() < dt * 3) this.sparkle(pg.x + (Math.random() - 0.5) * 60, pg.y - 20, 3);
+    if (this.stateT > 9) this.complete();
   },
-  draw(ctx) { drawRoomActors.call(this, ctx); },
+  draw(ctx) { drawRoomActors.call(this, ctx); const pg = this.sub.pig; if (this.stateT > 2.2) { ctx.save(); ctx.globalAlpha = clamp((this.stateT - 2.2) / 1.2, 0, 1); drawGuineaPig(ctx, pg.x, pg.y, 70, 'idle', pg.t, pg.facing, 0, this.stateT > 3.4); ctx.restore(); } },
   exitFade: { fade: 1.6 },
 };
 /* ---- ACT_END: end of Act 1 ---- */
@@ -1481,7 +1559,7 @@ S.ACT_END = {
 /* ================================================================== UI */
 const UI = {
   actionButton() { const G = Game; return { x: G.W - 64, y: G.H - 70, r: 38 }; },
-  fireButton() { const G = Game; return (G.mode === 'street' && G.state !== 'SAFEWAY') || (G.mode === 'kal' && ((Kal.kama && Kal.kama.mode === 'combat') || Kal.phase === 'FIGHT')) ? { x: G.W - 150, y: G.H - 60, r: 32 } : null; },
+  fireButton() { const G = Game; return (G.mode === 'street' && G.state !== 'SAFEWAY') || (G.mode === 'kal' && ((Kal.kama && Kal.kama.mode === 'combat') || Kal.phase === 'FIGHT' || (Kal.marchers && Kal.marchers.warned && !Kal.marchers.veer))) ? { x: G.W - 150, y: G.H - 60, r: 32 } : null; },
   bar(ctx, x, y, w, v, col, label) {
     ctx.fillStyle = 'rgba(0,0,0,0.45)'; rr(ctx, x, y, w, 7, 3.5); ctx.fill();
     ctx.fillStyle = col; rr(ctx, x, y, Math.max(0, w * clamp(v / 100, 0, 1)), 7, 3.5); ctx.fill();
@@ -1501,7 +1579,8 @@ const UI = {
       if (!battle) {
         this.bar(ctx, x, y + 39, w, st.hunger, '#c98a4a', 'hunger'); this.bar(ctx, x, y + 52, w, st.fatigue, '#7b95b8', 'fatigue');
         ctx.fillStyle = '#f1e6c8'; ctx.font = '12px system-ui, sans-serif';
-        if (G.mode !== 'kal') ctx.fillText(`$${st.money}  ·  🥕 ${G.inv.carrots}${G.inv.carryingBag ? '  ·  🛍' : ''}  ·  Day ${G.day}`, x, y + 80);
+        const kalPig = G.mode === 'kal' && Kal.pig, pig = G.inv.pigWithBen || kalPig ? `  ·  🐹 ${G.inv.pigCharges || 0}/${CFG.pigAttacksPerCarrot}` : '';
+        if (G.mode !== 'kal' || kalPig) ctx.fillText(G.mode === 'kal' ? `🥕 ${G.inv.carrots}${pig}` : `$${st.money}  ·  🥕 ${G.inv.carrots}${pig}${G.inv.carryingBag ? '  ·  🛍' : ''}  ·  Day ${G.day}`, x, y + 80);
       }
       ctx.globalAlpha = 1;
       if (G.objective && !battle) { ctx.textAlign = 'center'; ctx.font = '600 14px system-ui, sans-serif'; ctx.fillStyle = 'rgba(0,0,0,0.45)';
@@ -1515,6 +1594,12 @@ const UI = {
     if (p) { ctx.textAlign = 'center'; ctx.font = '600 15px system-ui, sans-serif'; const t = (Input.touchMode ? 'Tap: ' : '[E] or click: ') + p; const tw = ctx.measureText(t).width + 28;
       ctx.fillStyle = 'rgba(20,14,6,0.7)'; rr(ctx, G.W / 2 - tw / 2, G.H - 96, tw, 32, 16); ctx.fill(); ctx.strokeStyle = 'rgba(255,215,120,0.6)'; ctx.stroke(); ctx.fillStyle = '#ffe7a6'; ctx.fillText(t, G.W / 2, G.H - 75); }
     if (G.toast) { const a = Math.min(1, (G.toast.dur - G.toast.t) * 2, G.toast.t * 5); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.font = '13px system-ui, sans-serif'; ctx.fillStyle = '#fff4d6'; ctx.fillText(G.toast.text, G.W / 2, G.H * 0.22); ctx.globalAlpha = 1; }
+    if (G.line) { const L = G.line;
+      if (L.t >= 0 && !L.spoken) { L.spoken = true; Audio.say(L.text, { pitch: 0.75, rate: 0.92 }); }
+      if (L.t >= 0) { const a = clamp(Math.min(L.t / 0.6, (L.dur - L.t) / 0.8), 0, 1); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.font = `italic ${Math.min(19, G.W / 34)}px Georgia, serif`;
+        const w = Math.min(G.W - 60, ctx.measureText(L.text).width + 40); ctx.fillStyle = 'rgba(0,0,0,0.5)'; rr(ctx, G.W / 2 - w / 2, G.H * 0.72 - 24, w, 36, 10); ctx.fill();
+        ctx.fillStyle = '#f3ead2'; ctx.fillText(L.text, G.W / 2, G.H * 0.72, G.W - 80); ctx.globalAlpha = 1; }
+      if (L.t > L.dur) G.line = null; }
     if (G.center) { const c = G.center; const a = Math.min(1, c.t / 0.8, (c.dur - c.t) / 0.6);
       if (a > 0) { ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.fillStyle = '#ffe6a0'; ctx.shadowColor = '#e0a030'; ctx.shadowBlur = 18; ctx.font = `600 ${Math.min(34, G.W / 18)}px Georgia, serif`; ctx.fillText(c.text, G.W / 2, G.H / 2); ctx.shadowBlur = 0; ctx.globalAlpha = 1; }
       if (c.t > c.dur) G.center = null; }
@@ -1627,6 +1712,7 @@ const UI = {
       G.mode === 'street' && G.map ? `${G.map.key} tile r${Math.floor(b.y / 512) + 1}-c${Math.floor(b.x / 512) + 1}  ben (${b.x | 0},${b.y | 0}) dir ${DIRS[b.dir]}  peds ${G.peds.count()} cars ${G.cars.count()}` : `ben (${b.x | 0},${b.y | 0}) dir ${DIRS[b.dir]} pose ${b.pose}${b.asleep ? ' asleep' : ''}`,
       G.state === 'LESSER_ENTITIES' ? `entity phase: ${G.sub.cur ? `${G.sub.cur.type.name} hp${G.sub.cur.hp} from ${G.sub.cur.side}${G.sub.cur.dying ? ' dissolving' : ''}` : `silence ${Math.max(0, G.sub.silence).toFixed(1)}`}  resolved ${G.sub.resolved}/${G.sub.plan.length}  sides ${G.sub.sidesUsed.join(',')}` : '',
       d ? `demon mode ${d.mode}  orbit ${Math.min(d.hits, 4) + 1}/5  r=${d.r | 0}→${d.targetR}  hits ${d.hits}/5  dir ${d.dirSign > 0 ? 'cw' : 'ccw'}  lean ${d.lean.toFixed(2)}` : '',
+      `music: want ${Music.want || '-'}  ${Music.muted ? 'MUTED' : ''}  errors ${G.errors || 0} ${G.lastError || ''}`,
       `energy: astral ${s.astral | 0}  body ${s.health | 0}  overload ${s.overload | 0}  hunger ${s.hunger | 0}  fatigue ${s.fatigue | 0}  $${s.money}`,
       `inv: carrots ${i.carrots}  groceries ${i.groceries}  carryingBag ${i.carryingBag}  stored ${i.groceriesStored}`,
       `combat: ${G.combat ? G.combat.state : '-'}  waves ${G.waves.count()}  fx ${G.fx.count()}  last save: ${G.lastSave}`,

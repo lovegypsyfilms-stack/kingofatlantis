@@ -8,12 +8,8 @@
   1536
  ],
  "camera": {
-  "projection": "orthographic-near-top-down",
-  "look_down_degrees_from_horizon": 70,
-  "degrees_off_vertical": 20,
   "perspective_scaling": false,
-  "north": "screen-up",
-  "east": "screen-right"
+  "view": "near-top-down orthographic, north up"
  },
  "tiles": [
   {

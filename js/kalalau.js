@@ -5,7 +5,7 @@
 'use strict';
 
 const KCFG = {
-  benH: 66, zoomMul: 1.7, walk: 190, run: 285, npcWalk: 95, rangerWalk: 120, rangerRun: 265, catchR: 28,
+  benH: 66, zoomMul: 0.85, walk: 190, run: 285, npcWalk: 95, rangerWalk: 120, rangerRun: 265, catchR: 28,
   dayLength: 300,            // seconds of real time per in-game day (clock 6:00 -> 6:00)
   nightfallHour: 19, dawnHour: 6,
   chaseGiveUp: 75,           // s without contact before rangers stand down
@@ -13,10 +13,35 @@ const KCFG = {
   heli: { approach: 6, hover: 3, land: 2.5 },
   fire: { ignite: 1.0, gray: 5, black: 9, burned: 13 },
   wind: { telegraph: 0.75, react: 1.5, gust: [2.0, 3.0], force: [170, 260], interval: [4.5, 8.0], shelter: 22, fallMargin: 14, scaleTelegraph: 0.85, scaleForce: 1.25 },
-  kama: { stage: 1.4, encounter: 45, mistEvery: 5.5, vineEvery: 4.0, spearDrain: 12 },
-  marchers: 6, menehune: 3,
+  kama: { stage: 1.4, hitsToYield: 5, invuln: 0.9, spearEvery: 4.2, spearWarn: 0.8, spearReach: 170, mistEvery: 5.5, vineEvery: 4.0, spearDrain: 12, wakeR: 650 },
+  push: { range: 380, cost: 3, cooldown: 0.55, speed: 1100 },
+  marchers: 6, menehune: 3, wildCarrots: [2, 4], carrotPickR: 60,
 };
 
+// Guided order of events for the play-test: each step names a map and either a portal to take or a thing to do.
+// The HUD shows the step in large letters at the bottom and points an arrow at the target. Story events
+// (chase, night, Kamapuaʻa, the ledge) override the text while they are active.
+const GUIDE = [
+  { id: 'wake', map: 'campsite', text: 'WAKE UP — press E or tap', done: K => K.phase !== 'TENT_WAKE' },
+  { id: 'toBeach', map: 'campsite', portal: 'S', text: 'GO SOUTH THROUGH THE TREES TO THE BEACH', done: K => K.flags.visited_beach },
+  { id: 'social', map: 'beach', point: M => M.social[0], text: 'WALK UP TO THE HIKERS AND TALK (E)', done: K => !!K.outcomes.social },
+  { id: 'backToCamp', map: 'beach', portal: 'N', text: 'HEAD BACK NORTH TO YOUR CAMP', done: K => K.flags.visitors === 'arrived' || !!K.outcomes.confrontation },
+  { id: 'visitors', map: 'campsite', point: M => [M.camp.stand[0], M.camp.stand[1] + 40], text: 'THE HIKERS ARE AT YOUR CAMP — GO AND DEAL WITH THEM', done: K => !!K.outcomes.confrontation },
+  { id: 'toBeach2', map: 'campsite', portal: 'S', text: 'GO DOWN TO THE BEACH — SOMEONE IS COMING IN', done: K => K.flags.raid && K.flags.raid !== 'blocked' },
+  { id: 'skis', map: 'beach', point: M => M.skiShore[0], text: 'TWO JET SKIS — WATCH THEM LAND', done: K => K.flags.raid === 'toCamp' || K.flags.raid === 'atCamp' || K.flags.raid === 'done' },
+  { id: 'raid', map: 'campsite', point: M => [M.camp.stand[0], M.camp.stand[1] + 40], text: 'BACK TO CAMP, FAST — THEY ARE HEADING FOR YOUR TENT', done: K => !!K.outcomes.raid || K.camp.state !== 'intact' },
+  { id: 'toValley', map: 'campsite', portal: 'E', text: 'HEAD EAST INTO THE VALLEY', done: K => K.flags.visited_valley && (K.outcomes.raid || K.camp.state !== 'intact') },
+  { id: 'toHill', map: 'valley', portal: 'SE', text: 'SOUTH-EAST TO RED DIRT HILL — THE WAY OUT', done: K => K.flags.visited_red },
+  { id: 'toTrail', map: 'red-dirt-hill', portal: 'NE', text: 'CLIMB THE SWITCHBACKS TO THE TOP-RIGHT — THE TRAIL OUT', done: K => K.flags.visited_escape },
+  { id: 'kamaTrail', map: 'escape-trail', point: M => M.kamaTrail, text: 'NIGHT ON THE TRAIL — WALK ON. SOMETHING IS WAITING IN THE MIST', done: K => !!K.outcomes.kamapuaa },
+  { id: 'toLedge', map: 'escape-trail', portal: 'W', text: 'FOLLOW THE TRAIL WEST (LEFT) TO CRAWLER\'S LEDGE', done: K => K.flags.visited_crawlers },
+  { id: 'ledge', map: 'crawlers-ledge', portal: 'N', text: 'CRAWLER\'S LEDGE — HOLD RIGHT INTO THE WALL WHEN THE WIND RISES. CLIMB TO THE TOP-LEFT', done: K => K.phase === 'CHAPTER_EXIT' },
+];
+// Play-test option: the guinea pig companion on the maps, Act 1 (day 2+) and Kalalau (default OFF). Toggle on the title screen, or ?pig=1 / ?pig=0.
+const KalOpts = {
+  get pig() { const q = new URLSearchParams(location.search); if (q.has('pig')) return q.get('pig') !== '0'; try { return localStorage.getItem('koa-kal-pig') === '1'; } catch (e) { return false; } },
+  set pig(v) { try { localStorage.setItem('koa-kal-pig', v ? '1' : '0'); } catch (e) { } },
+};
 const Kal = {
   L: null, maps: {}, map: null, mapId: null, phase: 'TENT_WAKE', night: false, clock: 7.0, t: 0,
   actors: [], rangers: [], heli: null, camp: { state: 'intact', tentOpen: false }, alert: 0, inv: { knife: true, knifeOut: false },
@@ -99,6 +124,7 @@ const Kal = {
   begin(fresh = true) {
     const G = Game; this.load();
     if (fresh) {
+      this.carrots = {};
       Object.assign(this, { phase: 'TENT_WAKE', night: false, clock: 7.2, t: 0, actors: [], rangers: [], heli: null, camp: { state: 'intact', tentOpen: false }, alert: 0,
         inv: { knife: true, knifeOut: false }, outcomes: {}, flags: {}, checkpoint: null, hidden: null, chase: null, ledge: null, kama: null, marchers: null, menehune: [], fx: [], msgLog: [] });
       G.stats = G.stats || { health: 100, astral: 100, overload: 0, money: 0, hunger: 30, fatigue: 30 }; G.stats.health = 100;
@@ -114,13 +140,13 @@ const Kal = {
     const G = Game;
     return { phase: this.phase, night: this.night, clock: this.clock, mapId: this.mapId, ben: [G.ben.x, G.ben.y], inv: { ...this.inv }, camp: { ...this.camp }, alert: this.alert,
       checkpoint: this.checkpoint, outcomes: { ...this.outcomes }, flags: { ...this.flags }, heli: this.heli ? { state: this.heli.state === 'gone' ? 'gone' : 'landed' } : null,
-      actors: this.actors.map(a => ({ id: a.id, kind: a.kind, map: a.map, x: a.x, y: a.y, pack: a.pack, gone: !!a.gone })) };
+      actors: this.actors.map(a => ({ id: a.id, kind: a.kind, map: a.map, x: a.x, y: a.y, pack: a.pack, gone: !!a.gone })), carrots: this.carrots || {} };
   },
   restore(s) {
     const G = Game; this.load();
     Object.assign(this, { night: s.night, clock: s.clock, inv: { ...s.inv }, camp: { ...s.camp }, alert: 0, checkpoint: s.checkpoint, outcomes: { ...s.outcomes }, flags: { ...s.flags },
       hidden: null, chase: null, ledge: null, kama: null, marchers: null, menehune: [], fx: [], rangers: [], msgLog: [] });
-    this.spawnCast();
+    this.spawnCast(); this.carrots = s.carrots || {};
     for (const a of s.actors || []) { const A = this.actors.find(x => x.id === a.id); if (A) Object.assign(A, { map: a.map, x: a.x, y: a.y, pack: a.pack, gone: a.gone }); }
     this.heli = s.heli && s.heli.state !== 'gone' ? { state: 'landed', x: 0, y: 0, t: 0 } : null; if (this.heli) { const lz = this.maps.beach.lz; this.heli.x = lz[0]; this.heli.y = lz[1]; }
     this.phase = ['RANGER_CHASE', 'HIDDEN', 'ARRESTED', 'FIGHT', 'HELICOPTER_RESPONSE'].includes(s.phase) ? 'FREE_EXPLORE' : s.phase;
@@ -147,19 +173,29 @@ const Kal = {
   enterMap(id, portalId = null, at = null) {
     const G = Game, M = this.maps[id]; this.mapId = id; this.map = M; this.grid(M); G.map = null;
     let x, y, dir = G.ben.dir;
-    if (at) { [x, y] = at; } else if (portalId) { const p = this.portalOf(M, portalId); x = p.x; y = p.y; dir = (p.dir + 4) % 8; const dx = Math.sin(dir * TAU / 8), dy = -Math.cos(dir * TAU / 8); x += dx * (p.r + 30); y += dy * (p.r + 30); }
+    if (at) { [x, y] = at; } else if (portalId) { const p = this.portalOf(M, portalId); x = p.x; y = p.y; dir = (p.dir + 4) % 8; const dx = Math.sin(dir * TAU / 8), dy = -Math.cos(dir * TAU / 8); x += dx * (p.r + 80); y += dy * (p.r + 80); }
     else { x = M.w / 2; y = M.h / 2; }
     if (!this.can(x, y, M)) { [x, y] = this.snap(M, x, y); }
     Object.assign(G.ben, { x, y, dir, h: KCFG.benH, moving: false, pose: 'idle', asleep: false });
     G.walkTarget = null; G.cam.x = x; G.cam.y = y; G.cam.z = this.zoom(); this.fx = []; this.pool = [];
     this.title = { text: M.title, t: 0 }; this.lastPortal = portalId; this.portalCd = 1.2; G.waves.clear();
+    this.pig = KalOpts.pig ? { x: x + 30, y: y + 24, t: 0, facing: -1, moving: false, cool: 0 } : null; G.inv.pigCharges = G.inv.pigCharges || 0; G.inv.carrots = G.inv.carrots || 0;
+    if (!this.carrots) this.carrots = {};
+    if (!this.carrots[id]) { // wild carrots grow at random spots along the paths of each map (seeded once per map)
+      const r = G.rngFor('carrots-' + id), n = KCFG.wildCarrots[0] + Math.floor(r() * (KCFG.wildCarrots[1] - KCFG.wildCarrots[0] + 1)), list = [];
+      for (let i = 0; i < n; i++) { const c = M.corridors[Math.floor(r() * M.corridors.length)], k = Math.floor(r() * (c.pts.length - 1)), t = r(), pt = [lerp(c.pts[k][0], c.pts[k + 1][0], t) + (r() - 0.5) * 40, lerp(c.pts[k][1], c.pts[k + 1][1], t) + (r() - 0.5) * 40]; if (this.can(pt[0], pt[1], M)) list.push({ x: pt[0], y: pt[1], taken: false }); }
+      this.carrots[id] = list;
+    }
     if (!this.flags['visited_' + id]) { this.flags['visited_' + id] = true; }
+    this.flags['visited_' + { 'river-jungle': 'river', 'rear-cliff-clearing': 'rear', 'red-dirt-hill': 'red', 'escape-trail': 'escape', 'crawlers-ledge': 'crawlers' }[id]] = true;
     if (id === 'crawlers-ledge') this.ledgeEnter();
     if (this.alert === 1 && !this.chase && id === 'beach' && this.phase === 'FREE_EXPLORE') { // reported after a threat: a foot patrol of two, no helicopter
       const lz = M.lz; this.rangers = ['A', 'C'].map((v, i) => ({ id: 'p' + v, v, map: 'beach', x: lz[0] + i * 60, y: lz[1] + 40, dir: 4, t: 0, mode: 'pursue', path: null, searchT: 0, alpha: 1, speed: KCFG.rangerRun * 0.95 }));
       this.phase = 'RANGER_CHASE'; this.chase = { t: 0, lastSeen: 0, contactT: 0 }; this.objective('Two rangers on the beach are looking for him — get away and hide'); this.say('Two DNLR rangers, on foot, and they\'ve seen him', 3);
     }
-    if (id === 'rear-cliff-clearing' && this.night && !this.outcomes.kamapuaa && !this.kama) this.kamaBegin();
+    if (id === 'escape-trail' && !this.outcomes.kamapuaa && !this.night) { this.clock = KCFG.nightfallHour + 0.4; this.flags.debugNight = true; this.setNight(true); this.say('Night falls fast on the trail out. The mist is moving against the wind.', 3.6); }
+    if (id === 'rear-cliff-clearing' && this.night && !this.outcomes.kamapuaa && !this.kama) this.kamaBegin(M.kama);
+    if (id === 'campsite' && this.outcomes.social && !this.flags.visitors) this.flags.socialAt = this.clock - 1; // the visitors turn up as he gets home
     this.marchers = null; this.menehune = [];
     if (this.night) this.nightSpawns();
     Audio.ambience({ street: M.ambient === 'surf' || M.ambient === 'gale' ? 0.3 : 0.08, morning: this.night ? 0 : 0.25, evening: this.night ? 0.35 : 0 }, 1.2);
@@ -198,13 +234,34 @@ const Kal = {
       case 'CHAPTER_EXIT': break;
       default: this.freeUpdate(dt);
     }
-    this.actorsUpdate(dt); this.heliUpdate(dt); this.rangersUpdate(dt); this.fireUpdate(dt); this.fxUpdate(dt);
+    this.actorsUpdate(dt); this.heliUpdate(dt); this.rangersUpdate(dt); this.fireUpdate(dt); this.fxUpdate(dt); this.pigUpdate(dt);
     if (this.night) this.nightUpdate(dt);
     if (this.kama) this.kamaUpdate(dt);
+    else if (this.mapId === 'escape-trail' && this.map.kamaTrail && !this.outcomes.kamapuaa && dist(Game.ben.x, Game.ben.y, this.map.kamaTrail[0], this.map.kamaTrail[1]) < KCFG.kama.wakeR) this.kamaBegin(this.map.kamaTrail);
+    this.pushUpdate(dt);
     if (this.mapId === 'crawlers-ledge' && this.ledge) this.ledgeUpdate(dt);
     this.storyBeats(dt);
   },
   objective(t) { Game.objective = t; },
+  // guide: first undone step; if Ben is on the wrong map, point him to the exit that leads to the step's map
+  guideStep() {
+    const hike = this.phase === 'HIKE_OUT' || (this.phase === 'KAMAPUAA_ENCOUNTER' && this.prevPhase === 'HIKE_OUT');
+    const step = hike ? GUIDE.find(g => ['toHill', 'toTrail', 'kamaTrail', 'toLedge', 'ledge'].includes(g.id) && !g.done(this)) : GUIDE.find(g => !g.done(this));
+    if (!step) return null;
+    const M = this.map; let text = step.text, target = null, portal = null;
+    if (step.map === this.mapId) { if (step.portal) { portal = this.portalOf(M, step.portal); target = [portal.x, portal.y]; } else if (step.point) target = step.point(M); }
+    else { const p = this.nextPortal(this.mapId, step.map); if (p) { portal = p; target = [p.x, p.y]; text = `GO TO ${this.maps[step.map].title.toUpperCase()} — TAKE THE ${p.id} EXIT`; } }
+    // live events override the wording
+    if (this.chase && !this.hidden) text = 'RANGERS! RUN — FIND A BUSH WITH THE EYE ICON AND HIDE (E) WHEN NONE ARE ON SCREEN';
+    else if (this.hidden) text = 'HIDDEN — WAIT FOR THE SEARCH TO PASS';
+    else if (this.kama && this.kama.mode === 'combat') text = this.kama.warn > 0 ? 'THE SPEAR IS COMING — BACK OFF!' : `KAMAPUAʻA — PUSH HIM BACK WITH SPACE / FIRE (${this.kama.hits}/${KCFG.kama.hitsToYield}). SPACE ALSO CUTS VINES`;
+    else if (this.kama && this.kama.mode !== 'dissolve') text = 'KAMAPUAʻA IS TAKING SHAPE…';
+    else if (this.marchers && this.marchers.map === this.mapId && this.marchers.warned && !this.marchers.veer) text = 'NIGHT MARCHERS — KNEEL (E) TO LET THEM PASS, OR PUSH THEM BACK (SPACE)';
+    else if (this.ledge && this.ledge.gust) text = this.ledge.gust.phase === 'gust' ? 'HOLD RIGHT!' : 'WIND COMING — GET TO THE CLIFF WALL, HOLD RIGHT';
+    else if (this.choice) text = 'CHOOSE — press 1, 2, 3, 4 or tap';
+    else if (this.dialog) text = 'E OR TAP TO CONTINUE';
+    return { step, text, target, portal };
+  },
   say(t, d = 2.6) { Game.say(t, d); this.msgLog.push(t); },
   speak(who, text, dur = 2.8, then = null) { this.dialog = { who, text, t: 0, dur, then }; this.msgLog.push(`${who}: ${text}`); },
 
@@ -228,8 +285,9 @@ const Kal = {
       else if (near.type === 'hiker' && !this.outcomes.social && this.mapId === 'beach' && this.phase === 'BEACH_SOCIAL') this.prompt = { text: 'Talk to the hikers', fn: () => this.beachSocial() };
       else if (near.type === 'hiker' && this.flags.visitors === 'arrived' && !this.outcomes.confrontation && near.ref.map === 'campsite') this.prompt = { text: 'Deal with the visitors', fn: () => this.campConfrontation() };
       else if (near.type === 'local' && this.flags.raid === 'atCamp' && !this.outcomes.raid) this.prompt = { text: 'Face them', fn: () => this.raidConfrontation() };
+      else if (near.type === 'carrot') this.prompt = { text: 'Pick wild carrots (+1)', fn: () => { near.ref.taken = true; G.inv.carrots++; Audio.sfx('sparkle'); this.sparkle(near.x, near.y - 10); this.say(`Wild carrots — ${G.inv.carrots} in the bag`, 1.8); this.outcomes.carrots = (this.outcomes.carrots || 0) + 1; this.save(); } };
       else if (near.type === 'tent') this.prompt = { text: this.camp.state === 'burned' ? 'What\'s left of the tent' : 'Rest at the tent', fn: () => this.restAtTent() };
-      else if (near.type === 'marchers') this.prompt = { text: 'Kneel and look away', fn: () => { b.pose = 'kneel'; b.poseT = 0; this.flags.kneeling = 2.5; } };
+      else if (near.type === 'marchers' && !this.marchers.veer) this.prompt = { text: 'Kneel and look away', fn: () => { b.pose = 'kneel'; b.poseT = 0; this.flags.kneeling = 2.5; } };
     }
     if (this.prompt && Input.action()) { G.walkTarget = null; this.prompt.fn(); }
     if (this.flags.kneeling > 0) { this.flags.kneeling -= dt; b.pose = 'kneel'; b.moving = false; if (this.flags.kneeling <= 0) b.pose = 'idle'; }
@@ -238,6 +296,7 @@ const Kal = {
     const G = Game, b = G.ben, M = this.map; let best = null, bd = 1e9;
     const consider = (type, ref, x, y, r) => { const d = dist(b.x, b.y, x, y); if (d < r && d < bd) { bd = d; best = { type, ref, x, y }; } };
     for (const h of M.hides || []) consider('hide', h, h[0], h[1], 70);
+    if (this.pig) for (const c of (this.carrots && this.carrots[this.mapId]) || []) if (!c.taken) consider('carrot', c, c.x, c.y, KCFG.carrotPickR);
     for (const a of this.actorsIn(this.mapId)) consider(a.kind, a, a.x, a.y, 90);
     if (this.mapId === 'campsite') consider('tent', M.camp, M.camp.tent[0], M.camp.tent[1] + 40, 90);
     if (this.marchers && this.marchers.map === this.mapId) { const m = this.marchers.line[0]; consider('marchers', this.marchers, m.x, m.y, 260); }
@@ -352,6 +411,7 @@ const Kal = {
     for (const r of this.rangers) {
       r.t += dt; if (r.mode === 'done') continue;
       if (r.mode === 'arrest') continue;
+      if (r.stun > 0) { r.stun -= dt; r.moving = false; continue; }
       if (r.map === this.mapId && !this.hidden) { // same map: chase Ben directly
         anyContact = true; this.chase.lastSeen = this.chase.t;
         if (!r.path || r.t - (r.pathT || -9) > 0.6) { r.path = this.path(this.map, r.x, r.y, b.x, b.y); r.pathT = r.t; }
@@ -429,7 +489,7 @@ const Kal = {
       ['h1', 'h5', 'h6'].forEach((id, i) => { const a = this.actors.find(x => x.id === id); a.map = 'campsite'; a.pack = false; a.x = 1300 - i * 40; a.y = 900 + i * 30; a.mode = 'goto'; a.path = null; a.target = [1420 + i * 60, 800 + (i % 2) * 40]; });
       ['h0', 'h2', 'h3', 'h4'].forEach(id => { const a = this.actors.find(x => x.id === id); a.pack = false; a.mode = 'wander'; });
     }
-    if (this.flags.visitors === 'coming' && this.actors.filter(a => ['h1', 'h5', 'h6'].includes(a.id)).every(a => a.mode === 'idle')) { this.flags.visitors = 'arrived'; if (this.mapId === 'campsite') this.say('Voices at the camp — three of the hikers are standing by the tent', 3); }
+    if (this.flags.visitors === 'coming' && this.actors.filter(a => ['h1', 'h5', 'h6'].includes(a.id)).every(a => a.mode === 'idle' || a.map !== this.mapId)) { this.flags.visitors = 'arrived'; this.actors.filter(a => ['h1', 'h5', 'h6'].includes(a.id)).forEach(a => { if (a.mode === 'goto' && a.map !== this.mapId) { a.mode = 'idle'; a.x = a.target[0]; a.y = a.target[1]; } }); if (this.mapId === 'campsite') this.say('Voices at the camp — three of the hikers are standing by the tent', 3); }
     if (this.flags.visitors === 'arrived' && this.mapId === 'campsite' && !this.outcomes.confrontation && !this.choice && !this.dialog && this.phase === 'FREE_EXPLORE') {
       const cole = this.actors.find(a => a.id === 'h5'); if (dist(cole.x, cole.y, G.ben.x, G.ben.y) < 150) this.campConfrontation();
     }
@@ -534,7 +594,10 @@ const Kal = {
     this.menehune = this.menehune.filter(m => !m.dead);
     if (this.menehune.length < KCFG.menehune && Math.random() < dt * 0.15 && ['valley', 'campsite', 'river-jungle', 'rear-cliff-clearing'].includes(this.mapId)) this.spawnMenehune();
     const P = this.marchers;
-    if (P && P.map === this.mapId) {
+    if (P && P.map === this.mapId && P.veer) { // pushed: they recoil and veer off the path, fading into the dark
+      P.veer.t += dt; for (const m of P.line) { m.t += dt; m.x += P.veer.ax * 90 * dt; m.y -= 30 * dt; m.alpha = Math.max(0, m.alpha - dt / 2.4); }
+      if (P.veer.t > 2.6) this.marchers = null;
+    } else if (P && P.map === this.mapId) {
       P.t += dt; const pts = P.c.pts;
       for (const m of P.line) {
         m.t += dt; m.u += dt * 0.32; m.alpha = Math.min(1, m.alpha + dt * 0.4);
@@ -550,23 +613,27 @@ const Kal = {
     }
   },
   // Kamapuaʻa: mist -> six materialisation stages -> combat (mist volumes, awakened vines, spear). Dignified, never comic.
-  kamaBegin() {
-    const K = this.map.kama; this.kama = { x: K[0], y: K[1], t: 0, stage: -1, mode: 'mist', vines: [], mists: [], mistT: 0, vineT: 0, attackT: 0, hits: 0, encT: 0 };
-    this.phase = 'KAMAPUAA_ENCOUNTER'; this.say('The mist in the clearing is moving against the wind', 3.4); Audio.sfx('pressure'); Audio.ambience({ astral: 0.4, evening: 0.2 }, 2);
+  kamaBegin(at) {
+    const K = at || this.map.kama || [Game.ben.x + 220, Game.ben.y - 40]; this.kama = { map: this.mapId, x: K[0], y: K[1], t: 0, stage: -1, mode: 'mist', vines: [], mists: [], mistT: 0, vineT: 0, attackT: 0, hits: 0, encT: 0, invuln: 0, warn: 0 };
+    this.prevPhase = this.phase; this.phase = 'KAMAPUAA_ENCOUNTER'; this.say('The mist ahead gathers itself into a shape', 3.4); Audio.sfx('pressure'); Audio.ambience({ astral: 0.4, evening: 0.2 }, 2);
     this.spawnMist(K[0], K[1], 320);
   },
   spawnMist(x, y, size) { this.kama.mists.push({ x, y, t: 0, size, dur: 3.2 }); },
   kamaUpdate(dt) {
     const k = this.kama, b = Game.ben, KC = KCFG.kama; k.t += dt; k.encT += dt;
-    if (this.mapId !== 'rear-cliff-clearing') { this.kamaEnd('left'); return; }
+    if (this.mapId !== k.map) { if (k.mode === 'combat' || k.mode === 'materialise') { this.kama = null; this.phase = this.prevPhase || 'FREE_EXPLORE'; } else this.kama = null; return; } // leaving resets him; he waits on the trail
     if (k.mode === 'mist') { if (k.t > 2.5) { k.mode = 'materialise'; k.t = 0; k.stage = 0; Audio.sfx('growl'); } }
-    else if (k.mode === 'materialise') { const st = Math.min(5, Math.floor(k.t / KC.stage)); if (st !== k.stage) { k.stage = st; if (st === 1) this.say('Two eyes open in the mist', 2.2); if (st === 5) { this.say('Kamapuaʻa. The boar-god of the valley stands before him.', 3.5); } } if (k.t > 6 * KC.stage) { k.mode = 'combat'; k.t = 0; this.objective('Survive — sever the vines (knife: Space near a vine), stay out of the mist'); } }
+    else if (k.mode === 'materialise') { const st = Math.min(5, Math.floor(k.t / KC.stage)); if (st !== k.stage) { k.stage = st; if (st === 1) this.say('Two eyes open in the mist', 2.2); if (st === 5) { this.say('Kamapuaʻa. The boar-god of the valley stands before him.', 3.5); } } if (k.t > 6 * KC.stage) { k.mode = 'combat'; k.t = 0; this.objective('Kamapuaʻa — push him back 5 times (Space / FIRE)'); this.say('Push him back with your astral force — Space, or tap him', 3); } }
     else if (k.mode === 'combat') {
       k.mistT += dt; k.vineT += dt; k.attackT += dt;
       if (k.mistT > KC.mistEvery) { k.mistT = 0; this.spawnMist(b.x + (Math.random() - 0.5) * 300, b.y + (Math.random() - 0.5) * 200, 260); }
       if (k.vineT > KC.vineEvery && k.vines.filter(v => !v.dead).length < 3) { k.vineT = 0; const a = Math.random() * TAU; k.vines.push({ x: b.x + Math.cos(a) * 220, y: b.y + Math.sin(a) * 160, t: 0, mode: 'emerge', hp: 2 }); Audio.sfx('distant'); }
-      if (k.attackT > 7 && dist(k.x, k.y, b.x, b.y) < 260) { k.attackT = 0; k.attack = 0.66; Audio.sfx('lunge'); if (dist(k.x, k.y, b.x, b.y) < 150) { Game.stats.health = Math.max(0, Game.stats.health - KC.spearDrain); b.pose = 'hurt'; b.poseT = 0; this.say('The spear haft catches Ben across the ribs', 2); } }
+      k.invuln = Math.max(0, k.invuln - dt);
+      // telegraphed spear: he flares for spearWarn seconds, then strikes if Ben is still in reach
+      if (!k.warn && k.attackT > KC.spearEvery) { k.warn = KC.spearWarn; Audio.sfx('growl'); }
+      if (k.warn > 0) { k.warn -= dt; if (k.warn <= 0) { k.warn = 0; k.attackT = 0; k.attack = 0.66; Audio.sfx('lunge'); if (dist(k.x, k.y, b.x, b.y) < KC.spearReach) { Game.stats.health = Math.max(0, Game.stats.health - KC.spearDrain); b.pose = 'hurt'; b.poseT = 0; this.say('The spear haft catches Ben across the ribs', 2); } } }
       if (k.attack > 0) k.attack -= dt;
+      if (k.recoil > 0) { k.recoil -= dt; const d0 = dist(k.x, k.y, b.x, b.y) || 1; k.x += (k.x - b.x) / d0 * 180 * dt; k.y += (k.y - b.y) / d0 * 180 * dt; }
       // he circles slowly, keeps distance
       const d = dist(k.x, k.y, b.x, b.y) || 1; const want = 200; k.x += ((b.x - k.x) / d) * (d - want) * 0.4 * dt; k.y += ((b.y - k.y) / d) * (d - want) * 0.4 * dt;
       for (const v of k.vines) {
@@ -576,21 +643,59 @@ const Kal = {
         else if (v.mode === 'grab') { if (v.t > 1.8) { v.mode = 'recoil'; v.t = 0; } }
         else if (v.mode === 'recoil') { if (v.t > 0.5) { v.mode = 'crawl'; v.t = 0; } }
         else if (v.mode === 'sever') { if (v.t > 0.5) v.dead = true; }
-        if (Input.fire() && dv < 90 && v.mode !== 'sever' && v.mode !== 'emerge' && this.inv.knife) { v.hp--; b.pose = 'cast'; b.poseT = 0; Audio.sfx('hit'); if (v.hp <= 0) { v.mode = 'sever'; v.t = 0; this.flags.grabbed = 0; this.outcomes.vinesCut = (this.outcomes.vinesCut || 0) + 1; Audio.sfx('dissolve'); } }
       }
       if (this.flags.grabbed > 0) { this.flags.grabbed -= dt; b.moving = false; }
       for (const m of k.mists) { m.t += dt; if (m.t > 1 && m.t < m.dur && dist(m.x, m.y, b.x, b.y) < m.size * 0.4) { Game.stats.astral = Math.max(0, Game.stats.astral - 6 * dt); } }
       k.mists = k.mists.filter(m => m.t < m.dur);
       if (Game.stats.health <= 0) { Game.triggerGameOver('Kamapuaʻa'); return; }
-      if (k.encT > KC.encounter + 6 * KC.stage) this.kamaEnd('survived');
+      if (k.hits >= KC.hitsToYield) this.kamaEnd('yielded');
     } else if (k.mode === 'dissolve') { if (k.t > 6 * KC.stage) { this.kama = null; } }
   },
-  kamaEnd(how) { const k = this.kama; this.outcomes.kamapuaa = how; if (how === 'survived') { this.say('The boar-god looks at him a long moment, then turns back into mist.', 4); k.mode = 'dissolve'; k.t = 0; k.vines.forEach(v => v.dead = true); } else this.kama = null; this.phase = this.night ? 'SUPERNATURAL_ACTIVITY' : 'FREE_EXPLORE'; this.objective('Explore'); Audio.ambience({ astral: 0, evening: 0.35 }, 2); this.save(); },
+  kamaEnd(how) {
+    const k = this.kama; this.outcomes.kamapuaa = how; this.flags.afterKama = true;
+    this.say('Kamapuaʻa lowers his spear. He looks at Ben a long moment, then the mist takes him back.', 4.5); k.mode = 'dissolve'; k.t = 0; k.vines.forEach(v => v.dead = true); k.mists = [];
+    Audio.sfx('victory'); Audio.ambience({ astral: 0, evening: 0.35 }, 2);
+    this.phase = this.prevPhase === 'HIKE_OUT' ? 'HIKE_OUT' : 'FREE_EXPLORE'; this.objective('Follow the trail west to Crawler\'s Ledge');
+    if (this.mapId === 'escape-trail') setTimeout(() => { if (this.night) { this.flags.debugNight = true; this.clock = 6.2; this.setNight(false); } }, 4500); // first light for the ledge
+    this.save();
+  },
+  // Ben's astral push in Kalalau (Space / F / FIRE button / tap on a spirit): only the spirit world answers to it
+  pushTargets() {
+    const b = Game.ben, list = [], k = this.kama;
+    if (k && k.mode === 'combat' && k.map === this.mapId) list.push({ x: k.x, y: k.y - 110, kind: 'kama', ref: k });
+    if (k) for (const v of k.vines) if (!v.dead && v.mode !== 'emerge' && v.mode !== 'sever') list.push({ x: v.x, y: v.y - 20, kind: 'vine', ref: v });
+    if (this.marchers && this.marchers.map === this.mapId && !this.marchers.veer) for (const m of this.marchers.line) if (m.alpha > 0.3) list.push({ x: m.x, y: m.y - 50, kind: 'marcher', ref: m });
+    return list.filter(t => dist(t.x, t.y, b.x, b.y - 30) < KCFG.push.range);
+  },
+  pushAt(t) {
+    const G = Game, b = G.ben, P = KCFG.push; if ((this.pushCd || 0) > 0) return false;
+    if (G.stats.astral < P.cost) { this.say('No astral energy left', 1.2); Audio.sfx('empty'); return false; }
+    G.stats.astral -= P.cost; this.pushCd = P.cooldown; b.pose = 'cast'; b.poseT = 0; b.dir = dirFromVec(t.x - b.x, t.y - b.y); Audio.sfx('launch');
+    const hx = b.x, hy = b.y - 34, a = Math.atan2(t.y - hy, t.x - hx);
+    (this.pushes = this.pushes || []).push({ x: hx, y: hy, a, t: 0, target: t, dist: Math.hypot(t.x - hx, t.y - hy) }); return true;
+  },
+  pushUpdate(dt) {
+    this.pushCd = Math.max(0, (this.pushCd || 0) - dt);
+    if (Input.pressed.has('Space') || Input.pressed.has('KeyF') || Input.fireTap) { const T = this.pushTargets(); const b = Game.ben; T.sort((p, q) => (p.kind === 'kama' ? -1 : 0) - (q.kind === 'kama' ? -1 : 0) || dist(p.x, p.y, b.x, b.y) - dist(q.x, q.y, b.x, b.y)); if (T.length) this.pushAt(T[0]); }
+    if (!this.pushes) return;
+    for (const w of this.pushes) {
+      w.t += dt; const d = w.t * KCFG.push.speed; w.x = Game.ben.x + Math.cos(w.a) * Math.min(d, w.dist); w.y = Game.ben.y - 34 + Math.sin(w.a) * Math.min(d, w.dist);
+      if (d >= w.dist && !w.hit) { w.hit = true; this.pushHit(w.target); }
+    }
+    this.pushes = this.pushes.filter(w => w.t < w.dist / KCFG.push.speed + 0.2);
+  },
+  pushHit(t) {
+    const G = Game; G.spawnFx('impact', t.x, t.y, { h: 110, dur: 0.35 });
+    if (t.kind === 'kama') { const k = t.ref; if (k.invuln > 0 || k.mode !== 'combat') return; k.hits++; k.invuln = KCFG.kama.invuln; k.recoil = 0.35; k.warn = 0; k.attackT = 0; Audio.sfx('hit'); Audio.sfx('fracture'); this.outcomes.kamaHits = k.hits;
+      this.say(['He staggers back', 'The boar-god snorts, shakes it off', 'He drops to one knee — and rises', 'Mist bleeds from him', 'One more…'][Math.min(k.hits - 1, 4)], 1.6); }
+    else if (t.kind === 'vine') { const v = t.ref; v.hp = 0; v.mode = 'sever'; v.t = 0; this.flags.grabbed = 0; this.outcomes.vinesCut = (this.outcomes.vinesCut || 0) + 1; Audio.sfx('dissolve'); }
+    else if (t.kind === 'marcher') { const P = this.marchers; if (!P || P.veer) return; P.veer = { t: 0, ax: Math.sign(t.x - G.ben.x) || 1 }; this.outcomes.marchers = 'repelled'; Audio.sfx('growl'); this.say('The procession recoils — and turns away into the dark', 3); }
+  },
 
   /* ------------------------------------------------ 8. Crawler's Ledge wind */
   ledgeEnter() {
     const c = this.map.corridors[0]; this.ledge = { pts: c.pts, hw: c.w, gust: null, next: 3.5, difficulty: 0, t: 0, falls: 0 };
-    this.checkpoint = { map: 'crawlers-ledge', x: c.pts[0][0], y: c.pts[0][1] + 60 }; this.objective('Crawler\'s Ledge — when the wind rises, hold RIGHT into the cliff wall'); this.say('The cliff is on the right. The drop is on the left. Wind comes off the sea in gusts.', 4);
+    this.checkpoint = { map: 'crawlers-ledge', x: Game.ben.x, y: Game.ben.y }; this.objective('Crawler\'s Ledge — when the wind rises, hold RIGHT into the cliff wall'); this.say('The cliff is on the right. The drop is on the left. Wind comes off the sea in gusts.', 4);
   },
   ledgeSigned(x, y) { // signed offset from the trail centreline: + toward the cliff wall (screen-right / inland), - toward the drop
     const P = this.ledge.pts; let best = 1e9, s = 0, ti = 0, nx = 0, ny = 0;
@@ -626,6 +731,28 @@ const Kal = {
   },
 
   /* ------------------------------------------------ fx */
+  sparkle(x, y, n = 20) { Game.sparkle(x, y, n, [255, 210, 110]); },
+  // the guinea pig came along as his guide: it keeps close, and with a carrot in it, it goes for rangers, vines and anyone in a fight
+  pigUpdate(dt) {
+    const q = this.pig, b = Game.ben, G = Game; if (!q || this.hidden) return; q.t += dt; q.cool = Math.max(0, q.cool - dt);
+    let threat = null, td = CFG.pigGuardRange;
+    const consider = (x, y, r, hit) => { const d = dist(x, y, b.x, b.y); if (d < td) { td = d; threat = { x, y, r, hit }; } };
+    if (this.chase) for (const r of this.rangers) if (r.map === this.mapId && r.mode === 'pursue' && !(r.stun > 0)) consider(r.x, r.y - 10, 40, () => { r.stun = 1.4; r.x += (r.x - b.x) * 0.2; r.y += (r.y - b.y) * 0.2; this.say('The guinea pig trips a ranger!', 1.5); });
+    if (this.kama) for (const v of this.kama.vines) if (!v.dead && v.mode !== 'emerge' && v.mode !== 'sever') consider(v.x, v.y, 44, () => { v.hp--; if (v.hp <= 0) { v.mode = 'sever'; v.t = 0; this.flags.grabbed = 0; this.outcomes.vinesCut = (this.outcomes.vinesCut || 0) + 1; } });
+    if (this.fight) for (const o of this.fight.foes) if (!(o.hurt > 0)) consider(o.x, o.y - 10, 40, () => { o.hurt = 0.8; this.fight.hits++; });
+    if (threat && !pigFuel.call(G, q)) threat = null;
+    if (threat) {
+      q.orbit = (q.orbit || 0) + dt * CFG.pigOrbitSpeed; q.moving = true; q.guarding = true;
+      const ang = Math.atan2(threat.y - b.y, threat.x - b.x), rel = q.orbit - ang, R = CFG.pigOrbitRadius + Math.max(0, Math.cos(rel)) * Math.max(0, Math.min(td - 20, 90));
+      const nx = b.x + Math.cos(q.orbit) * R, ny = b.y + Math.sin(q.orbit) * R * 0.7; q.facing = nx > q.x ? 1 : -1; q.x = nx; q.y = ny;
+      if (q.cool <= 0 && dist(q.x, q.y, threat.x, threat.y) < threat.r) { q.cool = 1.1; threat.hit(); G.inv.pigCharges--; this.sparkle(q.x, q.y - 20, 14); Audio.sfx('squeak'); G.pigHits = (G.pigHits || 0) + 1; }
+      return;
+    }
+    q.guarding = false;
+    const a = b.dir * TAU / 8, tx = b.x - Math.sin(a) * 30 + 12, ty = b.y + Math.cos(a) * 30 + 6, dx = tx - q.x, dy = ty - q.y, d = Math.hypot(dx, dy);
+    if (d > 420) { q.x = tx; q.y = ty; q.moving = false; return; }
+    if (d > 10) { const sp = Math.min(d, Math.max(KCFG.run * 1.15, d * 3) * dt); q.x += dx / d * sp; q.y += dy / d * sp; q.moving = true; if (Math.abs(dx) > 2) q.facing = dx > 0 ? 1 : -1; } else { q.moving = false; q.facing = b.x > q.x ? 1 : -1; }
+  },
   spawnFx(anim, x, y, o = {}) { const a = Assets.anim('kfx', anim); if (!a) return; this.fx.push(Object.assign({ anim, x, y, t: 0, dur: o.dur || a.duration || a.frame_duration * a.frames.length, h: 60, vx: 0, vy: 0, alpha: 1, add: true }, o)); },
   fxUpdate(dt) { for (const f of this.fx) { f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt; } this.fx = this.fx.filter(f => f.t < f.dur); },
 
@@ -636,7 +763,7 @@ const Kal = {
     if (P.has('KeyR')) { if (!this.chase) { this.spawnRangers(); this.rangers.forEach(r => { r.map = this.mapId; r.x = Game.ben.x + 500; r.y = Game.ben.y; }); } else this.searchClear(); }
     if (P.has('KeyH')) this.heliCall();
     if (P.has('KeyF')) this.campFire();
-    if (P.has('KeyG')) { if (this.mapId !== 'rear-cliff-clearing') { this.enterMap('rear-cliff-clearing', null, [1500, 900]); } if (!this.kama) this.kamaBegin(); else if (this.kama.mode === 'materialise') this.kama.t += KCFG.kama.stage; }
+    if (P.has('KeyG')) { if (!this.kama) { if (!this.night) { this.flags.debugNight = true; this.setNight(true); } this.outcomes.kamapuaa = undefined; this.kamaBegin([Game.ben.x + 220, Game.ben.y - 30]); } else if (this.kama.mode === 'materialise') this.kama.t += KCFG.kama.stage; }
     if (P.has('KeyW') && this.ledge) { this.ledge.difficulty = (this.ledge.difficulty + 1) % 4; this.ledge.next = 0.2; this.say(`wind difficulty ${this.ledge.difficulty}`, 1); }
     if (P.has('KeyC')) this.debugView.collision = !this.debugView.collision;
     if (P.has('KeyX')) this.debugView.exits = !this.debugView.exits;
@@ -669,11 +796,15 @@ const Kal = {
     if (this.marchers && this.marchers.map === this.mapId) for (const mm of this.marchers.line) push(mm.y, () => this.drawMarcher(ctx, mm));
     if (this.kama) { const k = this.kama; for (const v of k.vines) if (!v.dead) push(v.y, () => this.drawVine(ctx, v)); if (k.mode !== 'mist') push(k.y, () => this.drawKama(ctx, k)); }
     if (!this.hidden) push(G.ben.y, () => this.drawBen(ctx));
+    if (this.pig) for (const c of (this.carrots && this.carrots[this.mapId]) || []) if (!c.taken) push(c.y, () => { const b = G.ben, near = dist(b.x, b.y, c.x, c.y) < 200; if (Assets.frame('guinea', 'item_0')) Assets.draw(ctx, 'guinea', 'item_0', c.x, c.y - 6, { h: 26, rot: -0.5 }); if (near) { ctx.save(); ctx.globalAlpha = 0.6 + 0.4 * Math.sin(G.time * 5); ctx.fillStyle = '#ffd95a'; ctx.font = '600 14px system-ui'; ctx.textAlign = 'center'; ctx.fillText('wild carrots', c.x, c.y - 34); ctx.restore(); } });
+    if (this.pig && !this.hidden && this.phase !== 'TENT_WAKE') { const q = this.pig; push(q.y, () => { if (q.guarding) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(q.x, q.y - 12, 2, q.x, q.y - 12, 34); g.addColorStop(0, 'rgba(255,220,120,0.5)'); g.addColorStop(1, 'rgba(255,200,80,0)'); ctx.fillStyle = g; ctx.fillRect(q.x - 34, q.y - 46, 68, 68); ctx.restore(); } drawGuineaPig(ctx, q.x, q.y, 34, q.moving ? 'run' : 'idle', q.t, q.facing, 0, q.guarding); }); }
     items.sort((a, b) => a.y - b.y).forEach(i => i.f());
     if (this.kama) for (const ms of this.kama.mists) this.drawMist(ctx, ms);
+    for (const w of this.pushes || []) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; Assets.draw(ctx, 'vfx', Assets.animFrame('vfx', 'wave', w.t), w.x, w.y, { h: 90, rot: w.a }); ctx.restore(); }
     for (const f of this.fx) { const a = Assets.anim('kfx', f.anim); if (!a) continue; const n = a.frames.length, i = Math.min(n - 1, Math.floor(f.t / f.dur * n)); ctx.save(); if (f.add) ctx.globalCompositeOperation = 'lighter'; Assets.draw(ctx, 'kfx', a.frames[i], f.x, f.y, { h: f.h, alpha: f.alpha * (f.t / f.dur > 0.7 ? 1 - (f.t / f.dur - 0.7) / 0.3 : 1) }); ctx.restore(); }
     if (this.mapId === 'crawlers-ledge' && this.ledge) this.drawWind(ctx);
     if (this.night) this.drawNightLights(ctx);
+    this.drawGuide(ctx);
   },
   drawBen(ctx) {
     const G = Game, b = G.ben, D = DIRS[b.dir];
@@ -756,6 +887,8 @@ const Kal = {
   drawKama(ctx, k) {
     let name, alpha = 1, h = 230;
     if (k.mode === 'materialise') name = 'kama_' + k.stage; else if (k.mode === 'dissolve') { name = 'kama_' + Math.max(0, 5 - Math.floor(k.t / KCFG.kama.stage)); alpha = 0.9; } else name = k.attack > 0 ? Assets.animFrame('super', 'kama_att', 0.66 - k.attack) : (Game.ben.x < k.x ? 'kama_side' : 'kama_def');
+    if (k.warn > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(k.x, k.y - 110, 10, k.x, k.y - 110, 170); g.addColorStop(0, 'rgba(255,90,40,0.55)'); g.addColorStop(1, 'rgba(255,60,20,0)'); ctx.fillStyle = g; ctx.fillRect(k.x - 170, k.y - 280, 340, 340); ctx.restore(); }
+    if (k.invuln > 0) alpha *= 0.6 + 0.4 * Math.sin(Game.time * 40);
     ctx.save(); ctx.globalAlpha = alpha; if (k.mode === 'combat') shadow(ctx, k.x, k.y, 30); Assets.draw(ctx, 'super', name, k.x, k.y, { h, flip: k.mode === 'combat' && Game.ben.x < k.x }); ctx.restore();
   },
   drawVine(ctx, v) {
@@ -774,20 +907,41 @@ const Kal = {
     if (this.mapId === 'campsite' && this.camp.state !== 'burned') { const C = this.map.camp.fire; const g2 = ctx.createRadialGradient(C[0], C[1], 6, C[0], C[1], 300); g2.addColorStop(0, 'rgba(255,170,80,0.45)'); g2.addColorStop(1, 'rgba(255,140,60,0)'); ctx.fillStyle = g2; ctx.fillRect(C[0] - 300, C[1] - 300, 600, 600); }
     ctx.restore();
   },
+  drawGuide(ctx) { // world-space: arrow over the target + edge pointer when it is off screen
+    const g = this.guideStep(); this.guideNow = g; if (!g || !g.target) return;
+    const G = Game, [tx, ty] = g.target, b = G.ben, pulse = 0.5 + 0.5 * Math.sin(G.time * 5);
+    ctx.save(); ctx.strokeStyle = `rgba(255,215,90,${0.55 + 0.4 * pulse})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(tx, ty, 34 + pulse * 8, 17 + pulse * 4, 0, 0, TAU); ctx.stroke();
+    const ax = tx, ay = ty - 70 - pulse * 12; ctx.fillStyle = '#ffd95a'; ctx.shadowColor = '#000'; ctx.shadowBlur = 8; ctx.beginPath(); ctx.moveTo(ax, ay + 26); ctx.lineTo(ax - 18, ay); ctx.lineTo(ax - 7, ay); ctx.lineTo(ax - 7, ay - 22); ctx.lineTo(ax + 7, ay - 22); ctx.lineTo(ax + 7, ay); ctx.lineTo(ax + 18, ay); ctx.closePath(); ctx.fill(); ctx.restore();
+    // trail of dots along the planned route so the way is visible even in dense jungle
+    if (!this.guidePath || G.time - (this.guidePathT || -9) > 1.2 || this.guidePathTo !== tx + ',' + ty) { this.guidePath = this.path(this.map, b.x, b.y, tx, ty); this.guidePathT = G.time; this.guidePathTo = tx + ',' + ty; }
+    ctx.save(); ctx.fillStyle = `rgba(255,225,120,${0.45 + 0.3 * pulse})`; let prev = [b.x, b.y], acc = (G.time * 60) % 34;
+    for (const pt of this.guidePath) { const d = Math.hypot(pt[0] - prev[0], pt[1] - prev[1]); for (let t = acc; t < d; t += 34) { const x = prev[0] + (pt[0] - prev[0]) * t / d, y = prev[1] + (pt[1] - prev[1]) * t / d; ctx.beginPath(); ctx.arc(x, y, 4, 0, TAU); ctx.fill(); } acc = (acc - d) % 34; if (acc < 0) acc += 34; prev = pt; }
+    ctx.restore();
+  },
   drawHud(ctx) {
     const G = Game, W = G.W, H = G.H;
     ctx.save(); ctx.textAlign = 'center';
+    // big guide text along the bottom
+    const gd = this.guideNow; if (gd && !this.choice && !this.dialog && this.phase !== 'ARRESTED') {
+      ctx.font = `700 ${Math.min(22, W / 34)}px system-ui, sans-serif`; const words = gd.text.split(' '); const lines = []; let line = '';
+      for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > W - 80 && line) { lines.push(line); line = w; } else line = t; } if (line) lines.push(line);
+      const lh = Math.min(26, W / 30), bh = lines.length * lh + 18, y0 = H - 40 - bh; ctx.fillStyle = 'rgba(0,0,0,0.62)'; rr(ctx, 24, y0, W - 48, bh, 10); ctx.fill(); ctx.strokeStyle = 'rgba(255,215,90,0.7)'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#ffe28a'; lines.forEach((l, i) => ctx.fillText(l, W / 2, y0 + 20 + i * lh + 4));
+      if (gd.target) { const [sx, sy] = G.worldToScreen(gd.target[0], gd.target[1]); if (sx < 0 || sy < 0 || sx > W || sy > H) { const [bx, by] = G.worldToScreen(G.ben.x, G.ben.y), a = Math.atan2(sy - by, sx - bx);
+        const ex = clamp(W / 2 + Math.cos(a) * W * 0.44, 30, W - 30), ey = clamp(H / 2 + Math.sin(a) * H * 0.38, 90, H - 110); ctx.save(); ctx.translate(ex, ey); ctx.rotate(a); ctx.fillStyle = '#ffd95a'; ctx.shadowColor = '#000'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(-14, -16); ctx.lineTo(-6, 0); ctx.lineTo(-14, 16); ctx.closePath(); ctx.fill(); ctx.restore(); } }
+    }
     if (this.title) { const a = Math.min(1, this.title.t * 2, (3 - this.title.t) * 1.5); ctx.globalAlpha = clamp(a, 0, 1); ctx.fillStyle = 'rgba(0,0,0,0.5)'; rr(ctx, W / 2 - 150, 44, 300, 40, 8); ctx.fill(); ctx.fillStyle = '#f6e7c1'; ctx.font = '600 18px Georgia, serif'; ctx.fillText(this.title.text.toUpperCase(), W / 2, 71); ctx.globalAlpha = 1; }
     // clock + phase
     const hh = Math.floor(this.clock), mm = Math.floor((this.clock - hh) * 60); ctx.font = '12px system-ui'; ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.textAlign = 'right';
     ctx.fillText(`${this.night ? '☾' : '☀'} ${hh}:${mm < 10 ? '0' : ''}${mm}   ${this.mapId}`, W - 14, H - 14);
     if (this.inv.knife) ctx.fillText(this.inv.knifeOut ? 'KNIFE OUT (K)' : 'knife (K)', W - 14, H - 30);
+    if (this.pig) ctx.fillText(`🥕 ${G.inv.carrots}  ·  🐹 ${G.inv.pigCharges}/${CFG.pigAttacksPerCarrot}`, W - 14, H - 46);
     if (this.chase) { ctx.textAlign = 'center'; ctx.fillStyle = '#ffb0a0'; ctx.font = '600 13px system-ui'; ctx.fillText(`RANGERS SEARCHING  ·  ${this.rangers.filter(r => r.map === this.mapId && r.mode !== 'done').length} on this screen`, W / 2, 96); }
     if (this.hidden) { ctx.textAlign = 'center'; ctx.fillStyle = '#cfe9c0'; ctx.font = '600 13px system-ui'; ctx.fillText('HIDDEN', W / 2, 118); }
     if (this.ledge && this.ledge.gust) { const g = this.ledge.gust; ctx.textAlign = 'center'; ctx.font = '600 20px system-ui'; ctx.fillStyle = g.phase === 'gust' ? '#9fd8ff' : '#ffe08a'; ctx.fillText(g.phase === 'cue' ? '~ wind ~' : g.phase === 'react' ? '▶ BRACE RIGHT ◀' : this.ledge.sheltered ? 'BRACED' : 'GUST!', W / 2, H * 0.3); }
-    if (this.kama && this.kama.mode === 'combat') { ctx.textAlign = 'center'; ctx.fillStyle = '#d9c2ff'; ctx.font = '600 13px system-ui'; ctx.fillText(`survive  ${Math.max(0, Math.ceil(KCFG.kama.encounter + 6 * KCFG.kama.stage - this.kama.encT))}s`, W / 2, 96); }
+    if (this.kama && this.kama.mode === 'combat') { const n = KCFG.kama.hitsToYield; ctx.textAlign = 'center'; for (let i = 0; i < n; i++) { ctx.save(); ctx.translate(W / 2 - (n - 1) * 15 + i * 30, 100); ctx.rotate(0.5); ctx.fillStyle = i < this.kama.hits ? '#ffcf70' : 'rgba(255,255,255,0.2)'; ctx.fillRect(-5, -9, 10, 18); ctx.restore(); } }
     // prompt
-    const p = this.prompt; if (p && !this.choice && !this.dialog && this.phase !== 'ARRESTED') { ctx.textAlign = 'center'; ctx.font = '600 15px system-ui, sans-serif'; const t = (Input.touchMode ? 'Tap: ' : '[E] or click: ') + p.text; const tw = ctx.measureText(t).width + 28; ctx.fillStyle = 'rgba(20,14,6,0.7)'; rr(ctx, W / 2 - tw / 2, H - 96, tw, 32, 16); ctx.fill(); ctx.strokeStyle = 'rgba(255,215,120,0.6)'; ctx.stroke(); ctx.fillStyle = '#ffe7a6'; ctx.fillText(t, W / 2, H - 75); }
+    const p = this.prompt; if (p && !this.choice && !this.dialog && this.phase !== 'ARRESTED') { ctx.textAlign = 'center'; ctx.font = '600 15px system-ui, sans-serif'; const t = (Input.touchMode ? 'Tap: ' : '[E] or click: ') + p.text; const tw = ctx.measureText(t).width + 28; ctx.fillStyle = 'rgba(20,14,6,0.7)'; rr(ctx, W / 2 - tw / 2, H - 150, tw, 32, 16); ctx.fill(); ctx.strokeStyle = 'rgba(255,215,120,0.6)'; ctx.stroke(); ctx.fillStyle = '#ffe7a6'; ctx.fillText(t, W / 2, H - 129); }
     // dialogue
     if (this.dialog) { const d = this.dialog; const w = Math.min(W - 40, 620); ctx.fillStyle = 'rgba(8,10,16,0.82)'; rr(ctx, W / 2 - w / 2, H - 150, w, 92, 12); ctx.fill(); ctx.strokeStyle = 'rgba(255,215,120,0.5)'; ctx.stroke(); ctx.textAlign = 'left'; ctx.fillStyle = '#ffd98a'; ctx.font = '600 14px system-ui'; ctx.fillText(d.who, W / 2 - w / 2 + 18, H - 124); ctx.fillStyle = '#f2ecdc'; ctx.font = '15px system-ui'; this.wrap(ctx, d.text, W / 2 - w / 2 + 18, H - 100, w - 36, 20); ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText('E / tap to continue', W / 2 + w / 2 - 14, H - 66); }
     if (this.choice) { const c = this.choice; const w = Math.min(W - 40, 640), n = c.options.length, hgt = 60 + n * 40; const y0 = H / 2 - hgt / 2; ctx.fillStyle = 'rgba(8,10,16,0.88)'; rr(ctx, W / 2 - w / 2, y0, w, hgt, 12); ctx.fill(); ctx.strokeStyle = 'rgba(255,215,120,0.5)'; ctx.stroke(); ctx.textAlign = 'left'; ctx.fillStyle = '#f2ecdc'; ctx.font = 'italic 14px system-ui'; ctx.fillText(c.text, W / 2 - w / 2 + 18, y0 + 28); c.rects = [];
@@ -825,4 +979,4 @@ S.KALALAU_END = {
 MODE_OF.KALALAU = 'kal'; MODE_OF.KALALAU_END = 'end';
 COMPLETE_WHEN.KALALAU = 'chapter phases (see Kal.phase); ends when Ben leaves Crawler\'s Ledge';
 COMPLETE_WHEN.KALALAU_END = 'end card; tap returns to the title';
-window.KOA.Kal = Kal; window.KOA.KCFG = KCFG;
+window.KOA.Kal = Kal; window.KOA.KCFG = KCFG; window.KOA.KalOpts = KalOpts;

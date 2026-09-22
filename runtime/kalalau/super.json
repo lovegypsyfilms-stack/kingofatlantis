@@ -1,0 +1,475 @@
+{
+"image": "super.png",
+"source_master": "masters/kalalau/sprites/supernatural-atlas.png",
+"frames": {
+"men_walk_0": {
+"rect": [
+36,
+44,
+99,
+122
+],
+"pivot": [
+49.5,
+120
+]
+},
+"men_walk_1": {
+"rect": [
+163,
+48,
+93,
+120
+],
+"pivot": [
+46.5,
+118
+]
+},
+"men_walk_2": {
+"rect": [
+279,
+49,
+110,
+121
+],
+"pivot": [
+55.0,
+119
+]
+},
+"men_walk_3": {
+"rect": [
+408,
+51,
+93,
+118
+],
+"pivot": [
+46.5,
+116
+]
+},
+"men_idle_0": {
+"rect": [
+564,
+51,
+115,
+125
+],
+"pivot": [
+57.5,
+123
+]
+},
+"men_idle_1": {
+"rect": [
+724,
+52,
+83,
+121
+],
+"pivot": [
+41.5,
+119
+]
+},
+"men_look": {
+"rect": [
+886,
+55,
+88,
+118
+],
+"pivot": [
+44.0,
+116
+]
+},
+"men_van_0": {
+"rect": [
+1103,
+57,
+103,
+118
+],
+"pivot": [
+51.5,
+116
+]
+},
+"men_van_1": {
+"rect": [
+1251,
+59,
+111,
+120
+],
+"pivot": [
+55.5,
+118
+]
+},
+"men_van_2": {
+"rect": [
+1407,
+96,
+93,
+82
+],
+"pivot": [
+46.5,
+80
+]
+},
+"nm_walk_0": {
+"rect": [
+13,
+274,
+111,
+204
+],
+"pivot": [
+55.5,
+202
+]
+},
+"nm_walk_1": {
+"rect": [
+126,
+275,
+121,
+203
+],
+"pivot": [
+60.5,
+201
+]
+},
+"nm_walk_2": {
+"rect": [
+248,
+273,
+121,
+206
+],
+"pivot": [
+60.5,
+204
+]
+},
+"nm_walk_3": {
+"rect": [
+371,
+275,
+128,
+203
+],
+"pivot": [
+64.0,
+201
+]
+},
+"nm_walk_4": {
+"rect": [
+500,
+275,
+122,
+204
+],
+"pivot": [
+61.0,
+202
+]
+},
+"nm_walk_5": {
+"rect": [
+626,
+273,
+126,
+207
+],
+"pivot": [
+63.0,
+205
+]
+},
+"nm_solid": {
+"rect": [
+785,
+276,
+131,
+209
+],
+"pivot": [
+65.5,
+207
+]
+},
+"nm_trans": {
+"rect": [
+919,
+277,
+121,
+206
+],
+"pivot": [
+60.5,
+204
+]
+},
+"nm_faint": {
+"rect": [
+1051,
+278,
+105,
+192
+],
+"pivot": [
+52.5,
+190
+]
+},
+"nm_idle_F": {
+"rect": [
+1231,
+278,
+125,
+209
+],
+"pivot": [
+62.5,
+207
+]
+},
+"nm_idle_B": {
+"rect": [
+1385,
+280,
+113,
+207
+],
+"pivot": [
+56.5,
+205
+]
+},
+"kama_0": {
+"rect": [
+18,
+560,
+134,
+390
+],
+"pivot": [
+67.0,
+388
+]
+},
+"kama_1": {
+"rect": [
+152,
+560,
+130,
+390
+],
+"pivot": [
+65.0,
+388
+]
+},
+"kama_2": {
+"rect": [
+282,
+560,
+146,
+390
+],
+"pivot": [
+73.0,
+388
+]
+},
+"kama_3": {
+"rect": [
+428,
+560,
+164,
+390
+],
+"pivot": [
+82.0,
+388
+]
+},
+"kama_4": {
+"rect": [
+592,
+589,
+180,
+361
+],
+"pivot": [
+90.0,
+359
+]
+},
+"kama_5": {
+"rect": [
+772,
+545,
+264,
+405
+],
+"pivot": [
+132.0,
+403
+]
+},
+"kama_att_0": {
+"rect": [
+1045,
+560,
+167,
+185
+],
+"pivot": [
+83.5,
+183
+]
+},
+"kama_att_1": {
+"rect": [
+1212,
+560,
+160,
+185
+],
+"pivot": [
+80.0,
+183
+]
+},
+"kama_att_2": {
+"rect": [
+1372,
+560,
+150,
+185
+],
+"pivot": [
+75.0,
+183
+]
+},
+"kama_side": {
+"rect": [
+1040,
+754,
+160,
+215
+],
+"pivot": [
+80.0,
+213
+]
+},
+"kama_def": {
+"rect": [
+1200,
+756,
+147,
+215
+],
+"pivot": [
+73.5,
+213
+]
+},
+"kama_back": {
+"rect": [
+1360,
+748,
+160,
+226
+],
+"pivot": [
+80.0,
+224
+]
+}
+},
+"animations": {
+"men_walk": {
+"frames": [
+"men_walk_0",
+"men_walk_1",
+"men_walk_2",
+"men_walk_3"
+],
+"frame_duration": 0.18,
+"loop": true
+},
+"men_idle": {
+"frames": [
+"men_idle_0",
+"men_idle_1",
+"men_look",
+"men_idle_1"
+],
+"frame_duration": 0.6,
+"loop": true
+},
+"men_van": {
+"frames": [
+"men_van_0",
+"men_van_1",
+"men_van_2"
+],
+"frame_duration": 0.3,
+"loop": false
+},
+"nm_walk": {
+"frames": [
+"nm_walk_0",
+"nm_walk_1",
+"nm_walk_2",
+"nm_walk_3",
+"nm_walk_4",
+"nm_walk_5"
+],
+"frame_duration": 0.2,
+"loop": true
+},
+"nm_fade": {
+"frames": [
+"nm_solid",
+"nm_trans",
+"nm_faint"
+],
+"frame_duration": 0.5,
+"loop": false
+},
+"kama_mat": {
+"frames": [
+"kama_0",
+"kama_1",
+"kama_2",
+"kama_3",
+"kama_4",
+"kama_5"
+],
+"frame_duration": 1.4,
+"loop": false
+},
+"kama_att": {
+"frames": [
+"kama_att_0",
+"kama_att_1",
+"kama_att_2"
+],
+"frame_duration": 0.22,
+"loop": false
+}
+}
+}

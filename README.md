@@ -98,3 +98,43 @@ All packs were found on the Mac at `Desktop/GAMES DESIGN/KING OF ATLANTIS/ASSETS
 - The jet-ski raid is triggered after the camp confrontation resolves (or ~3 game hours after the beach scene) when Ben is at the beach or camp. With the knife drawn the group backs off that day; without it the tent burns.
 - Kamapuaʻa cannot be defeated; the encounter resolves by surviving or leaving the clearing.
 - Night uses graded day tiles rather than the pack's illustrated night masters (photoreal set chosen).
+
+## Play-test 5 changes
+- **Zoom**: town and Kalalau maps zoomed out 2× (`streetZoom 1.5`, `KCFG.zoomMul 0.85`); bedroom out 1.5× (`roomZoom 1.55`).
+- **Guinea pig guardian** (day 2+ on the maps): when a charged person or a beach shade comes within `CFG.pigGuardRange`, the pig circles Ben fast with an orbit that bulges toward the threat and knocks back whatever it clips (automatic; `pigOrbitRadius`, `pigOrbitSpeed`, 1.1 s between hits).
+- **Dream guide**: on night 3 the guinea pig appears on the bed and says "Let me take you on a spirit journey." (spoken) before the Act 2 card.
+- **Kalalau guide**: a large bar along the bottom always says what to do next (the `GUIDE` chain in `js/kalalau.js`), with a bouncing arrow over the target, an edge arrow when it is off screen, and a dotted route along the planned path. If Ben is on the wrong map it names the exit to take. Live events override the text (rangers, hidden, Kamapuaʻa, wind, choices). The chain: wake → beach → talk → back to camp (visitors now arrive as he gets home) → visitors → beach (jet skis) → camp (raid) → valley → river → waterfall clearing (night falls there; Kamapuaʻa) → back west → valley → Red Dirt Hill → trail → Crawler's Ledge → exit. Arrest jumps to the hike-out part of the chain.
+- **Night marchers**: still kneel-to-pass. Open question for the next round: whether Ben should be able to push them back with an astral wave, or whether the point is that you cannot fight them.
+
+## Play-test 6: carrots fuel the guinea pig
+- A carrot buys **3 guinea-pig attacks** (`CFG.pigAttacksPerCarrot`). When the pig needs to fight and has no charge left it eats a carrot from the bag automatically (munch + sparkle); with no carrots it only follows and Ben is told it needs one. Charges show on the HUD as 🐹 n/3 next to 🥕.
+- Carrots come from Safeway (+4 with the groceries) and from **wild carrots growing along the paths in Kalalau** (2–4 per map, seeded, "Pick wild carrots" prompt, +1 each).
+- The guinea pig comes along to Kalalau as his guide and fights the same way there: it trips pursuing rangers (1.4 s stun), severs vines, and hits anyone in a camp fight.
+
+## Play-test 7: no-pig default + test toggle
+- **Guinea pig companion is OFF by default.** With it off: the day-2 gate is a normal "Out the gate", no pig follows on the Act 1 maps, and Kalalau has no pig and no wild carrots. The dream scene (the pig as spirit guide) is unchanged.
+- **Toggle**: a small "Test: guinea pig companion — ON/OFF" button under the title buttons (or press G on the title screen). It is remembered in this browser. URL override: `?pig=1` / `?pig=0`.
+- With it ON, everything from play-test 6 applies, now at **1 carrot = 2 attacks** (`CFG.pigAttacksPerCarrot`).
+
+## Play-test 8: music + freeze guard
+- **Music** (`Music` in `js/core.js`, files in `runtime/music/`, masters in `masters/music/`): streamed looping `<audio>` with 1.6 s crossfades, started on the first click/key (browser rule).
+  - `battle-day` = Rhythm Scott "Action Drums" — Act 1 streets while people are charging Ben (holds 5 s after the last one) and during the beach shade wave; Kalalau camp fight, helicopter/ranger chase, camp fire.
+  - `battle-night` = Rhythm Scott "Full Strength" — the night fight in Ben's room (lesser entities + demon), Kamapuaʻa, the night-marcher procession.
+  - `town` = Mountain Dreamers "Spirits Over The High Ridge" — the everyday Kapaʻa music in the yard, streets and coast when nobody is fighting.
+  - **M** mutes/unmutes in game (remembered); a "Music — ON/OFF" button on the title screen.
+- **Freeze guard**: the main loop now schedules the next frame before running the current one and catches any error, showing a small "Glitch (game kept running)" line with the message at the bottom instead of stopping dead. The debug overlay shows the error count and last message. The reported post-Safeway freeze did not reproduce in Chromium (tested ~3 min of random play on the return, pig on and off), so it is likely Safari-specific; if it happens again the on-screen message will say where.
+
+## Play-test 9: story order, Ben's voice, coast mob, Kamapuaʻa on the trail out
+### Act 1
+- **Starts in the morning** (ROOM_MORNING, day 1). Ben: *"Okay. Better get up and get some food at Safeway."* — a small italic subtitle in the lower third, also spoken with the browser voice (`Game.benLine`).
+- Day 1 → Safeway run → evening → bed: *"The nights are the hardest."* → **the first night fight** (lesser entities + demon, base speed).
+- **Day 2** morning: *"Made it through another night. Alright… better get to Safeway. Not sure how much longer I can live like this."* The guinea pig comes along **automatically** from the gate (no button). Day 2 streets run 1.5× (`dayK`); night fights use `nightK` so the first night is ×1.
+- **Night 2 has no fight**: bed → DREAM (the guinea pig: "Let me take you on a spirit journey") → *It wasn't always like this…* → ACT 2: KALALAU. (`CFG.lastDay = 2`.)
+- **Coast barrier is now four charged-up people** (drifter, local, jogger, office worker), each needing 2 pushes (`CFG.beachFoeHp`); they call out, grab at Ben on contact, and back off and fade when beaten. The guinea pig can hit them on day 2.
+### Act 2
+- **Hike-out runs right-to-left along the coast**: Red Dirt Hill (top-right exit) → the trail out, entered from its east end → west (left) → Crawler's Ledge, entered at its bottom-right end → climb to the top-left exit. The cliff wall is still screen-right on the ledge, so bracing is still "hold RIGHT".
+- **Kamapuaʻa is on the trail out**: entering the trail brings nightfall; he rises from the mist as Ben walks on (six stages), then fights. **Push him back 5 times** (Space / F / FIRE button / tap him) — each push costs 3 astral, he's briefly invulnerable after a hit, he telegraphs his spear with a red flare (back off), raises mist that drains astral, and wakes vines (a push cuts a vine). After the fifth he lowers his spear and returns to the mist; first light follows for the ledge. This happens on both paths (arrested or not). The rear waterfall clearing still has him at night for explorers.
+- **Ben's astral push** works on the spirit world only (Kamapuaʻa, vines, night marchers).
+- **Night marchers**: kneel (E) and they pass, or push them (Space) and the whole procession recoils, veers off the path and fades into the dark.
+- Guide chain after the camp: valley → Red Dirt Hill → trail out (Kamapuaʻa) → west to Crawler's Ledge → top-left exit. Exits are bigger (radius 100), Ben arrives further inside a map, and taps are ignored for half a second after arriving (stops accidental double-exits).
+- Kalalau guinea pig stays behind the title-screen test toggle (default OFF).
