@@ -36,6 +36,12 @@
   "towardBias": [
    0.45,
    0.8
+  ],
+  "towardAlwaysPressure": true,
+  "towardBeforeOnset": false,
+  "otherPressure": [
+   0.15,
+   0.35
   ]
  },
  "exposure": {

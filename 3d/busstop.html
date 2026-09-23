@@ -183,7 +183,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const GLB='url:assets/ben.glb?v=bs01', SKIN='url:assets/ben-skin.jpg?v=bs01', AGLB='url:assets/anthony.glb?v=bs01', ASKIN='url:assets/anthony-skin.jpg?v=bs01';
-const BUILD='Bus stop perception prototype v0.1.1 · 23 Sep 2026';
+const BUILD='Bus stop perception prototype v0.2 · 23 Sep 2026';
 const $=id=>document.getElementById(id);
 
 /* ---------------- GAME DATA — every tunable number for this prototype ----------------
@@ -193,7 +193,10 @@ const DATA={
   meters:{astral:100,emotional:100,astralRegen:.5,emoRegenFar:.2,emoRegenDist:6},
   ingress:{delay:[12,35],rampTime:60,fieldLevel:.2,drainRate:5,emoDrainRate:5,
            pulseChance:[.35,.75],pulseAmp:[.6,1],pulseStretch:[.8,1.3],
-           lullChance:.25,lull:[6,14],towardBias:[.45,.8]},
+           lullChance:.25,lull:[6,14],towardBias:[.45,.8],
+           towardAlwaysPressure:true,   // Anthony's rule: any movement directed at Ben carries astral pressure
+           towardBeforeOnset:false,     // before ingress (and during lulls) he makes no Ben-directed movements at all
+           otherPressure:[.15,.35]},    // chance an ordinary movement (chin rub, looking away) also carries it, rising over the ramp
   exposure:{near:.9,far:4,farPow:1.5,awayMin:.3,lineBlocked:.25,shield:.15},
   shield:{raiseCost:2,costPerSec:1.2},
   costs:{standEngaged:12,leaveEngaged:6,engagedWindow:8},     // Anthony's rule: breaking off physically costs emotional energy
@@ -696,17 +699,21 @@ function tlog(type,msg,extra){ const e={t:+ENC.t.toFixed(1),type,msg}; if(extra)
 /* ---------------- Anthony's director ---------------- */
 function towardBias(){ return lerp(DATA.ingress.towardBias[0],DATA.ingress.towardBias[1],ING.ramp); }
 function chooseMove(){
+  const I=DATA.ingress;
   const names=Object.keys(MOVES).filter(n=>!(AN.recent||[]).includes(n));   // no repeats within the last 3 moves
   const pressureWindow=ING.active && ENC.t>=ING.lullUntil;
-  let pc=pressureWindow?lerp(DATA.ingress.pulseChance[0],DATA.ingress.pulseChance[1],ING.ramp):0;
   const kB=Math.min(1,K('B'));
-  // Behaviour cue ON: pressure tends to ride on Ben-directed movements, and those become more frequent.
-  // Behaviour cue OFF: movement choice is identical before and after onset, so body language carries no information.
   let list=names.map(n=>({n,w:MOVES[n].w}));
-  if(pressureWindow && kB>0 && rng()<towardBias()*kB){ list=list.filter(e=>MOVES[e.n].toward); }
+  // Ben-directed movements only happen while ingress is running (unless towardBeforeOnset)
+  if(!pressureWindow && !I.towardBeforeOnset) list=list.filter(e=>!MOVES[e.n].toward);
+  // Behaviour cue: while ingress runs he makes Ben-directed movements more often
+  if(pressureWindow && kB>0 && rng()<towardBias()*kB){ const t=list.filter(e=>MOVES[e.n].toward); if(t.length) list=t; }
   const n=wpick(list.map(e=>({...e}))).n;
-  let p=pc; if(kB>0){ p+=MOVES[n].toward?.18*kB:-.18*kB; }
-  const pressure=pressureWindow && rng()<clamp(p,0,1);
+  let pressure=false;
+  if(pressureWindow){
+    if(MOVES[n].toward && I.towardAlwaysPressure) pressure=true;
+    else { let p=lerp(I.otherPressure[0],I.otherPressure[1],ING.ramp); if(!I.towardAlwaysPressure) p=lerp(I.pulseChance[0],I.pulseChance[1],ING.ramp); pressure=rng()<p; }
+  }
   return newMove(n,{pressure});
 }
 function directorUpdate(dt){
