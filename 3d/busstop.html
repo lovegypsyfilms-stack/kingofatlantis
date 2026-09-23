@@ -183,7 +183,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const GLB='url:assets/ben.glb?v=bs01', SKIN='url:assets/ben-skin.jpg?v=bs01', AGLB='url:assets/anthony.glb?v=bs01', ASKIN='url:assets/anthony-skin.jpg?v=bs01';
-const BUILD='Bus stop perception prototype v0.1 · 23 Sep 2026';
+const BUILD='Bus stop perception prototype v0.1.1 · 23 Sep 2026';
 const $=id=>document.getElementById(id);
 
 /* ---------------- GAME DATA — every tunable number for this prototype ----------------
@@ -696,7 +696,7 @@ function tlog(type,msg,extra){ const e={t:+ENC.t.toFixed(1),type,msg}; if(extra)
 /* ---------------- Anthony's director ---------------- */
 function towardBias(){ return lerp(DATA.ingress.towardBias[0],DATA.ingress.towardBias[1],ING.ramp); }
 function chooseMove(){
-  const names=Object.keys(MOVES).filter(n=>n!==AN.last);
+  const names=Object.keys(MOVES).filter(n=>!(AN.recent||[]).includes(n));   // no repeats within the last 3 moves
   const pressureWindow=ING.active && ENC.t>=ING.lullUntil;
   let pc=pressureWindow?lerp(DATA.ingress.pulseChance[0],DATA.ingress.pulseChance[1],ING.ramp):0;
   const kB=Math.min(1,K('B'));
@@ -713,7 +713,7 @@ function directorUpdate(dt){
   const b=AN.base;
   // start a new micro-movement
   if(!AN.move){ AN.nextT-=dt*CFG.freq*(ING.active&&K('B')>0?1+.25*K('B')*ING.ramp:1);
-    if(AN.nextT<=0 && ENC.stage!=='lashout'){ const m=chooseMove(); AN.move=m; AN.last=m.name; AN.lastPressure=m.pressure;
+    if(AN.nextT<=0 && ENC.stage!=='lashout' && !ENC.ended){ const m=chooseMove(); AN.move=m; AN.last=m.name; AN.lastPressure=m.pressure; AN.recent=[m.name,...(AN.recent||[])].slice(0,3);
       if(m.name==='shiftSeat'){ m.dx=rr(.025,.055)*(m.pressure&&K('B')>0?-1:(rng()<.5?-1:1)); m.from=b.hipX; }
       if(m.name==='posture'){ const opts=Object.keys(PRESETS).filter(p=>p!==AN.preset&&p!=='phone'); m.to=pick(opts); m.from={...b,hl:b.hl.clone(),hr:b.hr.clone(),el:b.el.clone(),er:b.er.clone(),fl:b.fl.clone(),fr:b.fr.clone()}; }
       if(m.name==='bagRustle') sndRustle(m.dur,'bag');
@@ -1124,7 +1124,7 @@ function resetEncounter(seated,seed){
   M.astral=DATA.meters.astral; M.emo=DATA.meters.emotional; M.vulnerableAt=null;
   RESP.length=0; renderResp();
   AN.base=chan(); AN.cur=chan(); setPreset(pick(['thighs','thighs','elbows','back'])); Object.assign(AN.cur,{...AN.base,hl:AN.base.hl.clone(),hr:AN.base.hr.clone(),el:AN.base.el.clone(),er:AN.base.er.clone(),fl:AN.base.fl.clone(),fr:AN.base.fr.clone(),kl:AN.base.kl.clone(),kr:AN.base.kr.clone()});
-  AN.move=null; AN.nextT=rr(1.5,4); AN.last='—'; AN.lastPressure=false; AN.drift=0; AN.flinch=0;
+  AN.move=null; AN.recent=[]; AN.nextT=rr(1.5,4); AN.last='—'; AN.lastPressure=false; AN.drift=0; AN.flinch=0;
   if(purpleOn){ purpleOn=false; CH.anthony.meshes.forEach(o=>o.material=CH.anthony.mat); }
   if(police.g){ scene.remove(police.g); police.g=null; police.state='off'; } siren(false);
   P.shield=false; shieldFx.visible=false; $('shield').setAttribute('aria-pressed',false); P.turn=P.turnS=0; $('turn').setAttribute('aria-pressed',false);
@@ -1144,9 +1144,10 @@ function summaryLines(){
   L.push(`<b>Mode</b> ${DATA.modes[CFG.mode].label} · seed ${CFG.seed} · threat ${ENC.blind?'blind → ':''}${on?'ACTIVE':'inactive'}`);
   L.push(on?(ING.active?`<b>Ingress began</b> at ${ING.onset.toFixed(1)}s (encounter lasted ${ENC.t.toFixed(1)}s)`:`<b>Ingress</b> was due at ${ING.onset.toFixed(1)}s but the encounter ended first (${ENC.t.toFixed(1)}s)`):'<b>No ingress</b> this time — Anthony was only a man at a bus stop');
   if(!ENC.sensed.length) L.push('<b>Sensed it</b> — never tapped');
-  else ENC.sensed.forEach((s,i)=>L.push(`<b>Sensed #${i+1}</b> at ${s.t}s — ${s.active?`${s.since}s after onset ✓`:(on?'before onset (false alarm)':'nothing was happening (false alarm)')}`));
+  else ENC.sensed.forEach((s,i)=>L.push(`<b>Sensed #${i+1}</b> at ${s.t}s — ${s.active?`${s.since}s after onset ✓${s.exposure>.02?' · pressure was reaching Ben':' · in a quiet moment'}`:(on?'before onset (false alarm)':'nothing was happening (false alarm)')}`));
   L.push(`<b>Astral</b> ${Math.round(M.astral)} · <b>Emotional</b> ${Math.round(M.emo)}${M.vulnerableAt!==null?` · vulnerable from ${M.vulnerableAt.toFixed(1)}s`:''}`);
   L.push(`<b>Tolerated</b> ${P.tolerated.toFixed(1)}s of exposure while seated`);
+  const sh=RESP.filter(e=>e.type==='shield up').reduce((a,e)=>a+e.astral,0); if(sh) L.push(`<b>Shield</b> cost ${sh.toFixed(0)} astral in total`);
   const mv=ENC.log.filter(e=>e.type==='move'), pr=mv.filter(e=>e.x&&e.x.pressure);
   L.push(`<b>Anthony</b> made ${mv.length} small movements; ${pr.length} carried pressure`);
   if(RESP.length){ L.push('<b>Responses</b>'); RESP.forEach(e=>L.push(`· ${e.t}s ${e.type} — ${verdict(e)}${e.astral?`, astral −${e.astral.toFixed(1)}`:''}${e.emo?`, emotional −${e.emo}`:''}${e.ends?', ended encounter':''}`)); }
