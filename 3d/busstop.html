@@ -114,6 +114,7 @@
   <div class="f"><label for="dSound">Sound</label><input id="dSound" type="range" min="0" max="2" step="0.05"><output id="oSound"></output></div>
   <div class="f"><label for="dVisual">Visual</label><input id="dVisual" type="range" min="0" max="3" step="0.05"><output id="oVisual"></output></div>
   <div class="f"><label for="dBen">Ben response</label><input id="dBen" type="range" min="0" max="2" step="0.05"><output id="oBen"></output></div>
+  <div class="f"><label for="dSize">Move size</label><input id="dSize" type="range" min="0.2" max="2" step="0.05"><output id="oSize"></output></div>
   <div class="f"><label for="dFreq">Micro-moves</label><input id="dFreq" type="range" min="0.2" max="3" step="0.05"><output id="oFreq"></output></div>
   <div class="f"><label for="dPress">Pressure</label><input id="dPress" type="range" min="0" max="3" step="0.05"><output id="oPress"></output></div>
   <div class="f"><label for="dDelay">Onset delay</label><input id="dDelay" type="range" min="0" max="90" step="1"><output id="oDelay"></output></div>
@@ -183,7 +184,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const GLB='url:assets/ben.glb?v=bs01', SKIN='url:assets/ben-skin.jpg?v=bs01', AGLB='url:assets/anthony.glb?v=bs01', ASKIN='url:assets/anthony-skin.jpg?v=bs01';
-const BUILD='Bus stop perception prototype v0.2 · 23 Sep 2026';
+const BUILD='Bus stop perception prototype v0.3 · 23 Sep 2026';
 const $=id=>document.getElementById(id);
 
 /* ---------------- GAME DATA — every tunable number for this prototype ----------------
@@ -202,7 +203,8 @@ const DATA={
   costs:{standEngaged:12,leaveEngaged:6,engagedWindow:8},     // Anthony's rule: breaking off physically costs emotional energy
   encounter:{leaveDist:12,moveAwayDist:2.5},
   lashout:{policeDelay:1.6,endDelay:7.5},
-  moves:{gap:[2,5.5]},                                      // seconds between Anthony's micro-movements at frequency 1
+  moves:{gap:[2,5.5],
+         size:[{w:.55,r:[.2,.4]},{w:.3,r:[.45,.7]},{w:.15,r:[.8,1]}]},   // how big each movement is: mostly very subtle, sometimes medium, occasionally full                                      // seconds between Anthony's micro-movements at frequency 1
   seat:{benX:-.5,benFarX:-.98,antX:.45,z:-.95,benZ:.06,turnAway:-.62,sitRange:1.4,sitTime:.9,standTime:.8},
   camera:{far:{landscape:{y:7.2,z:9.2,fov:42},portrait:{y:10.5,z:11.5,fov:55}},
           close:{landscape:{x:1.7,y:2.1,z:3.9,fov:38},portrait:{x:1.0,y:2.5,z:5.0,fov:50}},
@@ -671,6 +673,7 @@ function applyMove(c,m,e,t){
 
 function newMove(name,{pressure=false}={}){
   const M=MOVES[name], m={name,t:0,dur:rr(M.dur[0],M.dur[1]),part:M.part,toward:M.toward,pressure,amp:0,pd:0,p0:0,flick:[]};
+  { const band=wpick(DATA.moves.size); m.size=name==='phoneCheck'||name==='posture'?1:clamp(rr(band.r[0],band.r[1])*(typeof CFG!=='undefined'?CFG.size:1),.08,1.3); }
   if(name==='turnToward') m.a=rr(.2,.34);
   if(name==='glanceAway') m.dir=rng()<.75?rr(.9,1.25):rr(-.9,-.5);     // mostly up the road (+X), sometimes the other way — past Ben
   if(name==='footTap') m.hz=rr(1.6,2.4);
@@ -680,7 +683,7 @@ function newMove(name,{pressure=false}={}){
 const env=(t,d,a=.35,r=.45)=>t<0||t>d?0:Math.min(1,smooth(clamp(t/Math.min(a*d,.9),0,1)),smooth(clamp((d-t)/Math.min(r*d,1.1),0,1)));
 
 /* ---------------- test settings (debug panel) ---------------- */
-const CFG={mode:'COMBINED_SUBTLE',threat:'on',all:1,sound:1,visual:1,ben:1,freq:1,press:1,delay:23,seed:1,readout:true,meters:true,reveal:false};
+const CFG={mode:'COMBINED_SUBTLE',threat:'on',size:1,all:1,sound:1,visual:1,ben:1,freq:1,press:1,delay:23,seed:1,readout:true,meters:true,reveal:false};
 try{ Object.assign(CFG,JSON.parse(localStorage.getItem('koa-busstop-cfg')||'{}')); }catch(e){}
 const qs=new URLSearchParams(location.search);
 if(qs.get('mode')&&DATA.modes[qs.get('mode')]) CFG.mode=qs.get('mode');
@@ -721,10 +724,10 @@ function directorUpdate(dt){
   // start a new micro-movement
   if(!AN.move){ AN.nextT-=dt*CFG.freq*(ING.active&&K('B')>0?1+.25*K('B')*ING.ramp:1);
     if(AN.nextT<=0 && ENC.stage!=='lashout' && !ENC.ended){ const m=chooseMove(); AN.move=m; AN.last=m.name; AN.lastPressure=m.pressure; AN.recent=[m.name,...(AN.recent||[])].slice(0,3);
-      if(m.name==='shiftSeat'){ m.dx=rr(.025,.055)*(m.pressure&&K('B')>0?-1:(rng()<.5?-1:1)); m.from=b.hipX; }
+      if(m.name==='shiftSeat'){ m.dx=m.size*rr(.03,.06)*(m.pressure&&K('B')>0?-1:(rng()<.5?-1:1)); m.from=b.hipX; }
       if(m.name==='posture'){ const opts=Object.keys(PRESETS).filter(p=>p!==AN.preset&&p!=='phone'); m.to=pick(opts); m.from={...b,hl:b.hl.clone(),hr:b.hr.clone(),el:b.el.clone(),er:b.er.clone(),fl:b.fl.clone(),fr:b.fr.clone()}; }
       if(m.name==='bagRustle') sndRustle(m.dur,'bag');
-      tlog('move','Anthony '+MOVES[m.name].label,{move:m.name,pressure:m.pressure}); } }
+      tlog('move','Anthony '+MOVES[m.name].label+(m.size<.45?' (barely)':m.size<.75?' (slightly)':''),{move:m.name,pressure:m.pressure,size:+m.size.toFixed(2)}); } }
   // behaviour cue: while ingress runs, he very slowly drifts closer along the bench (never more than a few cm)
   if(ING.active && K('B')>0){ AN.drift=Math.min(.06*K('B'),AN.drift+dt*.0012*K('B')); }
   // working channels = base + active move
@@ -735,7 +738,7 @@ function directorUpdate(dt){
   if(m){ m.t+=dt; const e=env(m.t,m.dur);
     if(m.name==='shiftSeat'){ b.hipX=m.from+m.dx*smooth(clamp(m.t/m.dur,0,1)); w.hipX=b.hipX-AN.drift; w.leanX+=Math.sin(clamp(m.t/m.dur,0,1)*Math.PI)*.05*Math.sign(m.dx); }
     else if(m.name==='posture'){ if(m.t>=m.dur*.5 && !m.set){ m.set=1; setPreset(m.to); } }
-    else applyMove(w,m,e,m.t);
+    else applyMove(w,m,e*m.size,m.t);
     // pressure pulse envelope rides on the movement
     ING.pulse=m.pressure?m.amp*env(m.t-m.p0,m.pd,.3,.4):0;
     if(m.t>=Math.max(m.dur,m.pressure?m.p0+m.pd:0)){ AN.move=null; ING.pulse=0; const g=DATA.moves.gap; AN.nextT=rr(g[0],g[1]); }
@@ -1257,7 +1260,7 @@ function buildUI(){
   const opts=MODE_KEYS.map(k=>`<option value="${k}">${DATA.modes[k].label}</option>`).join('');
   $('dMode').innerHTML=opts; $('cMode').innerHTML=opts; $('dMode').value=$('cMode').value=CFG.mode; $('dThreat').value=CFG.threat;
   const sl=[['dAll','all','oAll',v=>v.toFixed(2)],['dSound','sound','oSound',v=>v.toFixed(2)],['dVisual','visual','oVisual',v=>v.toFixed(2)],['dBen','ben','oBen',v=>v.toFixed(2)],
-    ['dFreq','freq','oFreq',v=>v.toFixed(2)],['dPress','press','oPress',v=>v.toFixed(2)],['dDelay','delay','oDelay',v=>v+'s']];
+    ['dSize','size','oSize',v=>v.toFixed(2)],['dFreq','freq','oFreq',v=>v.toFixed(2)],['dPress','press','oPress',v=>v.toFixed(2)],['dDelay','delay','oDelay',v=>v+'s']];
   for(const [id,key,out,fmt] of sl){ const el=$(id); el.value=CFG[key]; $(out).textContent=fmt(+el.value);
     el.oninput=()=>{ CFG[key]=+el.value; $(out).textContent=fmt(CFG[key]); saveCfg(); }; el.onchange=()=>tlog('setting',key+' = '+CFG[key]); }
   const setMode=v=>{ CFG.mode=v; $('dMode').value=$('cMode').value=v; saveCfg(); tlog('setting','cue mode '+v); };
