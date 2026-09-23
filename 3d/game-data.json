@@ -1,0 +1,159 @@
+{
+  "ben": {
+    "hp": 10,
+    "radius": 0.38,
+    "invuln": 0.7,
+    "knockback": 3.2
+  },
+  "move": {
+    "walk": 1.5,
+    "run": 3.4,
+    "accel": 5.5,
+    "brake": 7.5,
+    "turnIdle": 11,
+    "turnRun": 3.2,
+    "pivotAng": 1.9,
+    "pivotBrake": 2.2,
+    "leanAccel": 0.035,
+    "leanTurn": 0.02,
+    "lookMax": 0.7,
+    "impactSpeed": 2.4
+  },
+  "combat": {
+    "punchWindow": [
+      0.4,
+      0.66
+    ],
+    "punchDamage": 1,
+    "punchReach": 0.42,
+    "punchKnock": 3.5,
+    "punchSpeed": 1.35,
+    "pushCooldown": 1.6,
+    "pushRange": 4.2,
+    "pushArc": 0.6,
+    "pushDamage": 1,
+    "pushKnock": 8,
+    "pushSpeed": 1.3,
+    "aimAssistPunch": 2.8,
+    "aimAssistPush": 4
+  },
+  "enemy": {
+    "hp": 3,
+    "bossHp": 7,
+    "damage": 1,
+    "bossDamage": 2,
+    "scaleBoss": 1.5,
+    "speed": 0.85,
+    "bossSpeed": 0.85,
+    "downSpeed": 0.35,
+    "reach": [
+      0.6,
+      0.45
+    ],
+    "attackGap": [
+      1.1,
+      2.2
+    ],
+    "stun": 0.55,
+    "runAt": 6
+  },
+  "waves": [
+    {
+      "z": -16,
+      "shades": [
+        1,
+        1,
+        0.9
+      ],
+      "barrierBack": 11
+    },
+    {
+      "z": -54,
+      "shades": [
+        1,
+        1.15,
+        0.85,
+        1
+      ],
+      "barrierBack": 11
+    },
+    {
+      "z": -92,
+      "shades": [
+        1,
+        0.9,
+        1.1,
+        1,
+        1.75
+      ],
+      "barrierBack": 11,
+      "behind": 0.95
+    }
+  ],
+  "street": {
+    "z0": 20,
+    "z1": -150,
+    "goalOffset": 17,
+    "shopLine": -8.5,
+    "roadLeft": -5.5,
+    "roadRight": 4.5,
+    "lanes": [
+      {
+        "x": -2.9,
+        "dir": -1
+      },
+      {
+        "x": 1.9,
+        "dir": 1
+      }
+    ],
+    "pedRoutes": [
+      {
+        "x": -7,
+        "jog": 0
+      },
+      {
+        "x": 5.5,
+        "jog": 0
+      },
+      {
+        "x": 9,
+        "jog": 0.5
+      },
+      {
+        "x": 7.6,
+        "jog": 0.3
+      }
+    ]
+  },
+  "camera": {
+    "landscape": {
+      "y": 7.2,
+      "z": 9.2
+    },
+    "portrait": {
+      "y": 10.5,
+      "z": 11.5
+    },
+    "lookAhead": -2.5,
+    "fovLandscape": 42,
+    "fovPortrait": 55,
+    "follow": 0.02
+  },
+  "clips": {
+    "pack": {
+      "Idle": "PIdle",
+      "Walk": "PWalk",
+      "Run": "PRun",
+      "walkK": 0.7142857142857143,
+      "runK": 0.30303030303030304
+    },
+    "mine": {
+      "Idle": "Idle",
+      "Walk": "Walk",
+      "Run": "Run",
+      "walkK": 1.2666666666666666,
+      "runK": 0.3970588235294118
+    }
+  }
+}

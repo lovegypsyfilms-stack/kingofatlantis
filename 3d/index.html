@@ -81,7 +81,7 @@
   <div class="chip" id="verlabel" style="color:var(--gold);font-weight:700">Version C · pack clips + momentum</div>
 </div>
 <div class="hud" id="stresspanel" hidden style="flex-direction:column;align-items:stretch;gap:6px;right:16px;top:calc(env(safe-area-inset-top,0px) + 100px);width:min(260px,calc(100% - 32px));">
-  <label class="chip" for="npeds"><span style="min-width:74px">People <b id="npedsv">0</b></span><input id="npeds" type="range" min="0" max="80" value="0" style="flex:1"></label>
+  <label class="chip" for="npeds"><span style="min-width:74px">People <b id="npedsv">0</b></span><input id="npeds" type="range" min="0" max="40" value="14" style="flex:1"></label>
   <label class="chip" for="ncars"><span style="min-width:74px">Cars <b id="ncarsv">0</b></span><input id="ncars" type="range" min="0" max="60" value="0" style="flex:1"></label>
   <div class="chip" style="display:flex;justify-content:space-between"><span>Frame rate</span><b id="fps">–</b><span id="fpsnote" style="opacity:.7"></span></div>
 </div>
@@ -135,8 +135,33 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
-const GLB='assets/ben.glb?v=051', SKIN='assets/ben-skin.jpg?v=051', MUS_BATTLE='assets/battle.mp3', MUS_TOWN='assets/town.mp3';
+const GLB='assets/ben.glb?v=070', SKIN='assets/ben-skin.jpg?v=070', AGLB='assets/anthony.glb?v=070', ASKIN='assets/anthony-skin.jpg?v=070', MUS_BATTLE='assets/battle.mp3', MUS_TOWN='assets/town.mp3';
 const $=id=>document.getElementById(id);
+/* ---------------- GAME DATA — every tunable number lives here ----------------
+   Single source of truth for movement, combat, waves, camera and street layout,
+   mirrored in 3d/game-data.json so a future Unity/Unreal port reads the same
+   numbers instead of digging them out of this code. */
+const DATA={
+  ben:{hp:10,radius:.38,invuln:.7,knockback:3.2},
+  move:{walk:1.5,run:3.4,accel:5.5,brake:7.5,turnIdle:11,turnRun:3.2,pivotAng:1.9,pivotBrake:2.2,
+        leanAccel:.035,leanTurn:.02,lookMax:.7,impactSpeed:2.4},
+  combat:{punchWindow:[.4,.66],punchDamage:1,punchReach:.42,punchKnock:3.5,punchSpeed:1.35,
+          pushCooldown:1.6,pushRange:4.2,pushArc:.6,pushDamage:1,pushKnock:8,pushSpeed:1.3,
+          aimAssistPunch:2.8,aimAssistPush:4},
+  enemy:{hp:3,bossHp:7,damage:1,bossDamage:2,scaleBoss:1.5,speed:.85,bossSpeed:.85,downSpeed:.35,
+         reach:[.6,.45],attackGap:[1.1,2.2],stun:.55,runAt:6},
+  waves:[{z:-16,shades:[1,1,.9],barrierBack:11},
+         {z:-54,shades:[1,1.15,.85,1],barrierBack:11},
+         {z:-92,shades:[1,.9,1.1,1,1.75],barrierBack:11,behind:.95}],
+  street:{z0:20,z1:-150,goalOffset:17,shopLine:-8.5,roadLeft:-5.5,roadRight:4.5,
+          lanes:[{x:-2.9,dir:-1},{x:1.9,dir:1}],
+          pedRoutes:[{x:-7,jog:0},{x:5.5,jog:0},{x:9,jog:.5},{x:7.6,jog:.3}]},
+  crowd:{startPeds:14,maxPeds:40},
+  camera:{landscape:{y:7.2,z:9.2},portrait:{y:10.5,z:11.5},lookAhead:-2.5,fovLandscape:42,fovPortrait:55,follow:.02},
+  clips:{pack:{Idle:'PIdle',Walk:'PWalk',Run:'PRun',walkK:1/1.4,runK:1/3.3},
+         mine:{Idle:'Idle',Walk:'Walk',Run:'Run',walkK:1.9/1.5,runK:1.35/3.4}},
+};
+
 const rnd=(a,b)=>a+Math.random()*(b-a), clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), lerp=(a,b,t)=>a+(b-a)*t;
 const V=()=>new THREE.Vector3();
 
@@ -178,7 +203,7 @@ const texBark=ctex(64,256,(x,w,h)=>{ x.fillStyle='#8a7458';x.fillRect(0,0,w,h); 
 
 /* ---------------- world layout ---------------- */
 // street runs along -Z. x: shopfronts -8.5 | sidewalk -8.5..-5.5 | road -5.5..4.5 | sidewalk 4.5..6.5 | grass/path 6.5..11 | sand 11..19 | ocean 19+
-const Z0=20, Z1=-150;
+const Z0=DATA.street.z0, Z1=DATA.street.z1;
 const colliders=[]; // {minX,maxX,minZ,maxZ} or {x,z,r}
 const addBox=(minX,maxX,minZ,maxZ)=>colliders.push({minX,maxX,minZ,maxZ});
 const addCirc=(x,z,r)=>colliders.push({x,z,r});
@@ -262,7 +287,7 @@ while(zz>Z1+22){
   box(.3,h+2.4,w,mat,-1,(h+2.4)/2,z-.16).rotation.y=Math.PI/2;
   box(30.6,.3,10.6,std({map:texTin,color:0xa0463a,roughness:.5,metalness:.3}),-1,h+.15,z-5);
 }
-const GOAL_Z=Z1+17;
+const GOAL_Z=Z1+DATA.street.goalOffset;
 
 /* ---------------- palms, poles, cars, benches ---------------- */
 const palms=[];
@@ -315,7 +340,7 @@ function buildCar(col,pickup){
 function car(x,z,col,pickup){ const g=buildCar(col,pickup); g.position.set(x,0,z); g.rotation.y=Math.random()<.5?0:Math.PI; addBox(x-1.05,x+1.05,z-2.3,z+2.3); return g; }
 // moving traffic (crowd test): two lanes, cars stop for anyone in front of them
 const traffic=[], dyn=[];
-const LANES=[{x:-2.9,dir:-1},{x:1.9,dir:1}];
+const LANES=DATA.street.lanes;
 function setCars(n){
   while(traffic.length>n){ const c=traffic.pop(); scene.remove(c.g); }
   while(traffic.length<n){ const lane=LANES[traffic.length%2], g=buildCar(carCols[(Math.random()*carCols.length)|0],Math.random()<.3);
@@ -373,13 +398,15 @@ const rain=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0xa
 const drops=[]; for(let i=0;i<RAIN_N;i++) drops.push([rnd(-22,22),rnd(0,18),rnd(-26,16)]);
 
 /* ---------------- characters ---------------- */
-let SRC=null, CLIPS={}, TEX=null;
+let SRC=null, CLIPS={}, TEX=null;                 // Ben
+const CAST={};                                     // other cast members: {src, clips, tex}
 const loader=new GLTFLoader();
-function makeChar(clone){
-  const root=clone?SkeletonUtils.clone(SRC):SRC; const g=new THREE.Group(); g.add(root); scene.add(g);
-  const ch={g,root,mixer:new THREE.AnimationMixer(root),A:{},cur:null,curName:'',hips:null,hand:null,meshes:[]};
-  root.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.frustumCulled=false; ch.meshes.push(o);} if(o.isBone){ if(!ch.hips&&/Hips$/.test(o.name)) ch.hips=o; if(/RightHand$/.test(o.name)) ch.hand=o; if(/Neck$/.test(o.name)) ch.neck=o; } });
-  for(const n in CLIPS) ch.A[n]=ch.mixer.clipAction(CLIPS[n]);
+function makeChar(clone,who){
+  const src=who?CAST[who].src:SRC, cl=who?CAST[who].clips:CLIPS;
+  const root=clone?SkeletonUtils.clone(src):src; const g=new THREE.Group(); g.add(root); scene.add(g);
+  const ch={g,root,who:who||'ben',mixer:new THREE.AnimationMixer(root),A:{},cur:null,curName:'',hips:null,hand:null,meshes:[]};
+  root.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.frustumCulled=false; ch.meshes.push(o);} if(o.isBone){ if(!ch.hips&&/Hips$/i.test(o.name)) ch.hips=o; if(/RightHand$/i.test(o.name)) ch.hand=o; if(/Neck$/i.test(o.name)) ch.neck=o; } });
+  for(const n in cl) ch.A[n]=ch.mixer.clipAction(cl[n]);
   return ch;
 }
 const FALLBACK={PIdle:'Idle',PWalk:'Walk',PRun:'Run'};
@@ -394,8 +421,28 @@ const done=a=>!a || (a.timeScale>=0 ? a.time>=a.getClip().duration-1e-3 : a.time
 const prog=a=>a? a.time/a.getClip().duration : 0;
 const tv=V();
 function anchor(ch){ if(!ch.hips) return; ch.root.position.set(0,0,0); ch.g.updateMatrixWorld(true); ch.hips.getWorldPosition(tv); ch.g.worldToLocal(tv); ch.root.position.x=-tv.x; ch.root.position.z=-tv.z; }
-function astralMat(hue,wob){
-  const m=new THREE.MeshStandardMaterial({map:TEX,color:new THREE.Color().setHSL(hue,.7,.62),emissive:new THREE.Color().setHSL(hue,.9,.45),emissiveIntensity:.8,transparent:true,opacity:.62,depthWrite:false,roughness:.6});
+// One texture, many people: shift hue, saturation and lightness per instance in the shader,
+// leaving skin tones alone so only clothes and hair change.
+function personMat(tex,{hue=0,sat=1,bright=1,lift=0}={}){
+  const m=new THREE.MeshStandardMaterial({map:tex,metalness:0,roughness:.85,side:THREE.DoubleSide});
+  m.userData.u={uHue:{value:hue},uSat:{value:sat},uBri:{value:bright},uLift:{value:lift}};
+  m.onBeforeCompile=sh=>{ Object.assign(sh.uniforms,m.userData.u);
+    sh.fragmentShader='uniform float uHue; uniform float uSat; uniform float uBri; uniform float uLift;\n'+
+    'vec3 koaTint(vec3 c){ float mx=max(c.r,max(c.g,c.b)), mn=min(c.r,min(c.g,c.b)), d=mx-mn;\n'+
+    ' float h=0.0; if(d>0.0001){ if(mx==c.r) h=mod((c.g-c.b)/d,6.0); else if(mx==c.g) h=(c.b-c.r)/d+2.0; else h=(c.r-c.g)/d+4.0; }\n'+
+    ' h=h/6.0; float s=mx<=0.0?0.0:d/mx, v=mx;\n'+
+    ' float skin=step(0.02,h)*step(h,0.11)*step(0.15,s)*step(0.25,v);\n'+
+    ' float k=1.0-skin;\n'+
+    ' h=fract(h+uHue*k); s=clamp(s*mix(1.0,uSat,k),0.0,1.0); v=clamp(v*mix(1.0,uBri,k)+uLift*k,0.0,1.0);\n'+
+    ' float i=floor(h*6.0), f=h*6.0-i, p=v*(1.0-s), q=v*(1.0-f*s), t=v*(1.0-(1.0-f)*s);\n'+
+    ' if(i==0.0) return vec3(v,t,p); if(i==1.0) return vec3(q,v,p); if(i==2.0) return vec3(p,v,t);\n'+
+    ' if(i==3.0) return vec3(p,q,v); if(i==4.0) return vec3(t,p,v); return vec3(v,p,q); }\n'+
+    sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n diffuseColor.rgb = koaTint(diffuseColor.rgb);');
+  };
+  return m;
+}
+function astralMat(hue,wob,tex){
+  const m=new THREE.MeshStandardMaterial({map:tex||TEX,color:new THREE.Color().setHSL(hue,.7,.62),emissive:new THREE.Color().setHSL(hue,.9,.45),emissiveIntensity:.8,transparent:true,opacity:.62,depthWrite:false,roughness:.6});
   m.userData.u={uTime:{value:0},uWob:{value:wob}};
   m.onBeforeCompile=s=>{ Object.assign(s.uniforms,m.userData.u);
     s.vertexShader='uniform float uTime; uniform float uWob;\n'+s.vertexShader.replace('#include <skinning_vertex>',
@@ -403,8 +450,9 @@ function astralMat(hue,wob){
   return m;
 }
 
+
 /* ---------------- bug safety: log, crash guard, autosave, unstuck, report ---------------- */
-const BUILD='3D street test v0.5.1 · 22 Sep 2026';
+const BUILD='3D street test v0.7 · 23 Sep 2026';
 const LOG=[]; let errBurst=0, errWindow=0, lastToast=0;
 function log(type,msg,extra){ const e={t:+(performance.now()/1000).toFixed(1),type,msg:String(msg).slice(0,300)}; if(extra) e.x=extra; LOG.push(e); if(LOG.length>80) LOG.shift();
   try{ localStorage.setItem('koa3d-log',JSON.stringify(LOG.slice(-40))); }catch(_){} }
@@ -474,14 +522,14 @@ function reportText(){
 // Momentum: on = acceleration, speed-based turning, leaning, head look, wall stops; off = the old snap movement.
 let CLIPS_SET='pack', MOMENTUM=true;
 try{ CLIPS_SET=localStorage.getItem('koa3d-clips')||'pack'; MOMENTUM=localStorage.getItem('koa3d-momentum')!=='0'; }catch(e){}
-const LOCO={pack:{Idle:'PIdle',Walk:'PWalk',Run:'PRun',walkK:1/1.4,runK:1/3.3},mine:{Idle:'Idle',Walk:'Walk',Run:'Run',walkK:1.9/1.5,runK:1.35/3.4}};
+const LOCO=DATA.clips;
 function verLabel(){ const v=(CLIPS_SET==='pack'?(MOMENTUM?'C':'A'):(MOMENTUM?'B':'D'));
   const t={A:'Version A · pack clips, snap movement',B:'Version B · my clips + momentum',C:'Version C · pack clips + momentum',D:'Version D · my clips, snap movement'}[v];
   $('verlabel').textContent=t; if(typeof log==='function') log('setting',t); $('clips').textContent='Clips: '+(CLIPS_SET==='pack'?'Pack':'Mine'); $('momentum').textContent='Momentum: '+(MOMENTUM?'On':'Off');
   try{ localStorage.setItem('koa3d-clips',CLIPS_SET); localStorage.setItem('koa3d-momentum',MOMENTUM?'1':'0'); }catch(e){} }
 
 /* ---------------- momentum mover (shared by Ben, shades, pedestrians) ---------------- */
-const MOVE={walk:1.5,run:3.4,accel:5.5,brake:7.5,turnIdle:11,turnRun:3.2,pivotAng:1.9};
+const MOVE=DATA.move;
 function newMover(pos,heading){ return {pos,heading,speed:0,accel:0,turnRate:0,lean:new THREE.Vector2(),look:0,lookWant:0,blocked:0,impact:false,pivot:0,fwd:V()}; }
 function mover(m,dt,ix,iz,run,scale=1,o={}){
   const il=Math.hypot(ix,iz), has=il>.15, prev=m.speed;
@@ -494,7 +542,7 @@ function mover(m,dt,ix,iz,run,scale=1,o={}){
     const k=clamp(m.speed/MOVE.run,0,1); let rate=lerp(MOVE.turnIdle,MOVE.turnRun,k)*(o.turnMul||1);
     if(Math.abs(dh)>MOVE.pivotAng && m.speed>1.2){ target=Math.min(target,.5); rate*=1.7; m.pivot=1; }  // whip turn: plant and brake hard, then spin
     else if(Math.abs(dh)>.9) target*=lerp(1,.45,clamp((Math.abs(dh)-.9),0,1));                       // wide turn at speed: ease off
-    const step=Math.sign(dh)*Math.min(Math.abs(dh),rate*dt); m.heading+=step; m.turnRate=step/dt; m.lookWant=clamp(dh-step,-.7,.7);
+    const step=Math.sign(dh)*Math.min(Math.abs(dh),rate*dt); m.heading+=step; m.turnRate=step/dt; m.lookWant=clamp(dh-step,-MOVE.lookMax,MOVE.lookMax);
   } else { m.turnRate*=Math.pow(.05,dt); m.lookWant=0; }
   m.look+=(m.lookWant-m.look)*(1-Math.pow(.02,dt));
   const f=m.fwd.set(Math.sin(m.heading),0,Math.cos(m.heading));
@@ -503,12 +551,12 @@ function mover(m,dt,ix,iz,run,scale=1,o={}){
   resolve(probe,o.r||.38*scale); const pen=Math.hypot(probe.x-bx,probe.z-bz); m.blocked=pen>.02?pen:0;
   const free=Math.max(0,look-pen);
   m.impact=false;
-  if(m.blocked){ if(prev>2.4 && free<.3){ m.impact=true; target=0; } else if(target<=2.4||prev<2.4) target=Math.min(target,free*3.2); }
-  const acc=target>m.speed?MOVE.accel*(o.accelMul||1):MOVE.brake*(o.brakeMul||1)*(m.pivot?2.2:1); m.pivot=0;
+  if(m.blocked){ if(prev>MOVE.impactSpeed && free<.3){ m.impact=true; target=0; } else if(target<=MOVE.impactSpeed||prev<MOVE.impactSpeed) target=Math.min(target,free*3.2); }
+  const acc=target>m.speed?MOVE.accel*(o.accelMul||1):MOVE.brake*(o.brakeMul||1)*(m.pivot?MOVE.pivotBrake:1); m.pivot=0;
   m.speed=target>m.speed?Math.min(target,m.speed+acc*dt):Math.max(target,m.speed-acc*dt);
   m.accel=(m.speed-prev)/dt;
   m.pos.addScaledVector(f,m.speed*dt);
-  m.lean.lerp(new THREE.Vector2(clamp(m.accel*.035,-.14,.10),clamp(-m.turnRate*m.speed*.02,-.16,.16)),1-Math.pow(.001,dt));
+  m.lean.lerp(new THREE.Vector2(clamp(m.accel*MOVE.leanAccel,-.14,.10),clamp(-m.turnRate*m.speed*MOVE.leanTurn,-.16,.16)),1-Math.pow(.001,dt));
   return il;
 }
 function locomote(ch,m,scale=1){          // animation follows real speed, not the button
@@ -524,13 +572,15 @@ function applyBody(ch,m){                 // lean + head look on top of whatever
 
 /* ---------------- pedestrians (crowd test) ---------------- */
 const peds=[];
-const ROUTES=[{x:-7,jog:0},{x:5.5,jog:0},{x:9,jog:.5},{x:7.6,jog:.3}];
+const ROUTES=DATA.street.pedRoutes;
 function setPeds(n){
+  if(!CAST.anthony) return;              // wait until Anthony has loaded
+  $('npeds').value=n;
   while(peds.length>n){ const p=peds.pop(); scene.remove(p.ch.g); }
-  while(peds.length<n){ const ch=makeChar(true), r=ROUTES[peds.length%ROUTES.length];
-    const mat=new THREE.MeshStandardMaterial({map:TEX,metalness:0,roughness:.85,side:THREE.DoubleSide,color:new THREE.Color().setHSL(Math.random(),.35,rnd(.7,.95))});
+  while(peds.length<n){ const ch=makeChar(true,'anthony'), r=ROUTES[peds.length%ROUTES.length];
+    const mat=personMat(CAST.anthony.tex,{hue:rnd(0,1),sat:rnd(.5,1.5),bright:rnd(.9,1.7),lift:rnd(0,.3)});
     mat.envMapIntensity=benMat.envMapIntensity; ch.meshes.forEach(o=>o.material=mat);
-    const sc=rnd(.9,1.08); ch.g.scale.setScalar(sc); const dir=Math.random()<.5?1:-1;
+    const sc=rnd(.88,1.08); ch.g.scale.setScalar(sc); const dir=Math.random()<.5?1:-1;
     const px=r.x+rnd(-.7,.7); ch.g.position.set(px,0,rnd(Z1+24,Z0-6));
     peds.push({ch,m:newMover(ch.g.position,dir>0?0:Math.PI),dir,x:px,run:Math.random()<r.jog,sc,slow:0}); play(ch,LOCO[CLIPS_SET].Idle); }
   $('npedsv').textContent=n;
@@ -571,21 +621,21 @@ function updateTraffic(dt){
 
 /* ---------------- Ben ---------------- */
 let ben=null, benMat=null;
-const B={hp:10,max:10,inv:0,push:0,down:false,hitSet:new Set(),busy:null,flash:0};
+const B={hp:DATA.ben.hp,max:DATA.ben.hp,inv:0,push:0,down:false,hitSet:new Set(),busy:null,flash:0};
 const keys=new Set(); let joy=null, runToggle=false;
 function benCapsule(){ return [ben.g.position.clone().setY(.3), ben.g.position.clone().setY(1.5), .4]; }
 
 /* ---------------- enemies ---------------- */
 const enemies=[]; let waveIdx=-1, waveActive=false, barrier=null, barrierZ=null;
-const WAVES=[{z:-16,list:[1,1,.9]},{z:-54,list:[1,1.15,.85,1]},{z:-92,list:[1,.9,1.1,1,1.75]}];
+const WAVES=DATA.waves.map(w=>({z:w.z,list:w.shades,behind:w.behind,barrierBack:w.barrierBack}));
 const hpBarGeo=new THREE.PlaneGeometry(.8,.08);
 function spawnEnemy(s,x,z){
-  const ch=makeChar(true); const hue=[.58,.62,.72,.5][(Math.random()*4)|0];
-  const mat=astralMat(s>1.5?.78:hue,s>1.5?2.2:rnd(.6,1.4)); ch.meshes.forEach(m=>m.material=mat);
+  const ch=makeChar(true,'anthony'); const hue=[.58,.62,.72,.5][(Math.random()*4)|0];
+  const mat=astralMat(s>1.5?.78:hue,s>1.5?2.2:rnd(.6,1.4),CAST.anthony.tex); ch.meshes.forEach(m=>m.material=mat);
   ch.g.scale.setScalar(s); ch.g.position.set(x,0,z); ch.g.rotation.y=0;
   const hb=new THREE.Group(); const bg=new THREE.Mesh(hpBarGeo,new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.5,depthTest:false}));
   const fg=new THREE.Mesh(hpBarGeo,new THREE.MeshBasicMaterial({color:s>1.5?0xd070ff:0x7cc4ff,depthTest:false})); fg.renderOrder=11; bg.renderOrder=10; hb.add(bg,fg); scene.add(hb);
-  const hp=s>1.5?7:3;
+  const hp=s>DATA.enemy.scaleBoss?DATA.enemy.bossHp:DATA.enemy.hp;
   const e={ch,mat,s,hp,max:hp,state:'spawn',t:0,cd:rnd(.6,1.6),vel:V(),hb,fg,dealt:false,heading:0,flash:0,m:newMover(ch.g.position,0)};
   mat.envMapIntensity=benMat.envMapIntensity; play(ch,LOCO[CLIPS_SET].Idle); enemies.push(e); return e;
 }
@@ -630,18 +680,18 @@ let started=false, won=false, shake=0;
 function setObj(t,alert){ const o=$('obj'); o.textContent=t; o.classList.toggle('alert',!!alert); }
 function startWave(i){
   waveIdx=i; waveActive=true; const W=WAVES[i]; log('wave','wave '+(i+1)+' started');
-  barrierZ=W.z-11; barrier=makeBarrier(barrierZ);
+  barrierZ=W.z-(W.barrierBack||11); barrier=makeBarrier(barrierZ);
   W.list.forEach((s,k)=>{ const e=spawnEnemy(s,rnd(-4,4),W.z-rnd(5,9)-k*.8); e.t=-k*.35; });
-  if(i===2){ const e=spawnEnemy(.95,rnd(-3,3),W.z+7); e.t=-1; }
-  setObj(`Astral shades! ${W.list.length+(i===2?1:0)} block the way — Punch / Push them back`,true); want='battle';
+  if(W.behind){ const e=spawnEnemy(W.behind,rnd(-3,3),W.z+7); e.t=-1; }
+  setObj(`Astral shades! ${W.list.length+(W.behind?1:0)} block the way — Punch / Push them back`,true); want='battle';
   $('wave').textContent=`Wave ${i+1} / ${WAVES.length}`;
 }
 function endWave(){ waveActive=false; log('wave','wave '+(waveIdx+1)+' cleared'); setTimeout(save,0); setObj(waveIdx<WAVES.length-1?'The way is clear — keep walking':'All shades gone — reach ʻOhana Market',false); want='town'; music.town.currentTime=0;
   $('wave').textContent=`Cleared ${waveIdx+1} / ${WAVES.length}`; }
 function hurtBen(dmg,from){
-  if(B.inv>0||B.down||won) return; B.hp=Math.max(0,B.hp-dmg); B.inv=.7; B.flash=.35; shake=.25; sfx('hurt');
+  if(B.inv>0||B.down||won) return; B.hp=Math.max(0,B.hp-dmg); B.inv=DATA.ben.invuln; B.flash=.35; shake=.25; sfx('hurt');
   $('flash').style.boxShadow='inset 0 0 120px rgba(224,60,40,.55)'; setTimeout(()=>$('flash').style.boxShadow='inset 0 0 120px rgba(224,60,40,0)',180);
-  if(from){ const d=ben.g.position.clone().sub(from).setY(0).normalize(); ben.kb=d.multiplyScalar(3.2); }
+  if(from){ const d=ben.g.position.clone().sub(from).setY(0).normalize(); ben.kb=d.multiplyScalar(DATA.ben.knockback); }
   if(B.hp<=0){ log('event','Ben knocked down'); B.down=true; B.busy='down'; const a=play(ben,'StandUp',{once:true,fade:.3}); a.timeScale=-1.1; a.time=a.getClip().duration; setObj('Ben is down… tap Punch to rise',true); }
   else if(B.busy!=='punch'&&B.busy!=='push'){ B.busy='hit'; play(ben,'Hit',{once:true,fade:.08,speed:1.3}); }
   $('hp').style.width=(B.hp/B.max*100)+'%';
@@ -651,11 +701,11 @@ function rise(){ if(!B.down) return; B.down=false; B.hp=B.max; $('hp').style.wid
 function nearestEnemy(maxD){ let best=null,bd=maxD; for(const e of enemies){ if(e.state==='dead'||e.state==='spawn') continue; const d=e.ch.g.position.distanceTo(ben.g.position); if(d<bd){bd=d;best=e;} } return best; }
 function faceTo(p){ const d=p.clone().sub(ben.g.position); B.heading=ben.m.heading=Math.atan2(d.x,d.z); }
 function doPunch(){ if(!ben||won) return; unlockAudio(); if(B.down){ rise(); return; } if(B.busy) return;
-  const n=nearestEnemy(2.8); if(n) faceTo(n.ch.g.position);
-  B.busy='punch'; B.hitSet.clear(); play(ben,'Punch',{once:true,fade:.08,speed:1.35}); sfx('swing'); }
+  const n=nearestEnemy(DATA.combat.aimAssistPunch); if(n) faceTo(n.ch.g.position);
+  B.busy='punch'; B.hitSet.clear(); play(ben,'Punch',{once:true,fade:.08,speed:DATA.combat.punchSpeed}); sfx('swing'); }
 function doPush(){ if(!ben||won||B.down||B.busy||B.push>0) return; unlockAudio();
-  const n=nearestEnemy(4); if(n) faceTo(n.ch.g.position);
-  B.busy='push'; B.pushed=false; B.push=1.6; play(ben,'Push',{once:true,fade:.1,speed:1.3}); }
+  const n=nearestEnemy(DATA.combat.aimAssistPush); if(n) faceTo(n.ch.g.position);
+  B.busy='push'; B.pushed=false; B.push=DATA.combat.pushCooldown; play(ben,'Push',{once:true,fade:.1,speed:DATA.combat.pushSpeed}); }
 function damageEnemy(e,dmg,kb){
   if(e.state==='dead') return; e.hp-=dmg; e.flash=.18; shake=Math.max(shake,.12); sfx('hit');
   e.vel.copy(kb); e.fg.scale.x=Math.max(0,e.hp/e.max); e.fg.position.x=-(1-e.fg.scale.x)*.4;
@@ -745,13 +795,24 @@ img.onload=()=>{ TEX=new THREE.Texture(img); TEX.flipY=false; TEX.colorSpace=THR
     ben=makeChar(false); ben.m=newMover(ben.g.position,Math.PI); benMat=new THREE.MeshStandardMaterial({map:TEX,metalness:0,roughness:.85,side:THREE.DoubleSide,emissive:0xff2a10,emissiveIntensity:0});
     ben.meshes.forEach(m=>m.material=benMat);
     B.heading=Math.PI; ben.g.position.set(-1,0,12); play(ben,LOCO[CLIPS_SET].Idle); applyTime();
-    window.G={ben,B,enemies,startWave,WAVES,get waveIdx(){return waveIdx},get waveActive(){return waveActive},doPunch,doPush,setTOD:h=>{TOD=h;applyTime();},rain:v=>{rainOn=v;},setPeds,setCars,peds,traffic,LOG,unstuck,reportText,info:()=>({sun:sun.intensity,hemi:hemi.intensity,bg:scene.background.getHexString(),lamps:lampsOn,rain:rainAmt})};
+    // second cast member: Anthony — crowd mesh with my clip set retargeted onto his skeleton
+    const aimg=new Image();
+    aimg.onload=()=>{ const t=new THREE.Texture(aimg); t.flipY=false; t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; t.needsUpdate=true;
+      fetch(AGLB,{cache:'no-cache'}).then(r=>r.arrayBuffer()).then(abuf=>loader.parse(abuf,'',ag=>{ const clips={}; ag.animations.forEach(c=>clips[c.name]=c);
+        CAST.anthony={src:ag.scene,clips,tex:t};
+        ag.scene.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.frustumCulled=false; } });
+        setPeds(DATA.crowd.startPeds); log('event','Anthony loaded, '+Object.keys(clips).length+' clips');
+      },err=>log('bug','Anthony failed to load: '+(err&&err.message||err)))).catch(e=>log('bug','Anthony fetch failed: '+e.message));
+    };
+    aimg.onerror=()=>log('bug','Anthony texture failed to load');
+    aimg.src=ASKIN;
+    window.G={ben,B,enemies,CAST,startWave,WAVES,get waveIdx(){return waveIdx},get waveActive(){return waveActive},doPunch,doPush,setTOD:h=>{TOD=h;applyTime();},rain:v=>{rainOn=v;},setPeds,setCars,peds,traffic,LOG,unstuck,reportText,info:()=>({sun:sun.intensity,hemi:hemi.intensity,bg:scene.background.getHexString(),lamps:lampsOn,rain:rainAmt})};
   },err=>setObj('Could not load Ben: '+err.message,true))).catch(err=>setObj('Could not load Ben: '+err.message,true));
 };
 img.src=SKIN;
 
 /* ---------------- loop ---------------- */
-function resize(){ const W=innerWidth,H=innerHeight; renderer.setSize(W,H,false); cam.aspect=W/H; cam.fov=W/H<.8?55:42; cam.updateProjectionMatrix(); }
+function resize(){ const W=innerWidth,H=innerHeight; renderer.setSize(W,H,false); cam.aspect=W/H; cam.fov=W/H<.8?DATA.camera.fovPortrait:DATA.camera.fovLandscape; cam.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize(); applyTime();
 const clock=new THREE.Clock(); let T=0; const camPos=new THREE.Vector3(0,9,22), camLook=new THREE.Vector3();
 function frame(){
@@ -766,7 +827,7 @@ function update(dt){
   rainAmt=clamp(rainAmt+(rainOn?dt:-dt)*.5,0,1); if(rainAmt>0&&rainAmt<1 || rainOn) applyTime();
   if(ben){
     // --- Ben movement
-    B.inv=Math.max(0,B.inv-dt); B.push=Math.max(0,B.push-dt); $('pushcd').style.height=(B.push/1.6*100)+'%';
+    B.inv=Math.max(0,B.inv-dt); B.push=Math.max(0,B.push-dt); $('pushcd').style.height=(B.push/DATA.combat.pushCooldown*100)+'%';
     const running=runToggle||keys.has('Shift');
     let ix=(keys.has('d')||keys.has('ArrowRight'))-(keys.has('a')||keys.has('ArrowLeft')), iz=(keys.has('s')||keys.has('ArrowDown'))-(keys.has('w')||keys.has('ArrowUp'));
     if(joy){ ix+=joy.dx; iz+=joy.dy; }
@@ -779,19 +840,19 @@ function update(dt){
       else if(canMove){ if(ben.m.blocked && ben.m.speed<.2 && il>.15) play(ben,'WallHand',{fade:.35}); else locomote(ben,ben.m); }
     }
     if(ben.kb){ ben.g.position.addScaledVector(ben.kb,dt); ben.kb.multiplyScalar(Math.pow(.02,dt)); if(ben.kb.length()<.05) ben.kb=null; }
-    resolve(ben.g.position,.38);
+    resolve(ben.g.position,DATA.ben.radius);
     ben.mixer.update(dt); anchor(ben); applyBody(ben,ben.m);
     B.flash=Math.max(0,B.flash-dt); benMat.emissiveIntensity=B.flash*2.2;
     // one-shot resolution
     if(B.busy==='punch'){ const a=ben.A.Punch, p=prog(a);
-      if(p>.4&&p<.66){ ben.hand.getWorldPosition(tv); for(const e of enemies){ if(e.state==='dead'||e.state==='spawn'||B.hitSet.has(e)) continue;
+      if(p>DATA.combat.punchWindow[0]&&p<DATA.combat.punchWindow[1]){ ben.hand.getWorldPosition(tv); for(const e of enemies){ if(e.state==='dead'||e.state==='spawn'||B.hitSet.has(e)) continue;
           const gp=e.ch.g.position, a1=gp.clone().setY(.35*e.s), b1=gp.clone().setY(1.55*e.s);
-          if(segDist(tv,a1,b1)<.38*e.s+.42){ B.hitSet.add(e); const d=gp.clone().sub(ben.g.position).setY(0).normalize(); damageEnemy(e,1,d.multiplyScalar(3.5/e.s)); } } }
+          if(segDist(tv,a1,b1)<.38*e.s+DATA.combat.punchReach){ B.hitSet.add(e); const d=gp.clone().sub(ben.g.position).setY(0).normalize(); damageEnemy(e,DATA.combat.punchDamage,d.multiplyScalar(DATA.combat.punchKnock/e.s)); } } }
       if(done(a)) B.busy=null; }
     if(B.busy==='push'){ const a=ben.A.Push, p=prog(a);
       if(!B.pushed && p>.42){ B.pushed=true; sfx('push'); ringT=0; const f=new THREE.Vector3(Math.sin(B.heading),0,Math.cos(B.heading));
         for(const e of enemies){ if(e.state==='dead'||e.state==='spawn') continue; const d=e.ch.g.position.clone().sub(ben.g.position).setY(0), L=d.length();
-          if(L<4.2 && d.normalize().dot(f)>.6) damageEnemy(e,1,d.multiplyScalar(8/e.s)); } }
+          if(L<DATA.combat.pushRange && d.normalize().dot(f)>DATA.combat.pushArc) damageEnemy(e,DATA.combat.pushDamage,d.multiplyScalar(DATA.combat.pushKnock/e.s)); } }
       if(done(a)) B.busy=null; }
     if(B.busy==='hit' && done(ben.A.Hit)) B.busy=null;
     if(B.busy==='stumble' && done(ben.A.Stumble)) B.busy=null;
@@ -811,16 +872,16 @@ function update(dt){
       const toB=ben.g.position.clone().sub(g.position).setY(0), dist=toB.length();
       if(e.state==='spawn'){ const k=clamp(e.t/.9,0,1); e.mat.opacity=.62*k; if(e.t>.9) e.state='chase'; if(e.t<0) e.mat.opacity=0; }
       else if(e.state==='chase'){
-        const reach=.6*s+.45; let ix=0,iz=0; if(dist>reach){ ix=toB.x/dist; iz=toB.z/dist; }
-        mover(e.m,dt,ix,iz,dist>6&&!B.down,s,{speedMul:(B.down?.35:.85)*(s>1.5?.85:1),turnMul:.8,r:.34*s});
+        const reach=DATA.enemy.reach[0]*s+DATA.enemy.reach[1]; let ix=0,iz=0; if(dist>reach){ ix=toB.x/dist; iz=toB.z/dist; }
+        mover(e.m,dt,ix,iz,dist>DATA.enemy.runAt&&!B.down,s,{speedMul:(B.down?DATA.enemy.downSpeed:DATA.enemy.speed)*(s>DATA.enemy.scaleBoss?DATA.enemy.bossSpeed:1),turnMul:.8,r:.34*s});
         if(e.m.impact){ e.m.speed=0; e.state='stun'; e.t=-.5; play(e.ch,'Stumble',{once:true,fade:.05}); }
         else { locomote(e.ch,e.m,s);
           if(dist<=reach && e.m.speed<.4){ e.cd-=dt; if(e.cd<=0 && !B.down){ e.state='attack'; e.dealt=false; e.m.heading=Math.atan2(toB.x,toB.z); play(e.ch,'Punch',{once:true,fade:.1,speed:s>1.5?.85:1.05}); } } }
       } else if(e.state==='attack'){ mover(e.m,dt,0,0,false,s,{r:.34*s});
         const a=e.ch.A.Punch, p=prog(a);
-        if(!e.dealt && p>.42 && p<.66){ e.ch.hand.getWorldPosition(tv); const [c1,c2,r]=benCapsule(); if(segDist(tv,c1,c2)<r+.35*s){ e.dealt=true; hurtBen(s>1.5?2:1,g.position); } }
-        if(done(a)){ e.state='chase'; e.cd=rnd(1.1,2.2)*(s>1.5?1.3:1); }
-      } else if(e.state==='stun'){ mover(e.m,dt,0,0,false,s,{r:.34*s}); if(e.t>.55) { e.state='chase'; e.cd=rnd(.5,1.2); } }
+        if(!e.dealt && p>.42 && p<.66){ e.ch.hand.getWorldPosition(tv); const [c1,c2,r]=benCapsule(); if(segDist(tv,c1,c2)<r+.35*s){ e.dealt=true; hurtBen(s>DATA.enemy.scaleBoss?DATA.enemy.bossDamage:DATA.enemy.damage,g.position); } }
+        if(done(a)){ e.state='chase'; e.cd=rnd(DATA.enemy.attackGap[0],DATA.enemy.attackGap[1])*(s>DATA.enemy.scaleBoss?1.3:1); }
+      } else if(e.state==='stun'){ mover(e.m,dt,0,0,false,s,{r:.34*s}); if(e.t>DATA.enemy.stun) { e.state='chase'; e.cd=rnd(.5,1.2); } }
       else if(e.state==='dead'){ e.mat.opacity=Math.max(0,.62*(1-e.t/1.1)); g.position.y+=dt*.6; if(e.t>1.2){ scene.remove(g); scene.remove(e.hb); enemies.splice(i,1); continue; } }
       // knockback + separation
       g.position.addScaledVector(e.vel,dt); e.vel.multiplyScalar(Math.pow(.01,dt));
@@ -835,8 +896,9 @@ function update(dt){
       if(!on && barrier.material.opacity<=0){ scene.remove(barrier); barrier=null; } }
     // camera follow (map scrolls as Ben walks)
     const portrait=innerWidth/innerHeight<.8;
-    const camWant=ben.g.position.clone().add(new THREE.Vector3(0,portrait?10.5:7.2,portrait?11.5:9.2));
-    camPos.lerp(camWant,1-Math.pow(.02,dt)); camLook.lerp(ben.g.position.clone().add(new THREE.Vector3(0,1.1,-2.5)),1-Math.pow(.02,dt));
+    const C=portrait?DATA.camera.portrait:DATA.camera.landscape;
+    const camWant=ben.g.position.clone().add(new THREE.Vector3(0,C.y,C.z));
+    camPos.lerp(camWant,1-Math.pow(DATA.camera.follow,dt)); camLook.lerp(ben.g.position.clone().add(new THREE.Vector3(0,1.1,DATA.camera.lookAhead)),1-Math.pow(DATA.camera.follow,dt));
     cam.position.copy(camPos); if(shake>0){ shake=Math.max(0,shake-dt); cam.position.x+=rnd(-1,1)*shake*.4; cam.position.y+=rnd(-1,1)*shake*.3; }
     cam.lookAt(camLook);
     sun.target.position.copy(ben.g.position); sun.position.copy(ben.g.position).addScaledVector(sunDir,60);
