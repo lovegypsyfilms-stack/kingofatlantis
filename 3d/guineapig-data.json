@@ -1,0 +1,121 @@
+{
+ "_note": "Guinea pig grounds v0.1 tuning. Mirrors DATA in guineapig.html for a future Unity port.",
+ "pig": {
+  "walk": 0.75,
+  "run": 2.3,
+  "accel": 7,
+  "turn": 9,
+  "step": 0.27,
+  "height": 0.16,
+  "radius": 0.11,
+  "hearts": 5,
+  "food": 70,
+  "foodDrain": 0.2,
+  "stamina": 100,
+  "runCost": 22,
+  "stamRegen": 14,
+  "noiseWalk": 1.6,
+  "noiseRun": 5,
+  "noiseFreeze": 0
+ },
+ "food": {
+  "carrot": 30,
+  "greens": 14,
+  "basil": 18,
+  "mango": 40,
+  "papaya": 28
+ },
+ "day": {
+  "start": 8,
+  "end": 17,
+  "warnAt": 16.5,
+  "minutesPerHour": 0.8,
+  "shadeFrom": 15
+ },
+ "cover": {
+  "grass": 0.2,
+  "under": 0.15,
+  "behind": 0.35,
+  "open": 1
+ },
+ "camera": {
+  "back": 0.95,
+  "up": 0.32,
+  "look": 0.12,
+  "fov": 62,
+  "highBack": 2.2,
+  "highUp": 1.3,
+  "fogNear": 4,
+  "fogFar": 34,
+  "fogFarHigh": 150
+ },
+ "kids": {
+  "count": 2,
+  "see": 7,
+  "speed": 2.35,
+  "catchR": 0.35,
+  "give": 6
+ },
+ "dog": {
+  "see": 10,
+  "hear": 6,
+  "speed": 3.8,
+  "biteR": 0.45
+ },
+ "cat": {
+  "see": 7,
+  "stalk": 0.5,
+  "pounce": 3.6,
+  "pounceR": 1.6
+ },
+ "chicken": {
+  "count": 5,
+  "angryR": 1.1,
+  "peckR": 0.32,
+  "hits": 2
+ },
+ "rat": {
+  "count": 2,
+  "aggroR": 1.6,
+  "biteR": 0.28,
+  "hits": 3
+ },
+ "bike": {
+  "count": 3,
+  "speed": [
+   5.5,
+   8.5
+  ],
+  "hitR": 0.5
+ },
+ "car": {
+  "count": 4,
+  "speed": [
+   10,
+   14
+  ],
+  "hitR": 1.1
+ },
+ "peds": {
+  "count": 4,
+  "speed": 1.25,
+  "stepR": 0.3
+ },
+ "shade": {
+  "speed": 1.1,
+  "see": 6,
+  "touchR": 0.4
+ },
+ "damage": {
+  "kidCatch": 1,
+  "dog": 2,
+  "cat": 1,
+  "peck": 0.5,
+  "rat": 0.5,
+  "bike": 2,
+  "car": 3,
+  "step": 1,
+  "shade": 1,
+  "fall": 0.5
+ }
+}
