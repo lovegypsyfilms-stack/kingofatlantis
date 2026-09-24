@@ -171,13 +171,13 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const AGLB='url:assets/anthony.glb?v=gp01', ASKIN='url:assets/anthony-skin.jpg?v=gp01', PIGGLB='url:assets/guineapig.glb?v=gp03', PIGSKIN='url:assets/guineapig-skin.jpg?v=gp03', PIGNORM='url:assets/guineapig-normal.jpg?v=gp03';
-const BUILD='Guinea pig grounds v0.4 · 24 Sep 2026';
+const BUILD='Guinea pig grounds v0.5 · 24 Sep 2026';
 const $=id=>document.getElementById(id);
 
 /* ---------------- GAME DATA — every tunable number (mirrored in guineapig-data.json) ---------------- */
 const DATA={
-  pig:{walk:.85,run:3.1,winded:.78,accel:8,turn:10,steer:2.4,spinRate:11,step:.27,height:.16,radius:.11,hearts:5,food:70,foodDrain:.2,stamina:100,runCost:6,stamRegen:12,jump:2.5,gravity:9.8,
-       noiseWalk:1.6,noiseRun:5,noiseFreeze:0},
+  pig:{walk:.85,run:3.1,winded:.78,accel:13,turn:10,steer:2.4,spinRate:11,step:.27,height:.16,radius:.11,hearts:5,food:70,foodDrain:.2,stamina:100,runCost:6,stamRegen:12,jump:2.5,gravity:9.8,
+       anim:{postChest:.42,postHips:.12,postHead:-.34,rearMax:.5,hz0:3,hzPerMs:2.4,hzMax:9,boundAt:1.6,creepBelow:.45,stretch:1.1,breathHz:1.4,breathHzMax:3,sniffHz:6.5,chewHz:4.5},noiseWalk:1.6,noiseRun:5,noiseFreeze:0},
   food:{carrot:30,greens:14,basil:18,mango:40,papaya:28},
   day:{start:8,end:17,warnAt:16.5,minutesPerHour:.8,shadeFrom:15},            // 8am→5pm in ~7 real minutes
   cover:{grass:.2,under:.15,behind:.35,open:1},                                  // multiplies how far enemies can see him
@@ -563,40 +563,76 @@ function attachPigModel(gl){
   const mats=[]; model.traverse(o=>{ if(o.isMesh&&o.material) mats.push(o.material); });
   getTex(PIGSKIN).then(t=>{ for(const m of mats){ m.map=t; m.color.set(0xffffff); m.needsUpdate=true; } log('event','guinea pig skin loaded'); }).catch(e=>log('bug','guinea pig skin failed: '+e.message));
   getTex(PIGNORM).then(t=>{ t.colorSpace=THREE.NoColorSpace; for(const m of mats){ m.normalMap=t; m.needsUpdate=true; } }).catch(()=>{});
-  PIG.rig={inner,model,B,rest:Object.fromEntries(Object.entries(B).map(([k,b])=>[k,b.quaternion.clone()])),earT:2,earFlick:0};
+  model.updateMatrixWorld(true); let hindZ=-.08; if(B.hlegL){ const v=new THREE.Vector3(); B.hlegL.getWorldPosition(v); PIG.g.updateMatrixWorld(true); PIG.g.worldToLocal(v); hindZ=v.z; }
+  PIG.rig={hindZ,inner,model,B,rest:Object.fromEntries(Object.entries(B).map(([k,b])=>[k,b.quaternion.clone()])),earT:2,earFlick:0};
 }
 // rotate a bone about axes given in the guinea pig's own space (+Y up, +Z forward, +X his left)
 function bRot(b,list){ const R=PIG.rig; b.quaternion.copy(R.rest[b.name]); PIG.g.getWorldQuaternion(_mq);
   for(const [ax,a] of list){ if(!a) continue; b.parent.updateWorldMatrix(true,false); b.parent.getWorldQuaternion(_pq); b.updateWorldMatrix(false,false);
     const axis=V3(...ax).applyQuaternion(_mq).applyQuaternion(_pq.invert()).normalize(); b.quaternion.premultiply(_rq.setFromAxisAngle(axis,a)); } }
+// Movement tuned from reference video (guinea_ref_01.mp4, see guinea-pig-motion-notes):
+//  trot ≈ 6 steps/s at ~1 m/s, feet barely lift, hind feet push out behind the body, the body rides level like a loaf,
+//  the head stays steady and turns in quick darts then holds, slow approaches stretch the body long and low,
+//  sniffing up = rearing on the hind legs with the nose working, stops are abrupt with a small forward lurch.
+function PIGrear(){ PIG.rear=1.6; }
+function gaitHz(sp){ const A=DATA.pig.anim; return Math.min(A.hzMax,A.hz0+A.hzPerMs*sp); }
+function legSwing(u,duty,reach,push){ // u 0..1 through one stride; stance sweeps the foot back, swing whips it forward
+  if(u<duty) return lerp(-reach,push,u/duty);
+  return lerp(push,-reach,smooth((u-duty)/(1-duty)));
+}
 function animRig(P,m,dt){
-  const R=P.rig, B=R.B, sp=m.speed, run=sp>1.2, k=clamp(sp/.8,0,1), frozen=m.frozen;
-  P.t+=dt; P.phase+=dt*(8+sp*9)*(sp>.03?1:0);
-  P.nip=Math.max(0,P.nip-dt); P.eat=Math.max(0,P.eat-dt); P.hurt=Math.max(0,P.hurt-dt);
-  const breath=frozen?0:Math.sin(P.t*6), bob=Math.abs(Math.sin(P.phase))*.012*k;
+  const R=P.rig, B=R.B, A=DATA.pig.anim, sp=m.speed, frozen=m.frozen, k=clamp(sp/.6,0,1), bound=sp>A.boundAt;
+  P.t+=dt; P.nip=Math.max(0,P.nip-dt); P.eat=Math.max(0,P.eat-dt); P.hurt=Math.max(0,P.hurt-dt); P.rear=Math.max(0,(P.rear||0)-dt);
+  if(sp>.03) P.phase+=dt*Math.PI*2*gaitHz(sp);
+  // left alone for a while he'll sometimes rear up and sniff the air
+  P.idleT=sp<.03&&!frozen&&m.state==='free'?(P.idleT||0)+dt:0; if(P.idleT>5&&Math.random()<dt*.15){ P.rear=1.6; P.idleT=0; }
+  // exertion drives breathing rate; turning drives a spine bend; braking gives a lurch
+  P.exert=clamp((P.exert||0)+(sp>1.2?dt*.35:-dt/7),0,1);
+  const turn=clamp(angDiff(P.prevHead??m.heading,m.heading)/Math.max(dt,1e-3),-12,12); P.prevHead=m.heading; P.turnS=damp(P.turnS||0,turn,10,dt);
+  const decel=((P.prevSp??sp)-sp)/Math.max(dt,1e-3); P.prevSp=sp; if(decel>3) P.brake=Math.min(1,(P.brake||0)+decel*.04); P.brake=Math.max(0,(P.brake||0)-dt*3.5);
+  const cautious=(sp>.04&&sp<A.creepBelow)||P.eat>0; P.stretch=damp(P.stretch||1,frozen?.94:cautious?A.stretch:bound?1.04:1,6,dt);
+  // breathing: ~1.4/s at rest, up to ~3/s after running, shallow and quick when frozen
+  const bHz=frozen?2.2:lerp(A.breathHz,A.breathHzMax,P.exert), bAmp=frozen?.005:lerp(.012,.024,P.exert); P.bph=(P.bph||0)+dt*Math.PI*2*bHz; const breath=Math.sin(P.bph)*bAmp;
+  // popcorn
   if(P.pop>0){ P.pop=Math.max(0,P.pop-dt); const u=1-P.pop/.55; P.popY=Math.sin(u*Math.PI)*.13; R.inner.rotation.y=Math.sin(u*Math.PI*2)*.6; } else { P.popY=0; R.inner.rotation.y=0; }
-  R.inner.position.y=bob-(frozen?.006:0); R.inner.rotation.z=Math.sin(P.phase*.5)*.05*k;
-  // body: lower and longer when scurrying, hunched when frozen, breathing through the chest
-  bRot(B.hips,[[[1,0,0],run?.12:frozen?-.05:0]]);
+  // body: rides level; tiny bob at twice the step rate, a rear waddle when trotting, spine rock when bounding
+  const ph=P.phase, bob=(bound?.007:.0025)*k*Math.abs(Math.sin(ph)), waddle=(bound?.015:.045)*k*Math.sin(ph), rock=bound?.09*k*Math.sin(ph):0;
+  // rearing up to sniff: pivot on the hind feet
+  const re=P.rear>0?smooth(Math.min(1,Math.min((1.6-P.rear)/.3,P.rear/.35))):0, rx=-A.rearMax*re;
+  // the model was generated sitting up; level him out into a four-legged loaf (less so when rearing)
+  const pc=A.postChest*(1-re), ph0=A.postHips*(1-re), phd=A.postHead*(1-re);
+  const hz=R.hindZ??-.08; R.inner.rotation.x=rx; R.inner.position.z=hz-hz*Math.cos(rx);
+  R.inner.position.y=bob-(frozen?.006:0)-(cautious&&!re?.004:0)+Math.abs(hz)*Math.sin(-rx);
+  R.inner.rotation.z=-P.turnS*.012*k;                       // lean into turns
+  const lurch=P.brake*.16, squat=sp>.05&&sp<.5?.0:0;
+  const bend=clamp(P.turnS*.06,-.35,.35);
+  bRot(B.hips,[[[1,0,0],ph0-rock*.6+(frozen?-.04:0)+lurch*.3],[[0,1,0],-bend*.5+waddle],[[0,0,1],waddle*.6]]);
   const lunge=P.nip>0?Math.sin((1-P.nip/.28)*Math.PI):0;
-  bRot(B.chest,[[[1,0,0],(run?.2:0)+(P.eat>0?.25:0)+lunge*.25+breath*.015]]);
-  B.chest.scale.setScalar(1+breath*.012);
-  // head: look around when idle, nibble when eating, lunge when nipping, twitchy nose-bob
-  P.lookT-=dt; if(P.lookT<=0){ P.lookT=rnd(1.2,3.5); P.look=sp<.05&&!frozen?rnd(-.7,.7):0; }
-  P.head=P.head||{}; P.headYaw=damp(P.headYaw||0,P.look,4,dt);
-  const nib=P.eat>0?.45+Math.abs(Math.sin(P.t*18))*.08:0, twitch=frozen?0:Math.max(0,Math.sin(P.t*22))*.02;
-  bRot(B.head,[[[0,1,0],P.headYaw],[[1,0,0],nib+(run?.1:0)-lunge*.1+twitch]]);
-  // ears: back when running, frozen or hurt; the odd flick
-  R.earT-=dt; if(R.earT<=0){ R.earT=rnd(1.5,5); R.earFlick=.25; } R.earFlick=Math.max(0,R.earFlick-dt);
-  const back=(run||frozen?.5:0)+(P.hurt>0?.7:0);
-  bRot(B.earL,[[[1,0,0],-back-(R.earFlick>0?Math.sin(R.earFlick*25)*.3:0)],[[0,0,1],.1]]);
-  bRot(B.earR,[[[1,0,0],-back],[[0,0,1],-.1]]);
-  // legs: quick paddling scurry
+  bRot(B.chest,[[[1,0,0],pc+rock+(P.eat>0?.25:0)+lunge*.25+breath*.6+lurch],[[0,1,0],bend-waddle*.6]]);
+  B.chest.scale.set(1+breath,P.stretch,1+breath*1.2);
+  // head: steady (cancels body rock and roll), darts to a new look direction then holds; nose works in sniff bouts
+  P.lookT-=dt; if(P.lookT<=0){ const idle=sp<.05&&!frozen; P.lookT=idle?rnd(.6,2.2):rnd(1,3); P.look=idle?rnd(-.8,.8):rnd(-.15,.15); P.lookP=idle?rnd(-.35,.1):0; if(Math.random()<.35) P.sniffT=rnd(.8,2.2); }
+  P.sniffT=Math.max(0,(P.sniffT||0)-dt); const sniffing=(P.sniffT>0||re>.2)&&!frozen;
+  P.headYaw=damp(P.headYaw||0,P.look+bend*.8,14,dt); P.headPitch=damp(P.headPitch||0,P.lookP||0,10,dt);
+  const nose=sniffing?Math.sin(P.t*Math.PI*2*A.sniffHz)*.022:0;
+  const nib=P.eat>0?.45+Math.abs(Math.sin(P.t*Math.PI*2*A.chewHz))*.07:0;
+  bRot(B.head,[[[0,1,0],P.headYaw+nose*.4],[[1,0,0],phd+nib-rock*.9-lurch*.6+(bound?.05:0)-lunge*.1+P.headPitch+nose-(re*.35)-(frozen?.08:0)],[[0,0,1],waddle*-.5]]);
+  // ears: flat when running or hurt, perked when frozen, turn a little with the head, the odd flick
+  R.earT-=dt; if(R.earT<=0){ R.earT=rnd(1.5,5); R.earFlick=.25; R.flickSide=Math.random()<.5; } R.earFlick=Math.max(0,R.earFlick-dt);
+  const back=(sp>1.2?.5:0)+(P.hurt>0?.7:0)-(frozen?.15:0), fl=R.earFlick>0?Math.sin(R.earFlick*25)*.3:0;
+  bRot(B.earL,[[[1,0,0],-back-(R.flickSide?fl:0)],[[0,0,1],.1+P.headYaw*.15]]);
+  bRot(B.earR,[[[1,0,0],-back-(R.flickSide?0:fl)],[[0,0,1],-.1+P.headYaw*.15]]);
+  // legs
   P.jump=Math.max(0,(P.jump||0)-dt);
+  for(const b of [B.flegL,B.flegR,B.hlegL,B.hlegR]) b.scale.set(1,1,1);
   if(P.air){ const up=m.vy>0; bRot(B.hips,[[[1,0,0],up?-.15:.1]]); bRot(B.flegL,[[[1,0,0],up?-.6:.5]]); bRot(B.flegR,[[[1,0,0],up?-.6:.5]]); bRot(B.hlegL,[[[1,0,0],up?.8:-.3]]); bRot(B.hlegR,[[[1,0,0],up?.8:-.3]]); return; }
-  const a=.7*k;
-  bRot(B.flegL,[[[1,0,0],Math.sin(P.phase)*a]]); bRot(B.flegR,[[[1,0,0],Math.sin(P.phase+Math.PI)*a]]);
-  bRot(B.hlegL,[[[1,0,0],Math.sin(P.phase+Math.PI*.5)*a]]); bRot(B.hlegR,[[[1,0,0],Math.sin(P.phase+Math.PI*1.5)*a]]);
+  if(re>0){ bRot(B.flegL,[[[1,0,0],.35*re-pc-ph0]]); bRot(B.flegR,[[[1,0,0],.3*re-pc-ph0]]); bRot(B.hlegL,[[[1,0,0],.55*re]]); bRot(B.hlegR,[[[1,0,0],.55*re]]); return; }
+  const turnStep=Math.min(1,Math.abs(P.turnS)/4)*(1-k);   // shuffling feet when pivoting on the spot
+  const kk=Math.max(k,turnStep*.6), duty=bound?.45:.6, U=x=>((x/(Math.PI*2))%1+1)%1;
+  const offs=bound?[.08,.2,.62,.62]:[0,.5,.5,0];            // flegL, flegR, hlegL, hlegR: trot pairs diagonals, bound pairs the hind legs
+  const legs=[[B.flegL,.42,.22],[B.flegR,.42,.22],[B.hlegL,.22,.62],[B.hlegR,.22,.62]];
+  legs.forEach(([b,reach,push],i)=>{ const u=U(ph+offs[i]*Math.PI*2); const g=bound?1.25:1;
+    bRot(b,[[[1,0,0],legSwing(u,duty,reach*g,push*g)*kk-(i<2?pc+ph0:ph0)]]); if(u>=duty) b.scale.set(1,1-.16*kk*Math.sin(Math.PI*(u-duty)/(1-duty)),1); });
 }
 function animPig(P,m,dt){ if(P.rig){ animRig(P,m,dt); return; }
   P.t+=dt; const sp=m.speed, run=m.speed>1.2, k=clamp(sp/.8,0,1);
@@ -750,7 +786,7 @@ function nearFood(r=.42){ return FOOD.find(f=>!f.eaten&&Math.hypot(PG.pos.x-f.po
 function atWindow(){ return PG.y>.68&&PG.pos.x>3.55&&PG.pos.x<5.05&&PG.pos.z>-8.3&&PG.pos.z<-7.95; }
 // sniff: a scent trail toward the nearest food for a few seconds
 const scent=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({color:0xfff2b0,size:.035,transparent:true,opacity:0,depthWrite:false})); scene.add(scent); let scentT=0;
-function sniff(){ let best=null,bd=14; for(const f of FOOD){ if(f.eaten) continue; const d=Math.hypot(PG.pos.x-f.pos.x,PG.pos.z-f.pos.z)+Math.abs(PG.y-f.pos.y)*3; if(d<bd){ bd=d; best=f; } }
+function sniff(){ if(PG.speed<.15&&!PG.air) PIGrear(); let best=null,bd=14; for(const f of FOOD){ if(f.eaten) continue; const d=Math.hypot(PG.pos.x-f.pos.x,PG.pos.z-f.pos.z)+Math.abs(PG.y-f.pos.y)*3; if(d<bd){ bd=d; best=f; } }
   sndPig('sniff'); if(!best){ toast('Nothing tasty nearby'); return; }
   const pts=[]; for(let i=1;i<=24;i++){ const t=i/25; pts.push(V3(lerp(PG.pos.x,best.pos.x,t)+rnd(-.06,.06),lerp(PG.y,best.pos.y,t)+.06+Math.sin(t*9)*.02,lerp(PG.pos.z,best.pos.z,t)+rnd(-.06,.06))); }
   scent.geometry.setFromPoints(pts); scentT=3.2; }
@@ -1164,7 +1200,7 @@ $('buildv').textContent=BUILD;
 document.querySelectorAll('button').forEach(b=>b.addEventListener('keydown',e=>{ if(e.key===' ') e.preventDefault(); }));
 
 /* ================= camera: low, close, constricted ================= */
-let camYaw=Math.PI*1.3, inFwd=1, lookIdle=0, camSide=0; const camPos=V3(), camLook=V3(); let camSnap=true;
+let camYaw=Math.PI*1.3, inFwd=1, lookIdle=0, camSide=0, camHold=false; const camPos=V3(), camLook=V3(); let camSnap=true;
 function pointBlocked(p){ for(const w of WALLS){ if(p.y<w.y0||p.y>w.y1) continue; if(w.r!==undefined){ if(Math.hypot(p.x-w.x,p.z-w.z)<w.r+.05) return true; } else if(p.x>w.minX-.05&&p.x<w.maxX+.05&&p.z>w.minZ-.05&&p.z<w.maxZ+.05&&!w.see) return true; }
   for(const s of SURF){ if(p.x>s.minX&&p.x<s.maxX&&p.z>s.minZ&&p.z<s.maxZ&&p.y>s.y0-.03&&p.y<s.top+.03) return true; } return false; }
 function cameraUpdate(dt){
@@ -1173,7 +1209,7 @@ function cameraUpdate(dt){
     // stay behind him: follow his heading closely; a quick spin swings the view round with him
     camYaw+=angDiff(camYaw,PG.heading)*(1-Math.exp(-(PG.spin?7:8)*dt));
     // a look-around drag drifts back behind him once released
-    if(!look&&!keys.has('q')){ lookIdle+=dt; if(lookIdle>.8) camOff*=Math.exp(-2.2*dt); } else lookIdle=0;
+    if(!look&&!keys.has('q')&&!camHold){ lookIdle+=dt; if(lookIdle>.8) camOff*=Math.exp(-2.2*dt); } else lookIdle=0;
   } else if(PG.speed>.15) camYaw+=angDiff(camYaw,PG.heading)*(1-Math.exp(-2.4*clamp(inFwd+.25,0,1)*dt));
   // when a kid has him (no steering possible) the view eases round to the side so you can see who's got you
   camSide=damp(camSide,PG.state==='caught'?1.15:0,2.5,dt);
@@ -1260,7 +1296,7 @@ getBuf(PIGGLB).then(b=>new Promise((res,rej)=>new GLTFLoader().parse(b,'',res,re
     CAST.src=gl.scene; CAST.tex=tex; CAST.clips={}; gl.animations.forEach(c=>CAST.clips[c.name]=c);
     spawnPeople(); ready=true; lighting(); log('event','loaded; grass clumps '+W.grassCount);
     window.GP={jump,DATA,PG,DAY,KIDS,PEDS,DOG,CAT,CHICKENS,RATS,SHADE,CARS,BIKES,FOOD,W,CFG,act,nip,restartDay,endDay,keys,cam,heightAt,
-      SIM:s=>{ for(let t=0;t<s;t+=1/30) update(1/30); }, tp:(x,y,z)=>{ PG.pos.set(x,0,z); PG.y=y; }, face:a=>{ PG.heading=a; camYaw=a; camOff=0; }, orbit:a=>{ camOff=a; }, camYaw:()=>camYaw+camOff, start:()=>{ started=true; $('card').hidden=true; }};
+      SIM:s=>{ for(let t=0;t<s;t+=1/30) update(1/30); }, tp:(x,y,z)=>{ PG.pos.set(x,0,z); PG.y=y; }, face:a=>{ PG.heading=a; camYaw=a; camOff=0; }, orbit:a=>{ camOff=a; camHold=true; }, PIG, camYaw:()=>camYaw+camOff, start:()=>{ started=true; $('card').hidden=true; }};
   }catch(e){ log('error','load: '+e.message); $('card').querySelector('p').textContent='Could not load the people: '+e.message; } })();
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.fov=cam.aspect<.8?72:DATA.camera.fov; cam.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize(); lighting();
