@@ -169,8 +169,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
-const AGLB='url:assets/anthony.glb?v=gp01', ASKIN='url:assets/anthony-skin.jpg?v=gp01', PIGGLB='url:assets/guineapig.glb?v=gp02';
-const BUILD='Guinea pig grounds v0.3 · 24 Sep 2026';
+const AGLB='url:assets/anthony.glb?v=gp01', ASKIN='url:assets/anthony-skin.jpg?v=gp01', PIGGLB='url:assets/guineapig.glb?v=gp03', PIGSKIN='url:assets/guineapig-skin.jpg?v=gp03', PIGNORM='url:assets/guineapig-normal.jpg?v=gp03';
+const BUILD='Guinea pig grounds v0.3.1 · 24 Sep 2026';
 const $=id=>document.getElementById(id);
 
 /* ---------------- GAME DATA — every tunable number (mirrored in guineapig-data.json) ---------------- */
@@ -558,6 +558,10 @@ function attachPigModel(gl){
   for(const c of PIG.g.children) c.visible=false;
   PIG.g.add(inner);
   const B={}; model.traverse(o=>{ if(o.isBone) B[o.name]=o; });
+  // skin loaded as plain images, not from inside the GLB: embedded textures go through blob: URLs, which the artifact sandbox (and some phones) block
+  const mats=[]; model.traverse(o=>{ if(o.isMesh&&o.material) mats.push(o.material); });
+  getTex(PIGSKIN).then(t=>{ for(const m of mats){ m.map=t; m.color.set(0xffffff); m.needsUpdate=true; } log('event','guinea pig skin loaded'); }).catch(e=>log('bug','guinea pig skin failed: '+e.message));
+  getTex(PIGNORM).then(t=>{ t.colorSpace=THREE.NoColorSpace; for(const m of mats){ m.normalMap=t; m.needsUpdate=true; } }).catch(()=>{});
   PIG.rig={inner,model,B,rest:Object.fromEntries(Object.entries(B).map(([k,b])=>[k,b.quaternion.clone()])),earT:2,earFlick:0};
 }
 // rotate a bone about axes given in the guinea pig's own space (+Y up, +Z forward, +X his left)
