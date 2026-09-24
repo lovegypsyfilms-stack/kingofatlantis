@@ -91,7 +91,8 @@
 <div class="hud br">
   <div class="row">
     <button class="act" id="freezeBtn" type="button" aria-pressed="false" title="Go still: quieter and harder to see">Freeze<small>F</small></button>
-    <button class="act" id="nipBtn" type="button" title="Nip at a chicken or rat">Nip<small>Space</small></button>
+    <button class="act" id="nipBtn" type="button" title="Nip at a chicken or rat">Nip<small>N</small></button>
+    <button class="act" id="jumpBtn" type="button" title="Hop over things and up onto ledges">Jump<small>Space</small></button>
   </div>
   <div class="row">
     <button class="act" id="runBtn" type="button" aria-pressed="false">Scurry<small>Shift</small></button>
@@ -130,7 +131,7 @@
     <h2>Hang in there, little buddy</h2>
     <p class="ben">"I got probation today. Could be four or five hours. I'm not gonna lock you up, little fella… you hang in there, and we'll see you in the afternoon, huh?"</p>
     <p>Get through the day until Ben's home at 5pm, then find his bedroom window out the back. Stay fed, stay hidden, and listen: at your height you'll usually hear danger before you see it.</p>
-    <p class="small">Move: WASD / arrows or drag on the left · Scurry: Shift · Freeze: F · Nip: Space · Sniff / eat / climb: E</p>
+    <p class="small">Move: WASD / arrows or drag on the left · Scurry: Shift · Jump: Space · Freeze: F · Nip: N · Sniff / eat: E · Look around: drag on the right</p>
     <button id="go" type="button">Start the day</button>
     <div class="small" id="buildv" style="margin-top:12px"></div>
   </div>
@@ -169,12 +170,12 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const AGLB='url:assets/anthony.glb?v=gp01', ASKIN='url:assets/anthony-skin.jpg?v=gp01', PIGGLB='url:assets/guineapig.glb?v=gp02';
-const BUILD='Guinea pig grounds v0.2 · 24 Sep 2026';
+const BUILD='Guinea pig grounds v0.3 · 24 Sep 2026';
 const $=id=>document.getElementById(id);
 
 /* ---------------- GAME DATA — every tunable number (mirrored in guineapig-data.json) ---------------- */
 const DATA={
-  pig:{walk:.75,run:2.3,accel:7,turn:9,step:.27,height:.16,radius:.11,hearts:5,food:70,foodDrain:.2,stamina:100,runCost:22,stamRegen:14,
+  pig:{walk:.85,run:3.1,winded:.78,accel:8,turn:10,step:.27,height:.16,radius:.11,hearts:5,food:70,foodDrain:.2,stamina:100,runCost:6,stamRegen:12,jump:2.5,gravity:9.8,
        noiseWalk:1.6,noiseRun:5,noiseFreeze:0},
   food:{carrot:30,greens:14,basil:18,mango:40,papaya:28},
   day:{start:8,end:17,warnAt:16.5,minutesPerHour:.8,shadeFrom:15},            // 8am→5pm in ~7 real minutes
@@ -586,6 +587,8 @@ function animRig(P,m,dt){
   bRot(B.earL,[[[1,0,0],-back-(R.earFlick>0?Math.sin(R.earFlick*25)*.3:0)],[[0,0,1],.1]]);
   bRot(B.earR,[[[1,0,0],-back],[[0,0,1],-.1]]);
   // legs: quick paddling scurry
+  P.jump=Math.max(0,(P.jump||0)-dt);
+  if(P.air){ const up=m.vy>0; bRot(B.hips,[[[1,0,0],up?-.15:.1]]); bRot(B.flegL,[[[1,0,0],up?-.6:.5]]); bRot(B.flegR,[[[1,0,0],up?-.6:.5]]); bRot(B.hlegL,[[[1,0,0],up?.8:-.3]]); bRot(B.hlegR,[[[1,0,0],up?.8:-.3]]); return; }
   const a=.7*k;
   bRot(B.flegL,[[[1,0,0],Math.sin(P.phase)*a]]); bRot(B.flegR,[[[1,0,0],Math.sin(P.phase+Math.PI)*a]]);
   bRot(B.hlegL,[[[1,0,0],Math.sin(P.phase+Math.PI*.5)*a]]); bRot(B.hlegR,[[[1,0,0],Math.sin(P.phase+Math.PI*1.5)*a]]);
@@ -752,6 +755,7 @@ function act(){
   if(PG.state!=='free') return;
   if(DAY.benHome&&atWindow()){ tapWindow(); return; }
   if(tryEat()) return; sniff(); }
+function jump(){ unlockAudio(); if(PG.state==='caught'){ act(); return; } if(PG.state==='free') PG.jumpReq=true; }
 function nip(){ if(PG.state==='caught'){ act(); return; } if(PG.state!=='free') return; PIG.nip=.28; sndPig('nip');
   const fx=Math.sin(PG.heading), fz=Math.cos(PG.heading);
   for(const c of CHICKENS){ const dx=c.pos.x-PG.pos.x, dz=c.pos.z-PG.pos.z, d=Math.hypot(dx,dz); if(d<.55&&(dx*fx+dz*fz)/d>.2){ c.hits++; c.knock=V3(dx/d,0,dz/d).multiplyScalar(2.2); sndAt('squawk',c.pos); c.state=c.hits>=DATA.chicken.hits?'flee':'angry'; c.t=0; if(c.state==='flee'){ dlog('fight','chased off a chicken'); PIG.pop=.55; } return; } }
@@ -766,19 +770,22 @@ function pigUpdate(dt,ix,iz,camYaw){
   // camera-relative input
   const fx=Math.sin(camYaw), fz=Math.cos(camYaw), rx=-Math.cos(camYaw), rz=Math.sin(camYaw);
   let dx=rx*ix+fx*(-iz), dz=rz*ix+fz*(-iz); const il=Math.min(1,Math.hypot(dx,dz)); if(il>.001){ dx/=Math.hypot(dx,dz); dz/=Math.hypot(dx,dz)||1; }
-  const wantRun=(runToggle||keys.has('Shift'))&&il>.2&&PG.stam>2;
+  const wantRun=(runToggle||keys.has('Shift'))&&il>.2;
   PG.running=wantRun; if(wantRun) PG.stam=Math.max(0,PG.stam-P.runCost*dt); else PG.stam=Math.min(P.stamina,PG.stam+P.stamRegen*(PG.food<20?.5:1)*dt);
+  const winded=PG.stam<=1?P.winded:1;
   const hungry=PG.food<20?.8:1;
-  const target=il>.15?(wantRun?P.run:P.walk)*hungry*Math.max(.35,il):0;
+  const target=il>.15?(wantRun?P.run*winded:P.walk)*hungry*Math.max(.35,il):0;
   if(il>.15){ const want=Math.atan2(dx,dz); PG.heading+=clamp(angDiff(PG.heading,want),-P.turn*dt,P.turn*dt); }
   PG.speed=target>PG.speed?Math.min(target,PG.speed+P.accel*dt):Math.max(target,PG.speed-P.accel*1.6*dt);
   PG.pos.x+=Math.sin(PG.heading)*PG.speed*dt+PG.knock.x*dt; PG.pos.z+=Math.cos(PG.heading)*PG.speed*dt+PG.knock.z*dt; PG.knock.multiplyScalar(Math.pow(.02,dt));
   collide(PG.pos,P.radius,PG.y,P.height); PG.pos.x=clamp(PG.pos.x,-40,40); PG.pos.z=clamp(PG.pos.z,-26,26);
-  // height: step up small ledges, fall off big ones
+  // jump: an impulse with gravity; he lands on anything he clears
+  if(PG.jumpReq){ PG.jumpReq=false; if(!PG.air&&PG.eatTimer<=0){ PG.vy=P.jump*(PG.running?1.08:1); PG.air=true; PG.fallFrom=PG.y; PIG.jump=.5; sndPig('hop'); } }
   const h=heightAt(PG.pos.x,PG.pos.z,PG.y);
-  if(h>PG.y+.002){ if(h-PG.y>.06&&PIG.hop<=0){ PIG.hop=.18; sndPig('hop'); } PG.y=Math.min(h,PG.y+Math.max(1.8*dt,(h-PG.y)*.5)); PG.vy=0; PG.fallFrom=PG.y; }
-  else if(h<PG.y-.01){ if(PG.vy===0) PG.fallFrom=PG.y; PG.vy-=9.8*dt; PG.y=Math.max(h,PG.y+PG.vy*dt);
-    if(PG.y<=h+1e-4){ const drop=PG.fallFrom-h; PG.vy=0; if(drop>1.1){ hurt(DATA.damage.fall,'a fall'); } } }
+  if(PG.air){ PG.vy-=P.gravity*dt; PG.y+=PG.vy*dt; if(PG.vy>0) PG.fallFrom=Math.max(PG.fallFrom,PG.y);
+    const hl=heightAt(PG.pos.x,PG.pos.z,PG.y); if(PG.y<=hl&&PG.vy<=0){ const drop=PG.fallFrom-hl; PG.y=hl; PG.vy=0; PG.air=false; if(drop>1.1) hurt(DATA.damage.fall,'a fall'); } }
+  else if(h>PG.y+.002){ if(h-PG.y>.06&&PIG.hop<=0){ PIG.hop=.18; sndPig('hop'); } PG.y=Math.min(h,PG.y+Math.max(1.8*dt,(h-PG.y)*.5)); PG.vy=0; PG.fallFrom=PG.y; }
+  else if(h<PG.y-.01){ PG.air=true; PG.vy=0; PG.fallFrom=PG.y; }
   else { PG.y=h; PG.vy=0; PG.fallFrom=h; }
   PIG.hop=Math.max(0,PIG.hop-dt);
   PG.cover=coverAt(PG.pos.x,PG.pos.z,PG.y);
@@ -787,7 +794,7 @@ function pigUpdate(dt,ix,iz,camYaw){
   PG.food=Math.max(0,PG.food-DATA.pig.foodDrain*dt);
   if(PG.food<=0){ PG.starveT+=dt; if(PG.starveT>20){ PG.starveT=0; hurt(.5,'hunger'); } } else PG.starveT=0;
   // model
-  PIG.g.position.set(PG.pos.x,PG.y+(PIG.hop>0?Math.sin(PIG.hop/.18*Math.PI)*.08:0)+(PIG.popY||0),PG.pos.z); PIG.g.rotation.y=PG.heading;
+  PIG.g.position.set(PG.pos.x,PG.y+(PIG.hop>0&&!PG.air?Math.sin(PIG.hop/.18*Math.PI)*.06:0)+(PIG.popY||0),PG.pos.z); PIG.air=PG.air; PIG.g.rotation.y=PG.heading;
   PIG.g.visible=PG.state!=='down'||Math.sin(performance.now()/90)>0;
   animPig(PIG,PG,dt);
 }
@@ -1097,7 +1104,8 @@ function guard(where,e){ log('error',where+': '+(e&&e.message||e)); const n=perf
 /* ================= input ================= */
 const keys=new Set(); let joy=null, look=null, runToggle=false, camOff=0;
 addEventListener('keydown',e=>{ const k=e.key.length===1?e.key.toLowerCase():e.key; if(e.target.tagName==='TEXTAREA') return;
-  if(k===' '){ e.preventDefault(); if(!e.repeat) nip(); return; }
+  if(k===' '){ e.preventDefault(); if(!e.repeat) jump(); return; }
+  if(k==='n'||k==='x'){ if(!e.repeat) nip(); return; }
   if(k==='e'||k==='Enter'){ if(!e.repeat) act(); return; }
   if(k==='`'){ $('dbgbtn').click(); return; }
   if(['w','a','s','d','f','q','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Shift'].includes(k)){ e.preventDefault(); keys.add(k); unlockAudio(); } });
@@ -1116,6 +1124,7 @@ $('runBtn').onclick=e=>{ runToggle=!runToggle; e.currentTarget.setAttribute('ari
 $('freezeBtn').addEventListener('pointerdown',e=>{ e.preventDefault(); PG.freezeHeld=true; $('freezeBtn').setAttribute('aria-pressed',true); unlockAudio(); });
 for(const ev of ['pointerup','pointerleave','pointercancel']) $('freezeBtn').addEventListener(ev,()=>{ PG.freezeHeld=false; $('freezeBtn').setAttribute('aria-pressed',false); });
 $('nipBtn').addEventListener('pointerdown',e=>{ e.preventDefault(); nip(); });
+$('jumpBtn').addEventListener('pointerdown',e=>{ e.preventDefault(); jump(); });
 $('actBtn').addEventListener('pointerdown',e=>{ e.preventDefault(); act(); });
 $('mute').onclick=()=>{ unlockAudio(); setMute(!muted); }; setMute(muted);
 $('dbgbtn').onclick=e=>{ const on=$('dbg').hidden; $('dbg').hidden=!on; e.currentTarget.setAttribute('aria-pressed',on); };
@@ -1136,12 +1145,12 @@ $('buildv').textContent=BUILD;
 document.querySelectorAll('button').forEach(b=>b.addEventListener('keydown',e=>{ if(e.key===' ') e.preventDefault(); }));
 
 /* ================= camera: low, close, constricted ================= */
-let camYaw=Math.PI*1.3; const camPos=V3(), camLook=V3(); let camSnap=true;
+let camYaw=Math.PI*1.3, inFwd=1; const camPos=V3(), camLook=V3(); let camSnap=true;
 function pointBlocked(p){ for(const w of WALLS){ if(p.y<w.y0||p.y>w.y1) continue; if(w.r!==undefined){ if(Math.hypot(p.x-w.x,p.z-w.z)<w.r+.05) return true; } else if(p.x>w.minX-.05&&p.x<w.maxX+.05&&p.z>w.minZ-.05&&p.z<w.maxZ+.05&&!w.see) return true; }
   for(const s of SURF){ if(p.x>s.minX&&p.x<s.maxX&&p.z>s.minZ&&p.z<s.maxZ&&p.y>s.y0-.03&&p.y<s.top+.03) return true; } return false; }
 function cameraUpdate(dt){
   const C=DATA.camera, hi=CFG.high, upstairs=PG.y>2;
-  if(PG.speed>.15) camYaw+=angDiff(camYaw,PG.heading)*(1-Math.exp(-2.4*dt));
+  if(PG.speed>.15) camYaw+=angDiff(camYaw,PG.heading)*(1-Math.exp(-2.4*clamp(inFwd+.25,0,1)*dt));
   const yaw=camYaw+camOff, back=(hi?C.highBack:C.back)+(upstairs?.4:0), up=(hi?C.highUp:C.up)+(upstairs?.25:0);
   const head=V3(PG.pos.x,PG.y+.12,PG.pos.z), want=V3(PG.pos.x-Math.sin(yaw)*back,PG.y+up,PG.pos.z-Math.cos(yaw)*back);
   let best=head.clone().lerp(want,.2); for(let s=.2;s<=1.001;s+=.08){ const p=head.clone().lerp(want,s); if(pointBlocked(p)) break; best=p; }
@@ -1224,7 +1233,7 @@ getBuf(PIGGLB).then(b=>new Promise((res,rej)=>new GLTFLoader().parse(b,'',res,re
     const gl=await new Promise((res,rej)=>new GLTFLoader().parse(buf,'',res,rej));
     CAST.src=gl.scene; CAST.tex=tex; CAST.clips={}; gl.animations.forEach(c=>CAST.clips[c.name]=c);
     spawnPeople(); ready=true; lighting(); log('event','loaded; grass clumps '+W.grassCount);
-    window.GP={DATA,PG,DAY,KIDS,PEDS,DOG,CAT,CHICKENS,RATS,SHADE,CARS,BIKES,FOOD,W,CFG,act,nip,restartDay,endDay,keys,cam,heightAt,
+    window.GP={jump,DATA,PG,DAY,KIDS,PEDS,DOG,CAT,CHICKENS,RATS,SHADE,CARS,BIKES,FOOD,W,CFG,act,nip,restartDay,endDay,keys,cam,heightAt,
       SIM:s=>{ for(let t=0;t<s;t+=1/30) update(1/30); }, tp:(x,y,z)=>{ PG.pos.set(x,0,z); PG.y=y; }, face:a=>{ PG.heading=a; camYaw=a; camOff=0; }, orbit:a=>{ camOff=a; }, start:()=>{ started=true; $('card').hidden=true; }};
   }catch(e){ log('error','load: '+e.message); $('card').querySelector('p').textContent='Could not load the people: '+e.message; } })();
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.fov=cam.aspect<.8?72:DATA.camera.fov; cam.updateProjectionMatrix(); }
@@ -1234,6 +1243,7 @@ function update(dt){
   T+=dt; if(dt>0) fpsE=fpsE?fpsE*.95+.05/dt:1/dt;
   let ix=(keys.has('d')||keys.has('ArrowRight'))-(keys.has('a')||keys.has('ArrowLeft')), iz=(keys.has('s')||keys.has('ArrowDown'))-(keys.has('w')||keys.has('ArrowUp'));
   if(joy){ ix+=joy.dx; iz+=joy.dy; } if(!started||DAY.ended){ ix=iz=0; }
+  { const l=Math.hypot(ix,iz); inFwd=l>.15?-iz/l:1; }
   if(keys.has('q')) camOff+=dt*2;
   pigUpdate(dt,ix,iz,camYaw+camOff);
   if(ready){ if(DAY.h<16) kidsUpdate(dt); else for(const k of KIDS){ if(!k.p.g.visible) continue; const d=Math.hypot(k.pos.x+6,k.pos.z+1.2); if(d<.5){ k.p.g.visible=false; continue; }

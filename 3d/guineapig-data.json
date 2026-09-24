@@ -1,10 +1,10 @@
 {
- "_note": "Guinea pig grounds v0.1 tuning. Mirrors DATA in guineapig.html for a future Unity port.",
  "pig": {
-  "walk": 0.75,
-  "run": 2.3,
-  "accel": 7,
-  "turn": 9,
+  "walk": 0.85,
+  "run": 3.1,
+  "winded": 0.78,
+  "accel": 8,
+  "turn": 10,
   "step": 0.27,
   "height": 0.16,
   "radius": 0.11,
@@ -12,8 +12,10 @@
   "food": 70,
   "foodDrain": 0.2,
   "stamina": 100,
-  "runCost": 22,
-  "stamRegen": 14,
+  "runCost": 6,
+  "stamRegen": 12,
+  "jump": 2.5,
+  "gravity": 9.8,
   "noiseWalk": 1.6,
   "noiseRun": 5,
   "noiseFreeze": 0
@@ -39,9 +41,9 @@
   "open": 1
  },
  "camera": {
-  "back": 0.95,
-  "up": 0.32,
-  "look": 0.12,
+  "back": 1,
+  "up": 0.36,
+  "look": 0.15,
   "fov": 62,
   "highBack": 2.2,
   "highUp": 1.3,
