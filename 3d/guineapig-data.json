@@ -22,7 +22,8 @@
    "postChest": 0.42,
    "postHips": 0.12,
    "postHead": -0.34,
-   "rearMax": 0.5,
+   "rearMax": 0.45,
+   "headLead": 0.5,
    "hz0": 3,
    "hzPerMs": 2.4,
    "hzMax": 9,
@@ -106,7 +107,11 @@
    5.5,
    8.5
   ],
-  "hitR": 0.5
+  "hitR": 0.5,
+  "leapAhead": 6,
+  "leapSide": 1.8,
+  "leapTime": 0.6,
+  "slowmo": 0.18
  },
  "car": {
   "count": 4,
