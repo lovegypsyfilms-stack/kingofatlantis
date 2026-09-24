@@ -27,6 +27,11 @@
   #clock{font-variant-numeric:tabular-nums;font-weight:700;}
   #cover{font-size:12.5px;font-weight:700;}
   #cover.hidden{color:#9bd8a6;} #cover.seen{color:var(--warn);}
+  #show{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:6;width:min(560px,calc(100% - 32px));}
+  #show .showname{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 14px;text-align:center;} #show .showname b{font-size:16px;display:block;} #show .showname small{color:var(--dim);font-size:12.5px;}
+  #show .row{flex-wrap:wrap;justify-content:center;} #show .showhint{color:var(--dim);font-size:12px;text-shadow:0 1px 3px #000;}
+  body.showing .hud.br, body.showing #obj, body.showing .hud.tl{display:none!important;}
+  #obj{transition:opacity .8s;}
   #obj{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);background:rgba(12,21,16,.66);border:1px solid var(--line);border-radius:12px;
        padding:7px 14px;font:700 14.5px Karla,system-ui,sans-serif;text-align:center;max-width:min(460px,calc(100% - 330px));text-wrap:balance;pointer-events:none;}
   button,select{font:700 14px Karla,system-ui,sans-serif;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px;cursor:pointer;}
@@ -81,12 +86,24 @@
   <div class="chip" id="cover">In the open</div>
 </div>
 <div class="hud tr">
+  <button id="viewBtn" type="button" title="Change the camera angle (C)">View: Behind</button>
+  <button id="movesBtn" type="button" title="Watch each of his movements up close">Moves</button>
   <button id="dbgbtn" type="button" aria-pressed="false" aria-controls="dbg">Debug</button>
   <button id="mute" type="button" aria-pressed="false">Sound on</button>
   <button id="report" type="button">Report</button>
 </div>
 <div id="obj">Eat the carrot Ben left by his door</div>
 <div id="say"></div>
+<div id="show" hidden>
+  <div class="showname"><b id="showName">Walk</b><small id="showNote"></small></div>
+  <div class="row">
+    <button id="showPrev" type="button" aria-label="Previous movement">‹ Prev</button>
+    <button id="showSlow" type="button" aria-pressed="false">Slow-mo</button>
+    <button id="showNext" type="button" aria-label="Next movement">Next ›</button>
+    <button id="showExit" type="button">Back to play</button>
+  </div>
+  <small class="showhint">Drag to walk the camera around him</small>
+</div>
 
 <div class="hud br">
   <div class="row">
@@ -171,7 +188,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const AGLB='url:assets/anthony.glb?v=gp01', ASKIN='url:assets/anthony-skin.jpg?v=gp01', PIGGLB='url:assets/guineapig.glb?v=gp03', PIGSKIN='url:assets/guineapig-skin.jpg?v=gp03', PIGNORM='url:assets/guineapig-normal.jpg?v=gp03';
-const BUILD='Guinea pig grounds v0.5 · 24 Sep 2026';
+const BUILD='Guinea pig grounds v0.6 · 24 Sep 2026';
 const $=id=>document.getElementById(id);
 
 /* ---------------- GAME DATA — every tunable number (mirrored in guineapig-data.json) ---------------- */
@@ -1162,10 +1179,13 @@ addEventListener('keydown',e=>{ const k=e.key.length===1?e.key.toLowerCase():e.k
   if(k==='n'||k==='x'){ if(!e.repeat) nip(); return; }
   if(k==='e'||k==='Enter'){ if(!e.repeat) act(); return; }
   if(k==='`'){ $('dbgbtn').click(); return; }
+  if(k==='c'||k==='v'){ if(!e.repeat) cycleView(); return; }
+  if(SHOW.on&&(k==='ArrowRight'||k==='ArrowLeft')){ e.preventDefault(); showStep(k==='ArrowRight'?1:-1); return; }
   if(['w','a','s','d','f','q','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Shift'].includes(k)){ e.preventDefault(); keys.add(k); unlockAudio(); } });
 addEventListener('keyup',e=>{ const k=e.key.length===1?e.key.toLowerCase():e.key; keys.delete(k); });
 addEventListener('blur',()=>keys.clear());
 canvas.addEventListener('pointerdown',e=>{ unlockAudio();
+  if(SHOW.on){ look={id:e.pointerId,x:e.clientX}; canvas.setPointerCapture(e.pointerId); return; }
   if(e.clientX<innerWidth*.5){ joy={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0}; const j=$('joy'); j.style.display='block'; j.style.left=e.clientX+'px'; j.style.top=e.clientY+'px'; j.firstElementChild.style.transform=''; }
   else look={id:e.pointerId,x:e.clientX};
   canvas.setPointerCapture(e.pointerId); });
@@ -1200,7 +1220,10 @@ $('buildv').textContent=BUILD;
 document.querySelectorAll('button').forEach(b=>b.addEventListener('keydown',e=>{ if(e.key===' ') e.preventDefault(); }));
 
 /* ================= camera: low, close, constricted ================= */
-let camYaw=Math.PI*1.3, inFwd=1, lookIdle=0, camSide=0, camHold=false; const camPos=V3(), camLook=V3(); let camSnap=true;
+let camYaw=Math.PI*1.3, inFwd=1, lookIdle=0, camSide=0, camHold=false, viewOff=0, idleSwing=0, lastInput=0;
+// camera angles: steering is always relative to him (up = forward), so every angle stays playable
+const VIEWS=[['Behind',0,1],['Three-quarter',.8,1.05],['Side',1.5,1.15],['Front',2.7,1.2]];
+function cycleView(){ CFG.view=((CFG.view|0)+1)%VIEWS.length; saveCfg(); $('viewBtn').textContent='View: '+VIEWS[CFG.view][0]; toast(VIEWS[CFG.view][0]+' view'+(CFG.view===3?' — left and right still turn him his way':'')); } const camPos=V3(), camLook=V3(); let camSnap=true;
 function pointBlocked(p){ for(const w of WALLS){ if(p.y<w.y0||p.y>w.y1) continue; if(w.r!==undefined){ if(Math.hypot(p.x-w.x,p.z-w.z)<w.r+.05) return true; } else if(p.x>w.minX-.05&&p.x<w.maxX+.05&&p.z>w.minZ-.05&&p.z<w.maxZ+.05&&!w.see) return true; }
   for(const s of SURF){ if(p.x>s.minX&&p.x<s.maxX&&p.z>s.minZ&&p.z<s.maxZ&&p.y>s.y0-.03&&p.y<s.top+.03) return true; } return false; }
 function cameraUpdate(dt){
@@ -1213,7 +1236,11 @@ function cameraUpdate(dt){
   } else if(PG.speed>.15) camYaw+=angDiff(camYaw,PG.heading)*(1-Math.exp(-2.4*clamp(inFwd+.25,0,1)*dt));
   // when a kid has him (no steering possible) the view eases round to the side so you can see who's got you
   camSide=damp(camSide,PG.state==='caught'?1.15:0,2.5,dt);
-  const yaw=camYaw+camOff+camSide, back=(hi?C.highBack:C.back)+(upstairs?.4:0)+camSide*.5, up=(hi?C.highUp:C.up)+(upstairs?.25:0);
+  const V=VIEWS[CFG.view|0]; viewOff+=angDiff(viewOff,V[1])*(1-Math.exp(-4*dt));
+  // left alone for a couple of seconds, the view drifts round to his face; any input swings it back
+  const idle=T-lastInput>2.2&&PG.state==='free'&&(CFG.view|0)!==3;
+  idleSwing=idle?damp(idleSwing,2.55-viewOff,.45,dt):damp(idleSwing,0,5,dt);
+  const yaw=camYaw+camOff+camSide+viewOff+idleSwing, back=((hi?C.highBack:C.back)+(upstairs?.4:0)+camSide*.5)*V[2]*(1+idleSwing*.06), up=(hi?C.highUp:C.up)+(upstairs?.25:0);
   const head=V3(PG.pos.x,PG.y+.12,PG.pos.z), want=V3(PG.pos.x-Math.sin(yaw)*back,PG.y+up,PG.pos.z-Math.cos(yaw)*back);
   let best=head.clone().lerp(want,.2); for(let s=.2;s<=1.001;s+=.08){ const p=head.clone().lerp(want,s); if(pointBlocked(p)) break; best=p; }
   const lk=V3(PG.pos.x+Math.sin(yaw)*.4,PG.y+C.look,PG.pos.z+Math.cos(yaw)*.4);
@@ -1272,13 +1299,14 @@ function restartDay(){
 
 /* ================= HUD ================= */
 let hudT=0;
+let objLast='', objT=7;
 function hud(dt){ hudT+=dt; if(sayT>0){ sayT-=dt; if(sayT<=0) $('say').textContent=''; } if(hudT<.1) return; hudT=0;
   let hs=''; for(let i=1;i<=DATA.pig.hearts;i++) hs+=PG.hearts>=i?'♥':PG.hearts>=i-.5?'<span style="opacity:.5">♥</span>':'<span style="opacity:.25">♡</span>'; $('hearts').innerHTML=hs;
   $('foodBar').style.width=PG.food+'%'; $('stamBar').style.width=PG.stam+'%'; $('clock').textContent=fmtClock(DAY.h);
   const seen=KIDS.some(k=>k.state==='chase'||k.state==='notice')||DOG.state==='chase'||DOG.state==='alert'||CAT.state==='stalk'||CAT.state==='pounce'||SHADE.state==='hunt';
   const cv=$('cover'); cv.className=seen?'chip seen':PG.cover?'chip hidden':'chip';
   cv.textContent=seen?(CAT.state==='stalk'?'Something is watching you':'Spotted!'):PG.cover==='grass'?'Hidden in the grass':PG.cover==='under'?'Hidden underneath':PG.cover==='behind'?'Tucked in cover':PG.y>2?'Upstairs — you can see for miles':'In the open';
-  $('obj').textContent=objective();
+  { const o=objective(); if(o!==objLast){ objLast=o; objT=7; $('obj').textContent=o; } objT-=.1; $('obj').style.opacity=objT>0?1:0; }
   const ab=$('actBtn'); ab.firstChild.nodeValue=PG.state==='caught'?'Wriggle ':DAY.benHome&&atWindow()?'Tap glass ':nearFood()?'Eat ':'Sniff ';
   $('readout').hidden=!CFG.readout;
   if(CFG.readout) $('readout').textContent=`pos ${PG.pos.x.toFixed(1)},${PG.y.toFixed(2)},${PG.pos.z.toFixed(1)}  state ${PG.state}  cover ${PG.cover||'-'}  noise ${PG.noise.toFixed(1)}
@@ -1296,16 +1324,62 @@ getBuf(PIGGLB).then(b=>new Promise((res,rej)=>new GLTFLoader().parse(b,'',res,re
     CAST.src=gl.scene; CAST.tex=tex; CAST.clips={}; gl.animations.forEach(c=>CAST.clips[c.name]=c);
     spawnPeople(); ready=true; lighting(); log('event','loaded; grass clumps '+W.grassCount);
     window.GP={jump,DATA,PG,DAY,KIDS,PEDS,DOG,CAT,CHICKENS,RATS,SHADE,CARS,BIKES,FOOD,W,CFG,act,nip,restartDay,endDay,keys,cam,heightAt,
-      SIM:s=>{ for(let t=0;t<s;t+=1/30) update(1/30); }, tp:(x,y,z)=>{ PG.pos.set(x,0,z); PG.y=y; }, face:a=>{ PG.heading=a; camYaw=a; camOff=0; }, orbit:a=>{ camOff=a; camHold=true; }, PIG, camYaw:()=>camYaw+camOff, start:()=>{ started=true; $('card').hidden=true; }};
+      SIM:s=>{ for(let t=0;t<s;t+=1/30) update(1/30); }, tp:(x,y,z)=>{ PG.pos.set(x,0,z); PG.y=y; }, face:a=>{ PG.heading=a; camYaw=a; camOff=0; }, orbit:a=>{ camOff=a; camHold=true; }, PIG, showOpen, showSet, SHOW, camYaw:()=>camYaw+camOff, start:()=>{ started=true; $('card').hidden=true; }};
   }catch(e){ log('error','load: '+e.message); $('card').querySelector('p').textContent='Could not load the people: '+e.message; } })();
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.fov=cam.aspect<.8?72:DATA.camera.fov; cam.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize(); lighting();
 const clock=new THREE.Clock(); let T=0, fpsE=0;
+/* ================= movement viewer: every movement on a loop, up close ================= */
+const SHOW={on:false,i:0,t:0,slow:false,x0:4,z0:12,d:0,y:0,vy:0,air:false,head:Math.PI/2,ang:1.57,dist:.52};
+const MOVES=[
+  ['Walk','Unhurried, about 5 steps a second, feet barely lift',()=>({speed:.85})],
+  ['Cautious creep','Body stretches long and low toward something new',()=>({speed:.3})],
+  ['Trot','About 6 steps a second, diagonal legs together, body rides level',()=>({speed:1.2})],
+  ['Bounding run','Scurry: hind legs push together, spine rocks',()=>({speed:3.1})],
+  ['Hard stop','Full run, then stop dead with a forward lurch',t=>({speed:(t%2.6)<1.1?3.1:0})],
+  ['Turn on the spot','Feet shuffle, body bends into the turn',t=>({speed:0,turn:(t%4)<2?2.6:-2.6})],
+  ['Spin round (down)','The quick 180° when you pull back',t=>({speed:0,spin:(t%2)<.3})],
+  ['Rear up and sniff','Pivots on the hind feet, nose working',t=>({speed:0,rear:(t%2.4)<.05})],
+  ['Freeze','Goes still: head up, ears up, quick shallow breaths',()=>({speed:0,frozen:true})],
+  ['Eat','Head down, nibbling',t=>({speed:0,eat:(t%1.3)<.05})],
+  ['Popcorn','The happy jump-and-twist',t=>({speed:0,pop:(t%1.4)<.05})],
+  ['Nip','Quick lunge at a rat or chicken',t=>({speed:0,nip:(t%1.1)<.05})],
+  ['Jump','Hop up onto a ledge',t=>({speed:.85,jump:(t%1.6)<.05})],
+  ['Idle','Breathing, darting looks, the odd ear flick',()=>({speed:0})],
+];
+function showSet(i){ SHOW.i=(i+MOVES.length)%MOVES.length; SHOW.t=0; SHOW.d=0; SHOW.head=Math.PI/2; SHOW.y=0; SHOW.vy=0; SHOW.air=false; PIG.rear=0; PIG.pop=0; PIG.eat=0; PIG.nip=0; PIG.prevSp=0; PIG.exert=0;
+  $('showName').textContent=MOVES[SHOW.i][0]; $('showNote').textContent=' — '+MOVES[SHOW.i][1]; }
+function showStep(d){ showSet(SHOW.i+d); }
+function showOpen(on){ SHOW.on=on; document.body.classList.toggle('showing',on); $('show').hidden=!on; $('movesBtn').setAttribute('aria-pressed',on);
+  if(on){ camOff=0; SHOW.sx=PG.pos.x; SHOW.sz=PG.pos.z; showSet(SHOW.i); } else { PG.pos.set(SHOW.px??PG.pos.x,PG.y,SHOW.pz??PG.pos.z); camSnap=true; } }
+$('movesBtn').onclick=()=>{ if(!SHOW.on){ SHOW.px=PG.pos.x; SHOW.pz=PG.pos.z; } showOpen(!SHOW.on); };
+$('showExit').onclick=()=>showOpen(false); $('showNext').onclick=()=>showStep(1); $('showPrev').onclick=()=>showStep(-1);
+$('showSlow').onclick=()=>{ SHOW.slow=!SHOW.slow; $('showSlow').setAttribute('aria-pressed',SHOW.slow); };
+$('viewBtn').onclick=cycleView; $('viewBtn').textContent='View: '+VIEWS[CFG.view|0][0];
+function showUpdate(rdt){
+  const dt=rdt*(SHOW.slow?.25:1); SHOW.t+=dt; const mv=MOVES[SHOW.i][2](SHOW.t);
+  if(mv.turn) SHOW.head+=mv.turn*dt;
+  if(mv.spin&&!SHOW.spin){ SHOW.spin=Math.PI; } if(SHOW.spin){ const st=Math.min(SHOW.spin,11*dt); SHOW.head+=st; SHOW.spin-=st; if(SHOW.spin<1e-3) SHOW.spin=0; }
+  if(mv.rear) PIG.rear=1.6; if(mv.eat) PIG.eat=1.2; if(mv.pop) PIG.pop=.55; if(mv.nip) PIG.nip=.28;
+  if(mv.jump&&!SHOW.air){ SHOW.vy=DATA.pig.jump; SHOW.air=true; }
+  if(SHOW.air){ SHOW.vy-=DATA.pig.gravity*dt; SHOW.y+=SHOW.vy*dt; if(SHOW.y<=0){ SHOW.y=0; SHOW.air=false; SHOW.vy=0; } }
+  SHOW.sp=damp(SHOW.sp||0,mv.speed,mv.speed>(SHOW.sp||0)?13:18,dt);
+  SHOW.d+=SHOW.sp*dt; if(SHOW.d>4.5) SHOW.d=0;
+  const x=SHOW.x0+Math.sin(Math.PI/2)*SHOW.d-2.2, z=SHOW.z0, g=heightAt(x,z,0);
+  PIG.g.position.set(x,g+SHOW.y+(PIG.popY||0),z); PIG.g.rotation.y=SHOW.head; PIG.air=SHOW.air;
+  animPig(PIG,{speed:SHOW.sp,frozen:!!mv.frozen,vy:SHOW.vy,heading:SHOW.head,state:'free',spin:SHOW.spin},dt);
+  // camera: orbits him at his height; drag to walk round
+  const a=SHOW.head+1.57+camOff, px=x-Math.sin(a)*SHOW.dist, pz=z-Math.cos(a)*SHOW.dist;
+  cam.position.set(px,g+.09+SHOW.y*.5,pz); cam.lookAt(x,g+.0+SHOW.y*.6,z);
+  sun.target.position.set(x,g,z); sun.position.copy(sun.target.position).addScaledVector(sunDir,25); hud(rdt);
+}
+
 function update(dt){
   T+=dt; if(dt>0) fpsE=fpsE?fpsE*.95+.05/dt:1/dt;
+  if(SHOW.on){ showUpdate(dt); return; }
   let ix=(keys.has('d')||keys.has('ArrowRight'))-(keys.has('a')||keys.has('ArrowLeft')), iz=(keys.has('s')||keys.has('ArrowDown'))-(keys.has('w')||keys.has('ArrowUp'));
   if(joy){ ix+=joy.dx; iz+=joy.dy; } if(!started||DAY.ended){ ix=iz=0; }
-  { const l=Math.hypot(ix,iz); inFwd=l>.15?-iz/l:1; }
+  { const l=Math.hypot(ix,iz); inFwd=l>.15?-iz/l:1; if(l>.1||look||keys.size||PG.state!=='free') lastInput=T; }
   if(keys.has('q')) camOff+=dt*2;
   pigUpdate(dt,ix,iz,camYaw+camOff);
   if(ready){ if(DAY.h<16) kidsUpdate(dt); else for(const k of KIDS){ if(!k.p.g.visible) continue; const d=Math.hypot(k.pos.x+6,k.pos.z+1.2); if(d<.5){ k.p.g.visible=false; continue; }
