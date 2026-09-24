@@ -124,6 +124,7 @@
   <div class="chk"><input id="dReadout" type="checkbox"><label for="dReadout">Debug readout</label></div>
   <div class="chk"><input id="dRipples" type="checkbox" checked><label for="dRipples">Sound ripples at screen edge</label></div>
   <div class="chk"><input id="dHigh" type="checkbox"><label for="dHigh">Higher camera (easier)</label></div>
+  <div class="chk"><input id="dFree" type="checkbox"><label for="dFree">Old steering (view swings to where you push)</label></div>
 </div>
 
 <div class="card" id="card">
@@ -131,7 +132,7 @@
     <h2>Hang in there, little buddy</h2>
     <p class="ben">"I got probation today. Could be four or five hours. I'm not gonna lock you up, little fella… you hang in there, and we'll see you in the afternoon, huh?"</p>
     <p>Get through the day until Ben's home at 5pm, then find his bedroom window out the back. Stay fed, stay hidden, and listen: at your height you'll usually hear danger before you see it.</p>
-    <p class="small">Move: WASD / arrows or drag on the left · Scurry: Shift · Jump: Space · Freeze: F · Nip: N · Sniff / eat: E · Look around: drag on the right</p>
+    <p class="small">Forward: W / up · Turn: A D / left right · Turn round: S / down (or drag on the left) · Scurry: Shift · Jump: Space · Freeze: F · Nip: N · Sniff / eat: E · Look around: drag on the right</p>
     <button id="go" type="button">Start the day</button>
     <div class="small" id="buildv" style="margin-top:12px"></div>
   </div>
@@ -170,12 +171,12 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const AGLB='url:assets/anthony.glb?v=gp01', ASKIN='url:assets/anthony-skin.jpg?v=gp01', PIGGLB='url:assets/guineapig.glb?v=gp03', PIGSKIN='url:assets/guineapig-skin.jpg?v=gp03', PIGNORM='url:assets/guineapig-normal.jpg?v=gp03';
-const BUILD='Guinea pig grounds v0.3.1 · 24 Sep 2026';
+const BUILD='Guinea pig grounds v0.4 · 24 Sep 2026';
 const $=id=>document.getElementById(id);
 
 /* ---------------- GAME DATA — every tunable number (mirrored in guineapig-data.json) ---------------- */
 const DATA={
-  pig:{walk:.85,run:3.1,winded:.78,accel:8,turn:10,step:.27,height:.16,radius:.11,hearts:5,food:70,foodDrain:.2,stamina:100,runCost:6,stamRegen:12,jump:2.5,gravity:9.8,
+  pig:{walk:.85,run:3.1,winded:.78,accel:8,turn:10,steer:2.4,spinRate:11,step:.27,height:.16,radius:.11,hearts:5,food:70,foodDrain:.2,stamina:100,runCost:6,stamRegen:12,jump:2.5,gravity:9.8,
        noiseWalk:1.6,noiseRun:5,noiseFreeze:0},
   food:{carrot:30,greens:14,basil:18,mango:40,papaya:28},
   day:{start:8,end:17,warnAt:16.5,minutesPerHour:.8,shadeFrom:15},            // 8am→5pm in ~7 real minutes
@@ -771,15 +772,28 @@ function pigUpdate(dt,ix,iz,camYaw){
   if(PG.state==='caught'){ const k=PG.caught; if(k){ k.p.hips.getWorldPosition(_tv2); PG.pos.set(_tv2.x,0,_tv2.z); PG.y=_tv2.y+.1; } PG.speed=0; PG.noise=3; return; }
   if(PG.eatTimer>0){ PG.eatTimer-=dt; ix=iz=0; }
   PG.frozen=PG.freezeHeld||keys.has('f'); if(PG.frozen){ ix=iz=0; }
-  // camera-relative input
-  const fx=Math.sin(camYaw), fz=Math.cos(camYaw), rx=-Math.cos(camYaw), rz=Math.sin(camYaw);
-  let dx=rx*ix+fx*(-iz), dz=rz*ix+fz*(-iz); const il=Math.min(1,Math.hypot(dx,dz)); if(il>.001){ dx/=Math.hypot(dx,dz); dz/=Math.hypot(dx,dz)||1; }
+  let il, dx=0, dz=0, steerBehind=CFG.steer!=='free';
+  if(steerBehind){
+    // steer from behind: left/right turns him, up goes forward, down spins him round to face back
+    const down=iz>.55&&Math.abs(ix)<.75;
+    if(down&&!PG.downHeld&&!PG.spin){ PG.spin=Math.PI*(ix<-.1?-1:1); }
+    PG.downHeld=down;
+    if(PG.spin){ const st=Math.sign(PG.spin)*Math.min(Math.abs(PG.spin),P.spinRate*dt); PG.heading+=st; PG.spin-=st; if(Math.abs(PG.spin)<1e-3) PG.spin=0; }
+    const ax=Math.abs(ix)>.12?ix:0;
+    if(!PG.spin&&ax) PG.heading-=ax*P.steer*(PG.running?.85:1)*dt;
+    const thr=clamp(iz<0?-iz:(PG.downHeld?iz:0),0,1);
+    il=PG.spin?.3:Math.max(thr,Math.abs(ax)*.3);
+  } else {
+    // old camera-relative input
+    const fx=Math.sin(camYaw), fz=Math.cos(camYaw), rx=-Math.cos(camYaw), rz=Math.sin(camYaw);
+    dx=rx*ix+fx*(-iz); dz=rz*ix+fz*(-iz); il=Math.min(1,Math.hypot(dx,dz)); if(il>.001){ dx/=Math.hypot(dx,dz); dz/=Math.hypot(dx,dz)||1; }
+  }
   const wantRun=(runToggle||keys.has('Shift'))&&il>.2;
   PG.running=wantRun; if(wantRun) PG.stam=Math.max(0,PG.stam-P.runCost*dt); else PG.stam=Math.min(P.stamina,PG.stam+P.stamRegen*(PG.food<20?.5:1)*dt);
   const winded=PG.stam<=1?P.winded:1;
   const hungry=PG.food<20?.8:1;
   const target=il>.15?(wantRun?P.run*winded:P.walk)*hungry*Math.max(.35,il):0;
-  if(il>.15){ const want=Math.atan2(dx,dz); PG.heading+=clamp(angDiff(PG.heading,want),-P.turn*dt,P.turn*dt); }
+  if(!steerBehind&&il>.15){ const want=Math.atan2(dx,dz); PG.heading+=clamp(angDiff(PG.heading,want),-P.turn*dt,P.turn*dt); }
   PG.speed=target>PG.speed?Math.min(target,PG.speed+P.accel*dt):Math.max(target,PG.speed-P.accel*1.6*dt);
   PG.pos.x+=Math.sin(PG.heading)*PG.speed*dt+PG.knock.x*dt; PG.pos.z+=Math.cos(PG.heading)*PG.speed*dt+PG.knock.z*dt; PG.knock.multiplyScalar(Math.pow(.02,dt));
   collide(PG.pos,P.radius,PG.y,P.height); PG.pos.x=clamp(PG.pos.x,-40,40); PG.pos.z=clamp(PG.pos.z,-26,26);
@@ -1095,7 +1109,7 @@ function ripplesDraw(dt,camYaw){
 function hexA(h,a){ const n=parseInt(h.slice(1),16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
 
 /* ================= settings, logging, feedback ================= */
-const CFG={ripples:true,readout:false,high:false};
+const CFG={ripples:true,readout:false,high:false,steer:'behind'};
 try{ Object.assign(CFG,JSON.parse(localStorage.getItem('koa-gpig-cfg')||'{}')); }catch(e){}
 function saveCfg(){ try{ localStorage.setItem('koa-gpig-cfg',JSON.stringify(CFG)); }catch(e){} }
 const LOG=[]; let lastToast=0, errBurst=0, errWin=0;
@@ -1138,6 +1152,7 @@ $('bGod').onclick=e=>{ PG.god=!PG.god; e.currentTarget.setAttribute('aria-presse
 $('bRestart').onclick=()=>restartDay();
 const TP={door:[5,0,-.9],stairs:[-8.4,2.9,-1.2],grass:[4,0,-12],bike:[0,0,-20.6],road:[-2,0,16.3],market:[-9,0,25.6],window:[4.3,.76,-8.12]};
 document.querySelectorAll('[data-tp]').forEach(b=>b.onclick=()=>{ const [x,y,z]=TP[b.dataset.tp]; PG.pos.set(x,0,z); PG.y=y; PG.vy=0; PG.state='free'; });
+$('dFree').checked=CFG.steer==='free'; $('dFree').onchange=e=>{ CFG.steer=e.target.checked?'free':'behind'; saveCfg(); };
 for(const [id,key] of [['dReadout','readout'],['dRipples','ripples'],['dHigh','high']]){ $(id).checked=CFG[key]; $(id).onchange=e=>{ CFG[key]=e.target.checked; saveCfg(); }; }
 $('report').onclick=()=>{ $('rep').hidden=false; }; $('repclose').onclick=()=>{ $('rep').hidden=true; };
 $('repcopy').onclick=()=>copy(['Guinea pig grounds — bug report',BUILD,'Note: '+($('repnote').value||'(none)'),'Device: '+navigator.userAgent,'Pig: '+PG.pos.toArray().map(v=>v.toFixed(2))+' y '+PG.y.toFixed(2)+' state '+PG.state,'',dayText(),'','Engine log:',...LOG.slice(-30).map(e=>e.t+'s '+e.type+': '+e.msg)].join('\n'));
@@ -1149,13 +1164,20 @@ $('buildv').textContent=BUILD;
 document.querySelectorAll('button').forEach(b=>b.addEventListener('keydown',e=>{ if(e.key===' ') e.preventDefault(); }));
 
 /* ================= camera: low, close, constricted ================= */
-let camYaw=Math.PI*1.3, inFwd=1; const camPos=V3(), camLook=V3(); let camSnap=true;
+let camYaw=Math.PI*1.3, inFwd=1, lookIdle=0, camSide=0; const camPos=V3(), camLook=V3(); let camSnap=true;
 function pointBlocked(p){ for(const w of WALLS){ if(p.y<w.y0||p.y>w.y1) continue; if(w.r!==undefined){ if(Math.hypot(p.x-w.x,p.z-w.z)<w.r+.05) return true; } else if(p.x>w.minX-.05&&p.x<w.maxX+.05&&p.z>w.minZ-.05&&p.z<w.maxZ+.05&&!w.see) return true; }
   for(const s of SURF){ if(p.x>s.minX&&p.x<s.maxX&&p.z>s.minZ&&p.z<s.maxZ&&p.y>s.y0-.03&&p.y<s.top+.03) return true; } return false; }
 function cameraUpdate(dt){
   const C=DATA.camera, hi=CFG.high, upstairs=PG.y>2;
-  if(PG.speed>.15) camYaw+=angDiff(camYaw,PG.heading)*(1-Math.exp(-2.4*clamp(inFwd+.25,0,1)*dt));
-  const yaw=camYaw+camOff, back=(hi?C.highBack:C.back)+(upstairs?.4:0), up=(hi?C.highUp:C.up)+(upstairs?.25:0);
+  if(CFG.steer!=='free'){
+    // stay behind him: follow his heading closely; a quick spin swings the view round with him
+    camYaw+=angDiff(camYaw,PG.heading)*(1-Math.exp(-(PG.spin?7:8)*dt));
+    // a look-around drag drifts back behind him once released
+    if(!look&&!keys.has('q')){ lookIdle+=dt; if(lookIdle>.8) camOff*=Math.exp(-2.2*dt); } else lookIdle=0;
+  } else if(PG.speed>.15) camYaw+=angDiff(camYaw,PG.heading)*(1-Math.exp(-2.4*clamp(inFwd+.25,0,1)*dt));
+  // when a kid has him (no steering possible) the view eases round to the side so you can see who's got you
+  camSide=damp(camSide,PG.state==='caught'?1.15:0,2.5,dt);
+  const yaw=camYaw+camOff+camSide, back=(hi?C.highBack:C.back)+(upstairs?.4:0)+camSide*.5, up=(hi?C.highUp:C.up)+(upstairs?.25:0);
   const head=V3(PG.pos.x,PG.y+.12,PG.pos.z), want=V3(PG.pos.x-Math.sin(yaw)*back,PG.y+up,PG.pos.z-Math.cos(yaw)*back);
   let best=head.clone().lerp(want,.2); for(let s=.2;s<=1.001;s+=.08){ const p=head.clone().lerp(want,s); if(pointBlocked(p)) break; best=p; }
   const lk=V3(PG.pos.x+Math.sin(yaw)*.4,PG.y+C.look,PG.pos.z+Math.cos(yaw)*.4);
@@ -1205,7 +1227,7 @@ function summary(){ const by={}; for(const h of DAY.hurts) by[h.src]=(by[h.src]|
     `<b>Caught by kids:</b> ${DAY.caughtN} · <b>spotted:</b> ${DAY.seenN} times · <b>close calls on the road and path:</b> ${DAY.closeCalls}`]; }
 function dayText(){ return ['Guinea pig day log',BUILD,new Date().toString(),'Device: '+navigator.userAgent,'',...summary().map(s=>s.replace(/<[^>]+>/g,'')),'','Timeline:',...DAY.log.map(e=>e.t+'  '+e.type+': '+e.msg)].join('\n'); }
 function restartDay(){
-  Object.assign(PG,{pos:W.start.clone(),y:0,vy:0,heading:Math.PI*1.3,speed:0,hearts:DATA.pig.hearts,food:DATA.pig.food,stam:DATA.pig.stamina,state:'free',caught:null,inv:0,knock:V3(),eatTimer:0});
+  Object.assign(PG,{pos:W.start.clone(),y:0,vy:0,spin:0,downHeld:false,heading:Math.PI*1.3,speed:0,hearts:DATA.pig.hearts,food:DATA.pig.food,stam:DATA.pig.stamina,state:'free',caught:null,inv:0,knock:V3(),eatTimer:0});
   Object.assign(DAY,{h:DATA.day.start,ended:false,log:[],eaten:[],hurts:[],caughtN:0,closeCalls:0,seenN:0,warned:false,benHome:false});
   placeFood(); for(const k of KIDS){ k.state='play'; k.pos.set(rnd(-8,8),0,rnd(4,12)); k.p.g.visible=true; }
   DOG.state='roam'; DOG.pos.set(12,0,16.3); CAT.state='wander'; CAT.pos.set(-4,0,-12); SHADE.state='off'; SHADE.q.g.visible=false;
@@ -1238,7 +1260,7 @@ getBuf(PIGGLB).then(b=>new Promise((res,rej)=>new GLTFLoader().parse(b,'',res,re
     CAST.src=gl.scene; CAST.tex=tex; CAST.clips={}; gl.animations.forEach(c=>CAST.clips[c.name]=c);
     spawnPeople(); ready=true; lighting(); log('event','loaded; grass clumps '+W.grassCount);
     window.GP={jump,DATA,PG,DAY,KIDS,PEDS,DOG,CAT,CHICKENS,RATS,SHADE,CARS,BIKES,FOOD,W,CFG,act,nip,restartDay,endDay,keys,cam,heightAt,
-      SIM:s=>{ for(let t=0;t<s;t+=1/30) update(1/30); }, tp:(x,y,z)=>{ PG.pos.set(x,0,z); PG.y=y; }, face:a=>{ PG.heading=a; camYaw=a; camOff=0; }, orbit:a=>{ camOff=a; }, start:()=>{ started=true; $('card').hidden=true; }};
+      SIM:s=>{ for(let t=0;t<s;t+=1/30) update(1/30); }, tp:(x,y,z)=>{ PG.pos.set(x,0,z); PG.y=y; }, face:a=>{ PG.heading=a; camYaw=a; camOff=0; }, orbit:a=>{ camOff=a; }, camYaw:()=>camYaw+camOff, start:()=>{ started=true; $('card').hidden=true; }};
   }catch(e){ log('error','load: '+e.message); $('card').querySelector('p').textContent='Could not load the people: '+e.message; } })();
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.fov=cam.aspect<.8?72:DATA.camera.fov; cam.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize(); lighting();
