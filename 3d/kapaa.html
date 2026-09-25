@@ -35,6 +35,41 @@
   #card p{margin:.5em 0;line-height:1.45;font-size:14.5px;} #card .small{font-size:12.5px;color:var(--dim);}
   #load{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font:700 15px Karla;color:var(--gold);}
   @media (max-width:640px){ #mini{width:96px;height:96px;} .br{max-width:calc(100% - 32px);} #places{top:calc(env(safe-area-inset-top,0px) + 150px);} button{padding:8px 10px;font-size:13px;} }
+
+  /* ---- buses ---- */
+  #busPanel{width:min(300px,calc(100vw - 190px));box-sizing:border-box;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 11px;backdrop-filter:blur(6px);font-size:13px;line-height:1.4;}
+  #busPanel .row{display:flex;gap:9px;align-items:center;}
+  #busArrow{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:50%;background:rgba(217,180,90,.16);border:1px solid var(--line);}
+  #busArrow svg{width:20px;height:20px;}
+  #busStop{font-size:13.5px;} #busStop small,#busNext small{color:var(--dim);} #busNext{margin-top:5px;font-size:12.5px;}
+  #busPanel .btns{display:flex;gap:6px;margin-top:7px;} #busPanel button{padding:6px 9px;font-size:12.5px;border-radius:9px;}
+  button:disabled{opacity:.45;cursor:default;}
+  #clock{font-weight:700;font-size:13px;letter-spacing:.02em;}
+  #boardBtn{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 86px);font-size:16px;padding:13px 20px;border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 3px rgba(217,180,90,.18);}
+  #toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 64px);transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 13px;font-size:13.5px;z-index:6;max-width:calc(100% - 32px);text-align:center;}
+  #sub{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);transform:translateX(-50%);max-width:min(560px,calc(100% - 32px));text-align:center;font-size:15px;line-height:1.4;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 12px rgba(0,0,0,.6);pointer-events:none;z-index:5;}
+  body.riding .hud.br, body.riding .hud.tr, body.riding #where, body.riding #clock, body.riding #busPanel{display:none!important;}
+  #rideHud{position:fixed;inset:0;pointer-events:none;z-index:4;}
+  #rideHud > *{pointer-events:auto;}
+  #meters{position:absolute;left:16px;top:calc(env(safe-area-inset-top,0px) + 56px);width:min(230px,45%);display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;}
+  .meter{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);} .meter b{float:right;color:var(--ink);}
+  .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:3px;} .bar i{display:block;height:100%;border-radius:4px;transition:width .15s;}
+  #mAstral{background:linear-gradient(90deg,#e8b64c,#ffe39a);} #mEmo{background:linear-gradient(90deg,#6aa9d8,#b8def7);}
+  #rideBtns,#fightBtns{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);display:flex;flex-direction:column;gap:9px;align-items:flex-end;}
+  #fightBtns{right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 104px);flex-direction:row;}
+  #shieldBtn{width:84px;height:84px;border-radius:50%;font-size:14px;border:2px solid var(--gold);color:var(--gold);touch-action:none;}
+  #shieldBtn[aria-pressed="true"]{background:rgba(217,180,90,.35);color:#fff;}
+  #fightBtns button{width:64px;height:64px;border-radius:50%;font-size:12.5px;padding:0;touch-action:none;}
+  #entBar{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 14px);width:min(280px,60%);background:var(--panel);border:1px solid rgba(160,110,230,.5);border-radius:10px;padding:6px 10px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#cdb6f0;}
+  #entHp{background:linear-gradient(90deg,#6b3fb0,#b07aff);}
+  #seatUI{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 20px);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;text-align:center;max-width:calc(100% - 32px);}
+  #seatUI h3{margin:0 0 8px;font:700 14px Karla;color:var(--gold);} #seatUI .seats{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;}
+  #readFx{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font:700 28px Cinzel,Georgia,serif;color:#ffe39a;text-shadow:0 0 18px rgba(255,200,90,.9);opacity:0;pointer-events:none;z-index:6;}
+  #readFx.pop{animation:pop .9s ease-out;}
+  @keyframes pop{0%{opacity:0;transform:translate(-50%,-30%) scale(.8);}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05);}100%{opacity:0;transform:translate(-50%,-70%) scale(1);}}
+  #astralFx{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(220,240,255,.9),rgba(120,170,230,.55) 45%,rgba(10,20,40,.9));opacity:0;z-index:3;}
+  #astralTint{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(8,16,34,.85));opacity:0;z-index:2;}
+  @media (max-width:640px){ #busPanel{width:calc(100vw - 140px);} #shieldBtn{width:76px;height:76px;} #sub{font-size:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 170px);} }
 </style>
 <canvas id="gl"></canvas>
 <div id="labels"></div>
@@ -42,7 +77,26 @@
 <div class="hud tl">
   <div class="chip"><h1>Kapaʻa · <span id="modeName">walking</span></h1></div>
   <div class="chip" id="where">…</div>
+  <div class="chip" id="clock">…</div>
+  <div id="busPanel" hidden>
+  <div class="row"><div id="busArrow" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 1 L17 17 L10 13 L3 17 Z" fill="#d9b45a"/></svg></div><div id="busStop">…</div></div>
+  <div id="busNext"></div>
+  <div class="btns"><button id="waitBtn" title="Fast-forward until the bus is almost here">Wait for bus ⏩</button><button id="cycleStop" title="Show another nearby stop">Other stop ›</button></div>
+</div>
   <div class="chip" id="perf" hidden></div>
+</div>
+<button id="boardBtn" hidden>Board</button>
+<div id="toast" hidden></div>
+<div id="sub" hidden></div>
+<div id="readFx"></div>
+<div id="astralTint"></div><div id="astralFx"></div>
+<div id="rideHud" hidden>
+  <div id="meters"><div class="meter">Astral <b id="mAstralV">100</b><div class="bar"><i id="mAstral" style="width:100%"></i></div></div>
+    <div class="meter">Emotional <b id="mEmoV">100</b><div class="bar"><i id="mEmo" style="width:100%"></i></div></div></div>
+  <div id="entBar" hidden>It<div class="bar"><i id="entHp" style="width:100%"></i></div></div>
+  <div id="rideBtns"><button id="stopBtn" aria-pressed="false" title="Pull the cord (B)">Request stop 🔔</button><button id="shieldBtn" aria-pressed="false" title="Hold to shield (Space)">Shield</button></div>
+  <div id="fightBtns" hidden><button id="rollBtn" title="Roll away (R)">Roll</button><button id="fireBtn" title="Strike (F) — or tap where to aim">Strike</button></div>
+  <div id="seatUI" hidden><h3>Choose a seat</h3><div class="seats"><button data-seat="0">Seat 1</button><button data-seat="1">Seat 2</button><button data-seat="2">Seat 3</button><button data-seat="3">Seat 4</button><button id="standBtn">Stand</button></div></div>
 </div>
 <div class="hud tr">
   <canvas id="mini" width="264" height="264" title="Tap for the map"></canvas>
@@ -50,17 +104,19 @@
 </div>
 <div id="places" hidden></div>
 <div class="hud br">
-  <div class="seg"><button id="mWalk" aria-pressed="true">Walk</button><button id="mPig" aria-pressed="false">Guinea pig</button><button id="mMap" aria-pressed="false">Map</button></div>
+  <div class="seg"><button id="mWalk" aria-pressed="true">Ben</button><button id="mPig" aria-pressed="false">Guinea pig</button><button id="mMap" aria-pressed="false">Map</button></div>
   <button id="fastBtn" aria-pressed="false" title="Travel fast (T)">Fast</button>
   <button id="perfBtn" aria-pressed="false">FPS</button>
 </div>
 <div id="load">Building Kapaʻa…</div>
 <div id="card" hidden><div class="in">
-  <h2>Kapaʻa, from the map</h2>
-  <p>The real streets, footpaths, coastal bike path, shoreline and mapped buildings of Kapaʻa and Waipouli, from OpenStreetMap. You start outside Ben's place in old Kapaʻa.</p>
+  <h2>Kapaʻa — catch the bus</h2>
+  <p>Real Kapaʻa streets from OpenStreetMap, and The Kauaʻi Bus on its real timetable along Kūhiō Hwy (400 to Līhuʻe, 500 to Hanalei). You're Ben, outside his place. Follow the gold arrow to a stop — someone's usually already waiting — then "Wait for bus" skips ahead until it's pulling in. When the doors open, board.</p>
+  <p class="small" id="clockNote"></p>
+  <p class="small">On the bus: pick one of the four free seats. Watch the people near you; when something's coming, hold <b>Shield</b> (Space). Do that a couple of times and you'll go into the astral. There: move (WASD / left thumb), strike by tapping where to aim (or F — aim ahead of it), hold Shield when it winds up (that's a read), Roll (R) to dodge. Request a stop to get off.</p>
   <p class="small">Houses on the residential streets are placeholders the map doesn't record yet, placed by the street layout. Hill heights are approximate until we load real elevation data. Ben's place is our pick, not a real address.</p>
   <p class="small">Move: WASD / arrows or drag on the left · Look: drag on the right · Run: Shift · Fast travel: T · Map: M</p>
-  <button id="go" style="margin-top:6px">Start walking</button>
+  <button id="go" style="margin-top:6px">Start</button>
 </div></div>
 
 <script type="importmap">
@@ -69,9 +125,12 @@
 <script type="module">
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 const $ = id => document.getElementById(id);
-const BUILD = 'Kapaʻa town v0.1 · 24 Sep 2026';
-const TOWN_SRC = 'url:assets/kapaa/town.json?v=k01', HEIGHTS_SRC = 'url:assets/kapaa/heights.bin?v=k01', GROUND_SRC = 'url:assets/kapaa/ground.jpg?v=k01';
+const BUILD = 'Kapaʻa town v0.3 (buses) · 25 Sep 2026';
+const TOWN_SRC = 'url:assets/kapaa/town.json?v=k02', HEIGHTS_SRC = 'url:assets/kapaa/heights.bin?v=k01', GROUND_SRC = 'url:assets/kapaa/ground.jpg?v=k01';
+const BEN_GLB = 'url:assets/ben.glb?v=k02', BEN_SKIN = 'url:assets/ben-skin.jpg?v=k02', ANT_GLB = 'url:assets/anthony.glb?v=k02', ANT_SKIN = 'url:assets/anthony-skin.jpg?v=k02', PIG_GLB = 'url:assets/kapaa/pig-town.glb?v=k03', PIG_SKIN = 'url:assets/kapaa/pig-town-skin.jpg?v=k03', PIG_NORM = 'url:assets/kapaa/pig-town-normal.jpg?v=k03';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const rnd = (() => { let s = 12345; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();
@@ -259,13 +318,24 @@ function buildRoads() {
     if (k === 'cycleway') { ribbon(B.yellow, p, .1, 0, lift + .01); }
     if (k === 'primary') {                  // sidewalks + curbs where there are shops
       let run = [];
-      const flush = () => { if (run.length > 1) for (const s of [-1, 1]) { ribbon(B.side, run, 2.4, s * (r.w / 2 + 1.2), lift + .15); curb(B.side, run, s * r.w / 2, .15, lift); } run = []; };
+      const flush = () => { if (run.length > 1) { for (const s of [-1, 1]) { ribbon(B.side, run, 2.4, s * (r.w / 2 + 1.2), lift + .15); curb(B.side, run, s * r.w / 2, .15, lift); } addSide(run, r.w / 2, lift + .15); } run = []; };
       for (const q of p) { if (nearShop(q[0], q[1])) run.push(q); else flush(); } flush();
     }
     for (let i = 0; i < p.length - 1; i++) { const key = Math.floor(p[i][0] / 40) + ',' + Math.floor(p[i][1] / 40); if (!roadGrid.has(key)) roadGrid.set(key, []); roadGrid.get(key).push([ri, i]); }
   });
   for (const k in B) bufMesh(B[k], MAT[k]);
 }
+// raised footpaths (the kerbed sidewalks along Kūhiō Hwy by the shops): walkers and the guinea pig stand on top of them
+const sideGrid = new Map();
+function addSide(run, hw, top) { for (let i = 0; i < run.length - 1; i++) { const seg = [run[i], run[i + 1], hw, top]; for (const k of new Set([run[i], run[i + 1]].map(p => Math.floor(p[0] / 40) + ',' + Math.floor(p[1] / 40)))) { if (!sideGrid.has(k)) sideGrid.set(k, []); sideGrid.get(k).push(seg); } } }
+function sideLift(x, z) {
+  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const L = sideGrid.get((Math.floor(x / 40) + dx) + ',' + (Math.floor(z / 40) + dz)); if (!L) continue;
+    for (const [a, b, hw, top] of L) { const vx = b[0] - a[0], vz = b[1] - a[1], l2 = vx * vx + vz * vz || 1, t = ((x - a[0]) * vx + (z - a[1]) * vz) / l2; if (t < -.02 || t > 1.02) continue; const d = Math.hypot(x - a[0] - vx * t, z - a[1] - vz * t);
+      if (d > hw - .02 && d < hw + 2.4) return top; } }
+  return null;
+}
+// the height you walk on: terrain, plus the road surface or the raised footpath
+function surfY(x, z) { const h = hAt(x, z), s = sideLift(x, z); return h + (s !== null ? s + .01 : onRoad(x, z) ? .12 : 0); }
 function nearestRoad(x, z, maxD = 14) {
   let best = null, bd = maxD;
   for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
@@ -479,7 +549,7 @@ function buildProps() {
 
 /* ================= player, camera, input ================= */
 const P = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, mode: 'walk', fast: false };
-const MODES = { walk: { eye: 1.65, r: .3, speed: 1.6, run: 5, near: .1, name: 'walking' }, pig: { eye: .16, r: .12, speed: .9, run: 3.1, near: .03, name: 'guinea pig' }, map: { near: 5, name: 'map' } };
+const MODES = { walk: { eye: 1.65, r: .3, speed: 1.5, run: 4.6, near: .1, name: 'Ben' }, pig: { eye: .16, r: .12, speed: .85, run: 3.1, near: .03, name: 'guinea pig' }, map: { near: 5, name: 'map' } };
 const MAPV = { x: 0, z: 0, dist: 1600, yaw: 0, pitch: 1.05 };
 const keys = new Set(); let joy = null, look = null, pinch = null;
 addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; keys.add(k);
@@ -523,6 +593,32 @@ function collide(x, z, r) {
   }
   return [x, z];
 }
+const camPolys = [];                         // extra camera-only blockers (bus shelters): the camera slides in rather than go through them
+function insideAny(x, z) {
+  for (const poly of camPolys) { if (Math.abs(poly[0][0] - x) > 6 || Math.abs(poly[0][1] - z) > 6) continue; let ins = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, zi] = poly[i], [xj, zj] = poly[j]; if (((zi > z) !== (zj > z)) && (x < (xj - xi) * (z - zi) / (zj - zi) + xi)) ins = !ins; }
+    if (ins) return true; }
+  const L = colGrid.get(Math.floor(x / 20) + ',' + Math.floor(z / 20)); if (!L) return false;
+  for (const pi of L) { const poly = colPolys[pi]; let ins = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, zi] = poly[i], [xj, zj] = poly[j]; if (((zi > z) !== (zj > z)) && (x < (xj - xi) * (z - zi) / (zj - zi) + xi)) ins = !ins; }
+    if (ins) return true; }
+  return false;
+}
+// third-person camera: slide in toward the character if a wall, house or shelter is in the way
+function segClear(px, pz, cx, cz) { const d = Math.hypot(cx - px, cz - pz), n = Math.ceil(d / .2); for (let i = 2; i <= n; i++) { const t = i / n; if (insideAny(px + (cx - px) * t, pz + (cz - pz) * t)) return (i - 1.5) / n; } return 1; }
+// third-person camera: if a wall, house or bus shelter is between it and the character, swing round to the nearest clear
+// angle (smoothly); if there's none, slide in closer
+const CAMSW = { off: 0 };
+function camUnblock(px, py, pz, cx, cy, cz, dt = .016) {
+  const dx = cx - px, dz = cz - pz; let best = null;
+  for (const o of [0, .3, -.3, .6, -.6, .9, -.9, 1.25, -1.25, 1.6, -1.6, 2, -2, 2.5, -2.5, 3.1]) {
+    const c = Math.cos(o), s = Math.sin(o), x = px + dx * c + dz * s, z = pz - dx * s + dz * c;
+    if (segClear(px, pz, x, z) >= 1) { best = o; break; } }
+  if (best === null) { const k = Math.max(.12, segClear(px, pz, cx, cz)); return [px + dx * k, py + (cy - py) * k, pz + dz * k]; }
+  CAMSW.off += (best - CAMSW.off) * (1 - Math.exp(-5 * dt));
+  const c = Math.cos(CAMSW.off), s = Math.sin(CAMSW.off), x = px + dx * c + dz * s, z = pz - dx * s + dz * c, k = Math.max(.12, segClear(px, pz, x, z));
+  return [px + (x - px) * k, py + (cy - py) * k, pz + (z - pz) * k];
+}
 function update(dt) {
   if (P.mode === 'map') {
     const s = MAPV.dist * .8 * dt; let ix = (keys.has('d') || keys.has('ArrowRight')) - (keys.has('a') || keys.has('ArrowLeft')), iz = (keys.has('s') || keys.has('ArrowDown')) - (keys.has('w') || keys.has('ArrowUp'));
@@ -539,17 +635,36 @@ function update(dt) {
   if (keys.has('q')) P.yaw += dt * 1.6; if (keys.has('e')) P.yaw -= dt * 1.6;
   if (!joy && !look && Math.abs(ix) > 0 && !keys.has('ArrowLeft') && !keys.has('ArrowRight')) { /* strafe with A/D */ }
   if (keys.has('ArrowLeft')) { P.yaw += dt * 1.8; ix -= -1; } if (keys.has('ArrowRight')) { P.yaw -= dt * 1.8; ix -= 1; }
-  const l = Math.min(1, Math.hypot(ix, iz));
+  const l = Math.min(1, Math.hypot(ix, iz)); let moved = false, spNow = 0, dirYaw = 0;
   if (l > .1) {
     let sp = (keys.has('Shift') ? M.run : M.speed) * l; if (P.fast) sp = P.mode === 'pig' ? 12 : 22;
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw), n = Math.hypot(ix, iz);
     let nx = P.x + (rx * ix - fx * iz) / n * sp * dt, nz = P.z + (rz * ix - fz * iz) / n * sp * dt;
     [nx, nz] = collide(nx, nz, M.r);
-    if (hAt(nx, nz) > .15 && inside(nx, nz)) { P.x = nx; P.z = nz; }
+    if (hAt(nx, nz) > .15 && inside(nx, nz)) { moved = Math.hypot(nx - P.x, nz - P.z) > 1e-4; if (moved) dirYaw = Math.atan2(nx - P.x, nz - P.z); P.x = nx; P.z = nz; }
+    spNow = sp;
     if (joy && Math.abs(joy.dx) > .2) P.yaw -= joy.dx * dt * 1.2 * (P.fast ? 1.5 : 1);           // gentle auto-turn when steering sideways with the thumb
   }
-  const g = hAt(P.x, P.z) + (onRoad(P.x, P.z) ? .12 : 0); P.y = damp(P.y, g, 14, dt);
-  cam.position.set(P.x, P.y + M.eye + (P.mode === 'walk' && l > .1 ? Math.abs(Math.sin(performance.now() / 180)) * .025 : 0), P.z); cam.rotation.set(P.pitch, P.yaw, 0);
+  const g = surfY(P.x, P.z); P.y = Math.abs(g - P.y) > .5 ? g : damp(P.y, g, 18, dt);
+  if (P.mode === 'pig' && PIGM.PIG.ready) {                  // third person, low behind the guinea pig
+    const G = PIGM.PIG; G.g.visible = true;
+    if (moved) G.head = G.head === undefined ? dirYaw : G.head + Math.atan2(Math.sin(dirYaw - G.head), Math.cos(dirYaw - G.head)) * (1 - Math.exp(-9 * dt)); G.head ??= P.yaw + Math.PI;
+    G.sp = damp(G.sp || 0, moved ? spNow : 0, moved ? 10 : 14, dt); const turn = Math.atan2(Math.sin(dirYaw - G.head), Math.cos(dirYaw - G.head));
+    G.g.position.set(P.x, P.y, P.z); G.g.rotation.y = G.head;
+    PIGM.animRig(G, { speed: G.sp, heading: G.head, frozen: false, vy: 0, state: 'free', turnCmd: moved ? clamp(-turn * 2, -1, 1) : 0 }, dt);
+    const pitch = clamp(P.pitch, -.6, .5), dist = P.fast ? 2.2 : .95, h = .16;
+    const cx = P.x + Math.sin(P.yaw) * Math.cos(pitch) * dist, cz = P.z + Math.cos(P.yaw) * Math.cos(pitch) * dist, cy = P.y + h - Math.sin(pitch) * dist + .2;
+    const [ccx, ccy, ccz] = camUnblock(P.x, P.y + h, P.z, cx, cy, cz, dt); cam.position.set(ccx, Math.max(ccy, surfY(ccx, ccz) + .08), ccz); cam.lookAt(P.x, P.y + h, P.z);
+    return;
+  }
+  if (P.mode === 'walk' && BEN.ch) {                       // third person: the camera sits behind and above Ben; drag to look around
+    benTownUpdate(dt, moved, spNow, dirYaw);
+    const pitch = clamp(P.pitch, -.9, .5), dist = P.fast ? 6 : 3.4, h = 1.45;
+    const cx = P.x + Math.sin(P.yaw) * Math.cos(pitch) * dist, cz = P.z + Math.cos(P.yaw) * Math.cos(pitch) * dist, cy = P.y + h - Math.sin(pitch) * dist + .35;
+    const [ccx, ccy, ccz] = camUnblock(P.x, P.y + h, P.z, cx, cy, cz, dt); cam.position.set(ccx, Math.max(ccy, hAt(ccx, ccz) + .4), ccz); cam.lookAt(P.x, P.y + h, P.z);
+    return;
+  }
+  cam.position.set(P.x, P.y + M.eye, P.z); cam.rotation.set(P.pitch, P.yaw, 0);
 }
 function onRoad(x, z) { const r = nearestRoad(x, z, .01); return !!r; }
 
@@ -560,6 +675,7 @@ function setMode(m) {
   P.mode = m; cam.near = MODES[m].near; cam.updateProjectionMatrix();
   scene.fog.near = m === 'map' ? 4000 : m === 'pig' ? 40 : 120; scene.fog.far = m === 'map' ? 16000 : m === 'pig' ? 700 : 1500;
   sun.castShadow = m !== 'map';
+  if (PIGM.PIG.ready) PIGM.PIG.g.visible = m === 'pig';
   $('mWalk').setAttribute('aria-pressed', m === 'walk'); $('mPig').setAttribute('aria-pressed', m === 'pig'); $('mMap').setAttribute('aria-pressed', m === 'map');
   $('modeName').textContent = MODES[m].name;
 }
@@ -622,28 +738,1708 @@ function updateSun() { const cx = P.mode === 'map' ? MAPV.x : P.x, cz = P.mode =
 // chunk visibility by distance
 function updateChunks() { const cx = cam.position.x, cz = cam.position.z, far = scene.fog.far + CH; for (const ch of chunks.values()) { const v = Math.hypot(ch.cx - cx, ch.cz - cz) < far; for (const m of ch.meshes) m.visible = v; } }
 
+
+/* ---------------- procedural seated pose (rig-agnostic) ----------------
+   Works on both the Ben (mixamo, metres) and Anthony (Meshy, centimetre armature) skeletons
+   by aiming bones in character space instead of assuming local axes.
+   Each frame: reset to bind pose -> place hips -> aim spine/neck/head -> two-bone IK legs and arms. */
+const _pq=new THREE.Quaternion(), _pq2=new THREE.Quaternion(), _pm0=new THREE.Matrix4(), _pm1=new THREE.Matrix4();
+const _pv=new THREE.Vector3(), _pv2=new THREE.Vector3(), _pv3=new THREE.Vector3();
+const UP=new THREE.Vector3(0,1,0), FWD=new THREE.Vector3(0,0,1);
+function orth(s,p){ const o=s.clone().addScaledVector(p,-s.dot(p)); if(o.lengthSq()<1e-6){ o.copy(Math.abs(p.y)<.9?UP:FWD).addScaledVector(p,-(Math.abs(p.y)<.9?UP:FWD).dot(p)); } return o.normalize(); }
+function basis(p,s,out){ const x=p.clone().normalize(), y=orth(s,x), z=new THREE.Vector3().crossVectors(x,y); return out.makeBasis(x,y,z); }
+
+function makeRig(ch){
+  const bones={}; ch.root.traverse(o=>{ if(o.isBone) bones[o.name]=o; });
+  const find=(...res)=>{ for(const re of res) for(const n in bones) if(re.test(n)) return bones[n]; return null; };
+  const R={ hips:find(/Hips$/), neck:find(/neck$/i), head:find(/Head$/), headEnd:find(/HeadTop_End$/,/head_end$/), front:find(/^headfront$/),
+    lSh:find(/LeftShoulder$/), lArm:find(/LeftArm$/), lFore:find(/LeftForeArm$/), lHand:find(/LeftHand$/), lHandEnd:find(/LeftHandMiddle4$/),
+    rSh:find(/RightShoulder$/), rArm:find(/RightArm$/), rFore:find(/RightForeArm$/), rHand:find(/RightHand$/), rHandEnd:find(/RightHandMiddle4$/),
+    lThigh:find(/LeftUpLeg$/), lShin:find(/LeftLeg$/), lFoot:find(/LeftFoot$/), lToe:find(/LeftToeBase$/),
+    rThigh:find(/RightUpLeg$/), rShin:find(/RightLeg$/), rFoot:find(/RightFoot$/), rToe:find(/RightToeBase$/) };
+  const spine=[]; { let b=R.neck.parent; while(b&&b!==R.hips){ spine.unshift(b); b=b.parent; } }
+  R.spine=spine; R.all=Object.values(bones);
+  // bind pose, captured in character (g) space with g at identity
+  const g=ch.g, sv={p:g.position.clone(),q:g.quaternion.clone(),s:g.scale.clone()};
+  g.position.set(0,0,0); g.quaternion.identity(); g.scale.set(1,1,1); ch.root.position.set(0,0,0); g.updateMatrixWorld(true);
+  R.bindLocal=R.all.map(b=>({b,q:b.quaternion.clone(),p:b.position.clone()}));
+  const W=b=>b.getWorldPosition(new THREE.Vector3()), WQ=b=>b.getWorldQuaternion(new THREE.Quaternion());
+  const info=(b,child,sec)=>{ const p0=W(child).sub(W(b)).normalize(); return {b,p0,s0:orth(sec||FWD,p0),q0:WQ(b),len:W(child).distanceTo(W(b))}; };
+  R.I={ hips:info(R.hips,spine[0]), neck:info(R.neck,R.head),
+    head:info(R.head,R.headEnd,R.front?W(R.front).sub(W(R.head)):FWD) };
+  spine.forEach((b,i)=>R.I['sp'+i]=info(b,spine[i+1]||R.neck));
+  // torso + head: the bind pose stands upright facing +Z, so 'up' and 'forward' ARE the bind directions
+  for(const k of ['hips','neck','head',...spine.map((_,i)=>'sp'+i)]){ R.I[k].p0=UP.clone(); R.I[k].s0=FWD.clone(); }
+  for(const s of ['l','r']){
+    R.I[s+'Arm']=info(R[s+'Arm'],R[s+'Fore']); R.I[s+'Fore']=info(R[s+'Fore'],R[s+'Hand']);
+    R.I[s+'Hand']=R[s+'HandEnd']?info(R[s+'Hand'],R[s+'HandEnd']):Object.assign({},R.I[s+'Fore'],{b:R[s+'Hand'],q0:WQ(R[s+'Hand'])});
+    R.I[s+'Thigh']=info(R[s+'Thigh'],R[s+'Shin']); R.I[s+'Shin']=info(R[s+'Shin'],R[s+'Foot']); R.I[s+'Foot']=info(R[s+'Foot'],R[s+'Toe']);
+    R.I[s+'Sh']=info(R[s+'Sh'],R[s+'Arm']);
+  }
+  R.hipY=W(R.hips).y; R.headY=W(R.headEnd).y; R.shoulderW=W(R.lArm).distanceTo(W(R.rArm));
+  R.hipW=W(R.lThigh).distanceTo(W(R.rThigh)); R.hipLocalP=R.hips.position.clone();
+  g.position.copy(sv.p); g.quaternion.copy(sv.q); g.scale.copy(sv.s); g.updateMatrixWorld(true);
+  return R;
+}
+function resetBind(R){ for(const e of R.bindLocal){ e.b.quaternion.copy(e.q); e.b.position.copy(e.p); } }
+
+// character space <-> world helpers (g carries heading + position)
+function gQ(ch){ return ch.g.getWorldQuaternion(_pq2); }
+function toWorldDir(ch,d){ return d.clone().applyQuaternion(gQ(ch)); }
+function jointG(ch,b){ b.getWorldPosition(_pv); return ch.g.worldToLocal(_pv.clone()); }
+function setWorldQ(b,qw){ b.parent.getWorldQuaternion(_pq).invert(); b.quaternion.copy(_pq.multiply(qw)); b.updateMatrixWorld(true); }
+// aim bone so its bind direction p0 -> p and bind secondary s0 -> s (both in character space)
+function aim(ch,I,p,s){
+  basis(I.p0,I.s0,_pm0); basis(p,s,_pm1);
+  const Rg=new THREE.Quaternion().setFromRotationMatrix(_pm1.multiply(_pm0.transpose()));
+  const qg=Rg.multiply(I.q0);                      // desired character-space world rotation
+  setWorldQ(I.b,gQ(ch).clone().multiply(qg));
+}
+// rotate a bone (already inheriting its parent) by the minimal arc taking its current direction to p (character space)
+function swing(ch,I,p){
+  const qw=I.b.getWorldQuaternion(new THREE.Quaternion());
+  // current direction in g-space = (g^-1 * qw * q0^-1) * p0
+  const gInv=gQ(ch).clone().invert(), rel=gInv.clone().multiply(qw).multiply(I.q0.clone().invert());
+  const dcur=I.p0.clone().applyQuaternion(rel).normalize();
+  const d=new THREE.Quaternion().setFromUnitVectors(dcur,p.clone().normalize());
+  setWorldQ(I.b,gQ(ch).clone().multiply(d).multiply(gInv.multiply(qw)));
+}
+function twist(ch,I,ang){ if(!ang) return; const qw=I.b.getWorldQuaternion(new THREE.Quaternion());
+  const gInv=gQ(ch).clone().invert(), rel=gInv.clone().multiply(qw).multiply(I.q0.clone().invert());
+  const axis=I.p0.clone().applyQuaternion(rel).normalize();
+  const t=new THREE.Quaternion().setFromAxisAngle(axis,ang);
+  setWorldQ(I.b,gQ(ch).clone().multiply(t).multiply(gInv.multiply(qw))); }
+// two-bone IK in character space: root joint A, target T, pole direction (where the middle joint should point)
+function ik(ch,Iu,Il,T,pole,{upperTwistSec}={}){
+  const A=jointG(ch,Iu.b), a=Iu.len, b=Il.len, toT=T.clone().sub(A);
+  let d=toT.length(); const dir=toT.normalize(); d=Math.min(Math.max(d,Math.abs(a-b)+1e-3),a+b-1e-3);
+  const cosA=(a*a+d*d-b*b)/(2*a*d), sinA=Math.sqrt(Math.max(0,1-cosA*cosA));
+  const po=orth(pole,dir), E=A.clone().addScaledVector(dir,a*cosA).addScaledVector(po,a*sinA);
+  const pu=E.clone().sub(A).normalize();
+  aim(ch,Iu,pu,upperTwistSec?upperTwistSec(pu,po):po.clone().negate());   // arms: secondary = side the hand bends toward
+  swing(ch,Il,T.clone().sub(E));
+  return E;
+}
+const lerp3=(a,b,t)=>a.clone().lerp(b,t);
+function yawDir(y){ return new THREE.Vector3(Math.sin(y),0,Math.cos(y)); }
+function rotY(v,y){ return v.clone().applyAxisAngle(UP,y); }
+
+/* S = seated state (all character space, metres, radians). Defaults give a relaxed seat.
+   S.hip: hips position; S.pitch: pelvis tilt back; S.lean: {x side, z forward} torso lean;
+   S.yaw: torso twist; S.look: g-space point to look at; S.hands: {l,r} targets; S.elbow:{l,r} pole;
+   S.feet:{l,r} ankle targets; S.knee:{l,r} pole; S.tension 0..1 shoulders up; S.breath phase value */
+function seatPose(ch,R,S){
+  resetBind(R); ch.root.position.set(0,0,0); ch.g.updateMatrixWorld(true);
+  // hips: place + orient
+  const hp=S.hip; const par=R.hips.parent; const wp=ch.g.localToWorld(hp.clone()); par.worldToLocal(wp); R.hips.position.copy(wp);
+  R.hips.updateMatrixWorld(true);
+  const cs=(S.cal&&S.cal.spine)||0, hipUp=new THREE.Vector3(S.lean.x*.35,1,-S.pitch).normalize();
+  aim(ch,R.I.hips,hipUp,rotY(FWD,S.yaw*.25+S.hipYaw));
+  // spine: distribute lean and twist, add breathing to the top of the chain
+  const n=R.spine.length;
+  R.spine.forEach((b,i)=>{ const k=(i+1)/n;
+    const up=new THREE.Vector3(S.lean.x*(.5+k*.5),1,(S.lean.z+cs)*(.6+.6*k)-S.pitch*(1-k)+(i===n-1?S.breath*.03:0)).normalize();
+    aim(ch,R.I['sp'+i],up,rotY(FWD,S.hipYaw+S.yaw*(.25+.75*k))); });
+  // shoulders (clavicles): tension lifts them
+  for(const s of ['l','r']){ const I=R.I[s+'Sh']; const up=S.tension*.22+S.breath*.015+(S.shrug?.[s]||0);
+    if(up){ const qw=I.b.getWorldQuaternion(new THREE.Quaternion()), gInv=gQ(ch).clone().invert(), rel=gInv.clone().multiply(qw).multiply(I.q0.clone().invert());
+      const dc=I.p0.clone().applyQuaternion(rel).normalize(), dn=dc.clone().addScaledVector(UP,up).normalize(); swing(ch,I,dn); } }
+  // neck + head look
+  const headP=jointG(ch,R.head), lookDir=S.look.clone().sub(headP).normalize();
+  const fwdT=rotY(FWD,S.hipYaw+S.yaw);
+  let yaw=Math.atan2(lookDir.x,lookDir.z)-Math.atan2(fwdT.x,fwdT.z); yaw=Math.atan2(Math.sin(yaw),Math.cos(yaw)); yaw=THREE.MathUtils.clamp(yaw,-1.25,1.25);
+  const cal=S.cal||{}, pitch=THREE.MathUtils.clamp(Math.asin(THREE.MathUtils.clamp(lookDir.y,-1,1)),-.7,.45)+(cal.head||0);
+  const baseY=Math.atan2(fwdT.x,fwdT.z);
+  const faceN=new THREE.Vector3(Math.sin(baseY+yaw*.4)*Math.cos(pitch*.4),Math.sin(pitch*.4),Math.cos(baseY+yaw*.4)*Math.cos(pitch*.4));
+  aim(ch,R.I.neck,orth(UP,faceN).addScaledVector(fwdT,.12+S.lean.z*.5).normalize(),faceN);
+  const face=new THREE.Vector3(Math.sin(baseY+yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(baseY+yaw)*Math.cos(pitch));
+  const side=new THREE.Vector3().crossVectors(face,UP).normalize(), headUp=orth(UP,face).addScaledVector(side,S.headTilt||0).normalize();
+  aim(ch,R.I.head,headUp,face);
+  // legs: IK hip -> ankle, knees toward pole
+  for(const s of ['l','r']){
+    ik(ch,R.I[s+'Thigh'],R.I[s+'Shin'],S.feet[s],S.knee[s],{upperTwistSec:(pu,po)=>po});
+    const A=jointG(ch,R[s+'Foot']); const toe=S.toe?.[s]||new THREE.Vector3(A.x+(s==='l'?.03:-.03),0.02,A.z+.16);
+    swing(ch,R.I[s+'Foot'],toe.clone().sub(A));
+  }
+  // arms: IK shoulder -> wrist, elbows toward pole
+  for(const s of ['l','r']){
+    const E=ik(ch,R.I[s+'Arm'],R.I[s+'Fore'],S.hands[s],S.elbow[s]);
+    twist(ch,R.I[s+'Fore'],(S.pron?.[s]||0));
+    if(S.wrist?.[s]) swing(ch,R.I[s+'Hand'],S.wrist[s]);
+  }
+}
+// capture / blend helpers so the seated pose can cross-fade with mixer clips (standing up / sitting down)
+function snap(R){ return R.all.map(b=>[b.quaternion.clone(),b.position.clone()]); }
+function blendTo(R,A,Bp,w,rootA,rootB,root){
+  R.all.forEach((b,i)=>{ b.quaternion.copy(A[i][0]).slerp(Bp[i][0],w); b.position.copy(A[i][1]).lerp(Bp[i][1],w); });
+  if(root) root.position.copy(rootA).lerp(rootB,w);
+}
+
+
+/* ================= characters: Ben + passengers (the Anthony model, varied) ================= */
+// Rigs: Ben = mixamo (metres), Anthony = Meshy (centimetre armature). The seated pose (pose.js) is rig-agnostic.
+const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+const smooth = t => t * t * (3 - 2 * t);
+const dampV = (v, t, k, dt) => v.lerp(t, 1 - Math.exp(-k * dt));
+const gltf = new GLTFLoader();
+function b64buf(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer; }
+async function getBuf(src) { if (src.startsWith('url:')) { const r = await fetch(src.slice(4)); if (!r.ok) throw new Error(src.slice(4) + ' ' + r.status); return r.arrayBuffer(); } return b64buf(src); }
+const parseGLB = buf => new Promise((res, rej) => gltf.parse(buf, '', res, rej));
+async function skinTex(src) { const img = await loadImg(src); const t = new THREE.Texture(img); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t; }
+const MODELS = {};
+async function loadModels() {
+  const [bb, ab, bt, at] = await Promise.all([getBuf(BEN_GLB), getBuf(ANT_GLB), skinTex(BEN_SKIN), skinTex(ANT_SKIN)]);
+  const [bg, ag] = await Promise.all([parseGLB(bb), parseGLB(ab)]);
+  MODELS.ben = { scene: bg.scene, clips: bg.animations, tex: bt };
+  MODELS.ant = { scene: ag.scene, clips: ag.animations, tex: at };
+}
+// make a character from a model: a group g (position + heading) holding the model root
+function makeChar(kind, { tint = null, scale = 1, cal = { head: 0, spine: 0 }, who = kind } = {}) {
+  const M = MODELS[kind], src = SkeletonUtils.clone(M.scene), g = new THREE.Group(); g.add(src);
+  const mat = new THREE.MeshStandardMaterial({ map: M.tex, metalness: 0, roughness: .85, side: THREE.DoubleSide });
+  if (tint) mat.color.copy(tint);
+  const ch = { kind, who, g, root: src, mixer: new THREE.AnimationMixer(src), A: {}, cur: null, curName: '', meshes: [], mat, sitW: 0, scale };
+  src.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false; o.material = mat; ch.meshes.push(o); } });
+  for (const c of M.clips) ch.A[c.name] = ch.mixer.clipAction(c);
+  ch.R = makeRig(ch); ch.S = seatDefaults(cal); g.scale.setScalar(scale);
+  return ch;
+}
+const FALLBACK = { PIdle: 'Idle', PWalk: 'Walk', PRun: 'Run' };
+function play(ch, name, { fade = .2, once = false, speed = 1 } = {}) {
+  let a = ch.A[name]; if (!a && FALLBACK[name]) a = ch.A[FALLBACK[name]]; if (!a) return null;
+  if (ch.cur === a && !once) { a.timeScale = speed; return a; }
+  a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat); a.clampWhenFinished = once; a.timeScale = speed; a.setEffectiveWeight(1); a.play();
+  if (ch.cur && ch.cur !== a) ch.cur.crossFadeTo(a, fade, false);
+  ch.cur = a; ch.curName = name; return a;
+}
+const _ctv = V3();
+// keep the hips over the group origin (clips move the hips around)
+function anchor(ch) { const h = ch.R.hips; ch.root.position.set(0, 0, 0); ch.g.updateMatrixWorld(true); h.getWorldPosition(_ctv); ch.g.worldToLocal(_ctv); ch.root.position.x = -_ctv.x; ch.root.position.z = -_ctv.z; }
+/* Seated defaults, in character space (+Z forward, +X = the character's left). Hips sit ~10 cm above a 0.46 m seat. */
+function seatDefaults(cal) {
+  const hy = .56;
+  return { hip: V3(0, hy, 0), pitch: .12, lean: { x: 0, z: .1 }, yaw: 0, hipYaw: 0, look: V3(0, 1.2, 5), headTilt: 0, cal,
+    hands: { l: V3(.15, hy + .1, .28), r: V3(-.15, hy + .1, .28) }, elbow: { l: V3(.5, -.3, -1), r: V3(-.5, -.3, -1) },
+    feet: { l: V3(.13, .08, .47), r: V3(-.13, .08, .47) }, knee: { l: V3(.1, 1, .6), r: V3(-.1, 1, .6) }, toe: null,
+    tension: 0, breath: 0, shrug: { l: 0, r: 0 }, pron: { l: 0, r: 0 } };
+}
+// blend the mixer (standing / walking) with the procedural seated pose. sitW: 0 standing .. 1 seated
+function poseChar(ch, dt) {
+  const w = ch.sitW;
+  if (w < 1) { ch.mixer.update(dt); anchor(ch); }
+  if (w <= 0) return;
+  const mixSnap = w < 1 ? snap(ch.R) : null, mixRoot = ch.root.position.clone();
+  seatPose(ch, ch.R, ch.S);
+  if (w < 1) { const k = smooth(w); blendTo(ch.R, mixSnap, snap(ch.R), k, mixRoot, V3(), ch.root); }
+}
+function boneW(b, out = V3()) { return b.getWorldPosition(out); }
+function chestW(ch, out = V3()) { const a = boneW(ch.R.lArm, V3()), b = boneW(ch.R.rArm, V3()); return out.copy(a).add(b).multiplyScalar(.5).add(V3(0, -.12, 0)); }
+
+/* ---- Ben in the town (third person) ---- */
+const BEN = { ch: null, heading: 0, speed: 0, visible: true };
+function initBen() {
+  BEN.ch = makeChar('ben', { cal: { head: -.1, spine: .05 } }); scene.add(BEN.ch.g); play(BEN.ch, 'Idle');
+}
+function benTownUpdate(dt, moving, sp, dirYaw) {
+  const ch = BEN.ch; if (!ch) return;
+  ch.g.visible = BEN.visible && P.mode === 'walk';
+  if (!ch.g.visible) return;
+  if (moving) BEN.heading = dirYaw;
+  const cur = ch.g.rotation.y, d = Math.atan2(Math.sin(BEN.heading - cur), Math.cos(BEN.heading - cur));
+  ch.g.rotation.y = cur + d * (1 - Math.exp(-10 * dt));
+  const moved = Math.hypot(ch.g.position.x - P.x, ch.g.position.z - P.z); if (moved < 3) footsteps(moved, BEN.speed > 3, onRoad(P.x, P.z) ? 'road' : 'grass');
+  ch.g.position.set(P.x, P.y, P.z);
+  BEN.speed = damp(BEN.speed, moving ? sp : 0, 8, dt); breathe(dt, BEN.speed > 3 ? .8 : BEN.speed > .3 ? .35 : .15);
+  if (BEN.speed < .15) play(ch, 'Idle'); else if (BEN.speed < 3) play(ch, 'Walk', { speed: clamp(BEN.speed / 1.4, .6, 1.6) }); else play(ch, 'Run', { speed: clamp(BEN.speed / 4.5, .7, 1.8) });
+  ch.sitW = 0; poseChar(ch, dt);
+}
+
+/* ---- baking: posed people become one static mesh (one draw call, no skeletons) ----
+   Used for everyone on a bus who isn't close enough to Ben to matter, and for the passengers you see through
+   the windows of passing buses. Tint is kept as a vertex colour. */
+function bakeChars(list, space) {
+  space.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(space.matrixWorld).invert(), geos = [], v = V3(), m = new THREE.Matrix4();
+  for (const { ch, tint } of list) {
+    ch.g.updateMatrixWorld(true);
+    for (const mesh of ch.meshes) {
+      const src = mesh.geometry, n = src.attributes.position.count, pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+      m.multiplyMatrices(inv, mesh.matrixWorld);
+      for (let i = 0; i < n; i++) { mesh.getVertexPosition(i, v); v.applyMatrix4(m); pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z; col[i * 3] = tint.r; col[i * 3 + 1] = tint.g; col[i * 3 + 2] = tint.b; }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', src.attributes.uv.clone()); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      if (src.index) g.setIndex(src.index.clone()); g.computeVertexNormals(); geos.push(g);
+    }
+  }
+  const out = geos.length ? mergeGeometries(geos) : null; for (const g of geos) g.dispose(); return out;
+}
+let _crowdMat = null; function crowdMat() { return _crowdMat ||= new THREE.MeshStandardMaterial({ map: MODELS.ant.tex, vertexColors: true, metalness: 0, roughness: .85, side: THREE.DoubleSide }); }
+function disposeChar(ch) { if (!ch) return; ch.g.parent?.remove(ch.g); for (const m of ch.meshes) m.skeleton?.dispose(); ch.mixer.stopAllAction(); ch.mat.dispose(); }
+
+/* ---- footsteps + breathing for Ben ---- */
+const STEP = { d: 0, side: 0 };
+function footsteps(dist, running, surface) {
+  STEP.d += dist; const stride = running ? 1.25 : .72;
+  if (STEP.d >= stride) { STEP.d -= stride; STEP.side ^= 1; sfx(surface === 'grass' ? 'stepGrass' : running ? 'stepRun' : 'step', STEP.side); }
+}
+
+
+/* ================= the guinea pig in town =================
+   The rig (rig v3, decimated to 12k triangles, 1K textures) and the procedural animation are copied from Guinea Pig
+   Grounds v0.10 (c_models.js: gait, spine, head, ears, planted feet, jiggle). Keep the two in step when either changes. */
+const PIGM = (() => {
+  const DATA = { pig: { anim: { postChest: .42, postHips: .12, postHead: -.34, rearMax: .45, headLead: .5, landKick: 1.6, hz0: 3, hzPerMs: 2.4, hzMax: 9, boundAt: 1.6, creepBelow: .45, stretch: 1.1, breathHz: 1.4, breathHzMax: 3, sniffHz: 6.5, chewHz: 4.5 } } };
+  const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), smooth = t => t * t * (3 - 2 * t), rnd = (a, b) => a + Math.random() * (b - a);
+  const angDiff = (a, b) => { const d = b - a; return Math.atan2(Math.sin(d), Math.cos(d)); };
+  const PIG = { g: new THREE.Group(), t: 0, phase: 0, hop: 0, pop: 0, nip: 0, eat: 0, hurt: 0, look: 0, lookT: 2, ready: false };
+  function heightAt(x, z) { return surfY(x, z); }
+const _pq=new THREE.Quaternion(), _rq=new THREE.Quaternion(), _mq=new THREE.Quaternion();
+function attachPigModel(gl){
+  const model=gl.scene; model.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.frustumCulled=false; if(o.material){ o.material.metalness=0; o.material.roughness=.88; } } });
+  const inner=new THREE.Group(); inner.add(model);
+  for(const c of PIG.g.children) c.visible=false;
+  PIG.g.add(inner);
+  const B={}; model.traverse(o=>{ if(o.isBone) B[o.name]=o; });
+  // skin loaded as plain images, not from inside the GLB: embedded textures go through blob: URLs, which the artifact sandbox (and some phones) block
+  const mats=[]; model.traverse(o=>{ if(o.isMesh&&o.material) mats.push(o.material); });
+  skinTex(PIG_SKIN).then(t=>{ for(const m of mats){ m.map=t; m.color.set(0xffffff); m.needsUpdate=true; } }).catch(e=>console.warn('pig skin',e));
+  skinTex(PIG_NORM).then(t=>{ t.colorSpace=THREE.NoColorSpace; for(const m of mats){ m.normalMap=t; m.needsUpdate=true; } }).catch(()=>{});
+  model.updateMatrixWorld(true); let hindZ=-.08; if(B.hFtL||B.hlegL){ const v=new THREE.Vector3(); (B.hShL||B.hlegL).getWorldPosition(v); PIG.g.updateMatrixWorld(true); PIG.g.worldToLocal(v); hindZ=v.z; }
+  PIG.rig={hindZ,inner,model,B,rest:Object.fromEntries(Object.entries(B).map(([k,b])=>[k,b.quaternion.clone()])),earT:2,earFlick:0};
+}
+// rotate a bone about axes given in the guinea pig's own space (+Y up, +Z forward, +X his left)
+function bRot(b,list){ const R=PIG.rig; b.quaternion.copy(R.rest[b.name]); PIG.g.getWorldQuaternion(_mq);
+  for(const [ax,a] of list){ if(!a) continue; b.parent.updateWorldMatrix(true,false); b.parent.getWorldQuaternion(_pq); b.updateWorldMatrix(false,false);
+    const axis=V3(...ax).applyQuaternion(_mq).applyQuaternion(_pq.invert()).normalize(); b.quaternion.premultiply(_rq.setFromAxisAngle(axis,a)); } }
+// Movement tuned from reference video (see guinea-pig-motion-notes):
+//  trot ≈ 6 steps/s at ~1 m/s, feet barely lift, hind feet push out behind; the body rides level like a loaf;
+//  the head leads every turn (head first, then the body pivots on the hind feet, then he goes);
+//  jumps and popcorns: crouch, launch off the hind legs with the body stretched, twist and kick mid-air, land front-first.
+function PIGrear(){ PIG.rear=1.6; }
+function gaitHz(sp){ const A=DATA.pig.anim; return Math.min(A.hzMax,A.hz0+A.hzPerMs*sp); }
+function legSwing(u,duty,reach,push){ if(u<duty) return lerp(-reach,push,u/duty); return lerp(push,-reach,smooth((u-duty)/(1-duty))); }
+function spring(o,target,k,c,dt){ o.v=(o.v||0)+((target-(o.x||0))*k-(o.v||0)*c)*dt; o.x=(o.x||0)+o.v*dt; return o.x; }
+const X_=[1,0,0], Y_=[0,1,0], Z_=[0,0,1];
+function animRig(P,m,dt){
+  const R=P.rig, B=R.B, A=DATA.pig.anim, sp=m.speed, frozen=m.frozen, k=clamp(sp/.6,0,1), bound=sp>A.boundAt;
+  P.t+=dt; P.nip=Math.max(0,P.nip-dt); P.eat=Math.max(0,P.eat-dt); P.hurt=Math.max(0,P.hurt-dt); P.rear=Math.max(0,(P.rear||0)-dt);
+  P.bump=Math.max(0,(P.bump||0)-dt); P.land=Math.max(0,(P.land||0)-dt); P.wind=Math.max(0,(P.wind||0)-dt);
+  if(sp>.03) P.phase+=dt*Math.PI*2*gaitHz(sp);
+  P.idleT=sp<.03&&!frozen&&m.state==='free'?(P.idleT||0)+dt:0; if(P.idleT>5&&Math.random()<dt*.15){ P.rear=1.6; P.idleT=0; }
+  P.exert=clamp((P.exert||0)+(sp>1.2?dt*.35:-dt/7),0,1);
+  const turn=clamp(angDiff(P.prevHead??m.heading,m.heading)/Math.max(dt,1e-3),-12,12); P.prevHead=m.heading; P.turnS=damp(P.turnS||0,turn,10,dt);
+  const decel=((P.prevSp??sp)-sp)/Math.max(dt,1e-3); P.prevSp=sp; if(decel>3) P.brake=Math.min(1,(P.brake||0)+decel*.04); P.brake=Math.max(0,(P.brake||0)-dt*3.5);
+  const cautious=(sp>.04&&sp<A.creepBelow)||P.eat>0; P.stretch=damp(P.stretch||1,frozen?.94:cautious?A.stretch:bound?1.04:1,6,dt);
+  const bHz=frozen?2.2:lerp(A.breathHz,A.breathHzMax,P.exert), bAmp=m.state==='dead'?0:frozen?.005:lerp(.012,.024,P.exert); P.bph=(P.bph||0)+dt*Math.PI*2*bHz; const breath=Math.sin(P.bph)*bAmp;
+  // ---- whole-body moves on the inner group: popcorn, rearing, jumping, bumping ----
+  // Everything here is a continuous curve (no pose snapping), so every rendered frame is an in-between.
+  let bodyPitch=0, bodyRoll=0, lift=0, twist=0, kick=0, stretchAir=0;
+  // jump phase p: 0 = take-off .. 0.5 = top .. 1 = touch-down, from the actual vertical speed
+  if(P.air&&!P.wasAir){ P.v0=Math.max(.8,m.vy); P.fall=m.vy<=.05; } if(P.air) P.lastVy=m.vy;
+  if(!P.air&&P.wasAir){ P.sq.v=(P.sq.v||0)+clamp(-(P.lastVy||0),0,5)*A.landKick; P.land=.14; }   // touch-down: squash impulse
+  P.wasAir=P.air; P.sq=P.sq||{};
+  const jp=P.air?(P.fall?clamp(.5-m.vy/(2*2.5),.5,1):clamp(.5-m.vy/(2*P.v0),0,1)):1;
+  P.airW=damp(P.airW||0,P.air?1:0,P.air?22:14,dt);
+  if(P.airW>.001){ const w=P.airW;
+    bodyPitch+=w*keyf(jp,[[0,-.36],[.25,-.24],[.5,-.02],[.75,.2],[1,.34]]);
+    stretchAir=Math.max(stretchAir,w*keyf(jp,[[0,1],[.4,.8],[.7,.35],[1,.15]])); }
+  // popcorn (.62 s), from the slow-mo video: crouch, spring, stretch, twist + roll + hind kick, front-first landing
+  if(P.pop>0){
+    if(!P.popTw) P.popTw=(Math.random()<.5?-1:1)*rnd(.7,1.3);
+    P.pop=Math.max(0,P.pop-dt); const u=1-P.pop/.62, a2=clamp((u-.16)/.54,0,1), inAir=u>.16&&u<.7;
+    lift=inAir?Math.sin(a2*Math.PI)*.075:0;
+    bodyPitch+=keyf(u,[[0,0],[.12,.08],[.18,-.3],[.4,-.05],[.6,.28],[.72,.12],[.85,-.03],[1,0]]);
+    bodyRoll=Math.sign(P.popTw)*keyf(u,[[0,0],[.3,.05],[.45,.3],[.62,.15],[.75,0],[1,0]]);
+    twist=P.popTw*keyf(u,[[0,0],[.25,.05],[.55,.85],[.7,1],[1,1]]);
+    kick=keyf(u,[[0,0],[.35,0],[.47,1],[.58,-.6],[.68,.4],[.8,0],[1,0]]);
+    stretchAir=Math.max(stretchAir,keyf(u,[[0,0],[.16,.2],[.3,1],[.6,.6],[.72,0],[1,0]]));
+    if(u>.12&&!P.popLaunch){ P.popLaunch=1; P.sq.v=(P.sq.v||0)-2.2; }
+    if(u>.7&&!P.popLand){ P.popLand=1; P.sq.v=(P.sq.v||0)+3.4; }
+    P.popAirW=inAir?1:0; P.popP=a2;
+    if(P.pop===0){ m.heading+=P.popTw; P.g.rotation.y=m.heading; P.prevHead=m.heading; twist=0; P.popTw=0; P.popLaunch=P.popLand=0; }
+  } else P.popAirW=0;
+  P.popY=lift;
+  // squash is a spring: winding up pulls it down, landings kick it, and it rebounds a touch past zero
+  const squash=spring(P.sq,P.wind>0?1:0,300,17,dt);
+  // tumbling off a wheel: a full roll with legs flailing; dead = lies still on his side once he lands
+  P.tumble=Math.max(0,(P.tumble||0)-dt); if(P.tumble>0){ const tl=P.tumbleMax=Math.max(P.tumbleMax||0,P.tumble); bodyRoll+=(P.tumbleDir||1)*(1-P.tumble/tl)*Math.PI*2; kick+=Math.sin(P.t*34)*.9; } else P.tumbleMax=0;
+  P.deadW=damp(P.deadW||0,m.state==='dead'&&!P.air?1:0,6,dt); bodyRoll+=(P.tumbleDir||1)*1.45*P.deadW;
+  const re=P.rear>0?smooth(Math.min(1,Math.min((1.6-P.rear)/.3,P.rear/.35))):0;
+  const bump=P.bump>0?Math.sin((1-P.bump/.35)*Math.PI):0;
+  const rx=-A.rearMax*re+bodyPitch-bump*.12+squash*.06, hz=R.hindZ??-.06;
+  R.inner.rotation.set(rx,twist,-P.turnS*.012*k+bodyRoll,'YXZ');
+  R.inner.position.z=hz-hz*Math.cos(rx)-bump*.012;
+  // body height: tiny bob, crouch when cautious/frozen/winding up, squash on landing
+  const ph=P.phase, bob=(bound?.007:.0025)*k*Math.abs(Math.sin(ph)), waddle=(bound?.015:.045)*k*Math.sin(ph), rock=bound?.09*k*Math.sin(ph):0;
+  R.inner.position.y=bob-(frozen?.006:0)-(cautious&&!re?.004:0)-squash*.014+Math.abs(hz)*Math.sin(-Math.min(0,rx));
+  // ---- spine: posture (the model was made sitting up), rock, turn bend, breathing, stretch ----
+  const pc=A.postChest*(1-re), ph0=A.postHips*(1-re), phd=A.postHead*(1-re);
+  const bend=clamp(P.turnS*.06,-.35,.35), lurch=P.brake*.16, lunge=P.nip>0?Math.sin((1-P.nip/.28)*Math.PI):0;
+  const sHips=ph0-rock*.6+(frozen?-.04:0)+lurch*.3, sSpine=pc*.5+rock*.5+lurch*.4+breath*.3-stretchAir*.12, sChest=pc*.5+rock*.5+(P.eat>0?.2:0)+lunge*.2+breath*.3+lurch*.5-stretchAir*.1;
+  bRot(B.hips,[[X_,sHips],[Y_,-bend*.35+waddle],[Z_,waddle*.6]]);
+  bRot(B.spine,[[X_,sSpine],[Y_,bend*.35-waddle*.3]]);
+  bRot(B.chest,[[X_,sChest],[Y_,bend*.4-waddle*.4]]);
+  const len=P.stretch*(1+stretchAir*.08)*(1-squash*.05);
+  // stretch/squash by sliding the chest along the spine (bone scale would also scale the head and legs)
+  R.restPos=R.restPos||Object.fromEntries(Object.entries(B).map(([k,b])=>[k,b.position.clone()]));
+  B.chest.position.copy(R.restPos.chest).multiplyScalar(len); B.neck.position.copy(R.restPos.neck).multiplyScalar(1+(len-1)*.6);
+  B.spine.scale.set(1+breath*.6,1,1+breath*.8); B.chest.scale.set(1,1,1);
+  // ---- head: leads turns, steady against body motion, darting looks, sniff bouts ----
+  P.lookT-=dt; if(P.lookT<=0){ const idle=sp<.05&&!frozen; P.lookT=idle?rnd(.6,2.2):rnd(1,3); P.look=idle?rnd(-.8,.8):rnd(-.15,.15); P.lookP=idle?rnd(-.35,.1):0; if(Math.random()<.35) P.sniffT=rnd(.8,2.2); }
+  P.sniffT=Math.max(0,(P.sniffT||0)-dt); const sniffing=(P.sniffT>0||re>.2)&&!frozen;
+  const lead=-(m.turnCmd||0)*A.headLead;                      // the head swings toward a turn before the body does
+  P.headYaw=damp(P.headYaw||0,P.look*(1-Math.abs(m.turnCmd||0))+lead+bend*.6,14,dt); P.headPitch=damp(P.headPitch||0,P.lookP||0,10,dt);
+  const nib=P.eat>0?.35+Math.abs(Math.sin(P.t*Math.PI*2*A.chewHz))*.06:0;
+  const steady=-(sHips+sSpine+sChest)-rx*(1-re)*.7;             // cancels body pitch so the eyes stay level
+  bRot(B.neck,[[Y_,P.headYaw*.45],[X_,phd*.5+steady*.5+nib*.5-re*.2-lunge*.05]]);
+  bRot(B.head,[[Y_,P.headYaw*.55],[X_,phd*.5+steady*.5+nib*.5+P.headPitch-re*.25-(frozen?.08:0)+P.airW*keyf(jp,[[0,-.18],[.5,-.05],[1,.1]])],[Z_,-waddle*.5-bodyRoll*.5]]);
+  const tw=sniffing?Math.sin(P.t*Math.PI*2*A.sniffHz):0;
+  bRot(B.nose,[[X_,tw*.22],[Y_,tw*.05]]);
+  // ---- ears: base follows the head, tips flop with a spring (they never tear off the head) ----
+  R.earT-=dt; if(R.earT<=0){ R.earT=rnd(1.5,5); R.earFlick=.25; R.flickSide=Math.random()<.5; } R.earFlick=Math.max(0,R.earFlick-dt);
+  const back=(sp>1.2?.35:0)+(P.hurt>0?.5:0)-(frozen?.12:0), fl=R.earFlick>0?Math.sin(R.earFlick*25)*.35:0;
+  const vyNow=(R.inner.position.y+(P.popY||0)-(P.prevIY??0))/Math.max(dt,1e-3); P.prevIY=R.inner.position.y+(P.popY||0);
+  R.eS=R.eS||[{},{}];
+  ['L','R'].forEach((S,i)=>{ const sg=i?-1:1, e=R.eS[i];
+    const flop=spring(e,clamp(-vyNow*.5+P.airW*keyf(jp,[[0,.6],[.5,0],[1,-.4]])+squash*.3+bump*.6-P.turnS*.05*sg,-.8,.8),220,11,dt);
+    bRot(B['ear'+S+'1'],[[X_,-back*.5],[Z_,sg*(.05+P.headYaw*.1)]]);
+    bRot(B['ear'+S+'2'],[[Z_,sg*(flop*.8-(i===0&&R.flickSide||i===1&&!R.flickSide?fl:0))],[X_,-back*.5]]); });
+  // ---- legs: a target pose from the gait / jump / rear, then each bone follows on a spring with gravity ----
+  // In the air the springs go soft and the targets lean toward "hanging straight down", so the feet swing and
+  // settle under gravity and lag behind when the body pitches (they don't just lock into one pose).
+  const L=[['L',1],['R',-1]], NAMES=['fUp','fLo','fPaw','hTh','hSh','hFt'];
+  const bodyF=sSpine+sChest, bodyH=sHips, Af=rx+bodyH+bodyF, Ah=rx+bodyH;
+  const turnStep=Math.min(1,Math.abs(P.turnS)/3)*(1-k), kk=Math.max(k,turnStep*.7);
+  const duty=bound?.45:.6, U=x=>((x/(Math.PI*2))%1+1)%1;
+  const offs=bound?{fUpL:.08,fUpR:.2,hThL:.62,hThR:.62}:{fUpL:0,fUpR:.5,hThL:.5,hThR:0};
+  const g=bound?1.25:1, airW=Math.max(P.airW,P.popAirW?1:0), jq=P.popAirW?P.popP:jp;
+  const gW=airW*keyf(jq,[[0,.15],[.3,.7],[.6,.75],[.85,.35],[1,.15]]);     // how much the legs just hang
+  R.ls=R.ls||{}; const st=n=>R.ls[n]||(R.ls[n]={x:0,v:0});
+  const dAf=Af-(R.pAf??Af), dAh=Ah-(R.pAh??Ah); R.pAf=Af; R.pAh=Ah;
+  const kS=lerp(700,95,airW), cS=lerp(52,7.5,airW);
+  for(const [S,sg] of L){
+    // ground gait
+    let u=U(ph+offs['fUp'+S]*Math.PI*2); let a=legSwing(u,duty,.42*g,.22*g)*kk, sw=u>=duty?Math.sin(Math.PI*(u-duty)/(1-duty))*kk:0;
+    const G={fUp:a-bodyF-bodyH*.2-sw*.25, fLo:sw*.9, fPaw:-a*.5+sw*.3};
+    u=U(ph+offs['hTh'+S]*Math.PI*2); a=legSwing(u,duty,.25*g,.6*g)*kk; sw=u>=duty?Math.sin(Math.PI*(u-duty)/(1-duty))*kk:0;
+    const push=u<duty?smooth(u/duty)*kk:0;
+    Object.assign(G,{hTh:a-bodyH+sw*.15, hSh:-sw*.7+push*.15, hFt:-a*.6+push*.35+sw*.3});
+    // squash (wind-up / landing): elbows and knees fold
+    G.fUp+=squash*.22; G.fLo-=squash*.5; G.fPaw-=squash*.15; G.hTh-=squash*.45; G.hSh+=squash*.6; G.hFt-=squash*.12;
+    // air "muscle" pose along the jump: push-off, tuck, reach for the ground
+    const M={fUp:keyf(jq,[[0,-.75],[.4,-.35],[.8,-.6],[1,-.45]])-bodyF-bodyH*.2, fLo:keyf(jq,[[0,.35],[.45,.55],[.85,-.1],[1,-.2]]), fPaw:keyf(jq,[[0,.3],[.5,.45],[1,.1]]),
+             hTh:keyf(jq,[[0,1.05],[.3,.75],[.7,.35],[1,.1]])-bodyH, hSh:keyf(jq,[[0,-.15],[.4,-.45],[1,-.2]]), hFt:keyf(jq,[[0,.55],[.5,.7],[1,.2]])};
+    // gravity: the angles that let each segment hang straight down from its parent
+    const Hg={}; Hg.fUp=-Af; Hg.fLo=-(Af+st('fUp'+S).x)+.1; Hg.fPaw=-(Af+st('fUp'+S).x+st('fLo'+S).x)+.55;
+    Hg.hTh=-Ah; Hg.hSh=-(Ah+st('hTh'+S).x)-.55; Hg.hFt=-(Ah+st('hTh'+S).x+st('hSh'+S).x)+.9;
+    // rearing: upper arm forward, forearm hanging from the elbow, sitting on the haunches
+    const Rr={fUp:-.55-bodyF-bodyH*.2, fLo:1.15, fPaw:.5, hTh:.35-bodyH, hSh:-.6, hFt:.25};
+    for(const n of NAMES){
+      let t=G[n]; t=lerp(t,lerp(M[n],Hg[n],gW),airW); t=lerp(t,Rr[n],re);
+      const o=st(n+S);
+      if(n==='fUp') o.x-=dAf*airW*.85; if(n==='hTh') o.x-=dAh*airW*.85;   // inertia: legs stay put in the world for a moment when the body swings
+      o.v+=((t-o.x)*kS-o.v*cS)*dt; o.x+=o.v*dt;
+      const z=n==='hTh'?kick*sg*.5:n==='hSh'?-kick*sg*.2:0;
+      bRot(B[n+S],[[X_,o.x],[Z_,z]]); B[n+S].scale.set(1,1,1);
+    }
+  }
+  footIK(P,m,dt,{ph,duty,offs,U,airW,re,sp,moving:kk>.3&&sp>.05,hz:gaitHz(sp)});
+  jiggle(P,dt);
+}
+// ---- secondary motion: belly, backpack and chest fur lag behind the body on springs ----
+// Each jiggle bone watches how its attachment point accelerates (footfalls, surges, bobs, landings, turns)
+// and a damped spring lets it lag and overshoot. The belly slides; the pack and the chest fur swing from where they hang.
+//   k = stiffness (higher = quicker, smaller wobble), c = damping, lim = most it can move (m), drag = how much it trails when moving fast
+const JIG={belly:{k:200,c:7,len:.035,lim:.005,gain:1.1,mode:'move',drag:0},
+           pack:{k:90,c:4.5,len:.065,lim:.016,gain:1.3,mode:'swing',bounce:.5,drag:.003},
+           bib:{k:150,c:5,len:.054,lim:.016,gain:1.35,mode:'swing',bounce:.25,drag:.004}};
+const _jq=new THREE.Quaternion(),_jq2=new THREE.Quaternion();
+function jiggle(P,dt){
+  const R=P.rig, B=R.B; if(!B.belly||dt<=0) return;
+  if(DATA.pig.anim.jiggle===false){ for(const n in JIG){ B[n].position.copy(R.restPos[n]); B[n].quaternion.copy(R.rest[n]); } R.jg=null; return; }
+  P.g.updateMatrixWorld(true); R.jg=R.jg||{};
+  for(const n in JIG){ const b=B[n], J=JIG[n];
+    b.position.copy(R.restPos[n]); b.quaternion.copy(R.rest[n]); b.updateMatrixWorld(true);
+    const hd=b.getWorldPosition(V3()), tl=b.localToWorld(V3(0,J.len,0)), a=J.mode==='move'?hd:tl;
+    let s=R.jg[n]; if(!s||s.pa.distanceTo(a)>.3){ s=R.jg[n]={o:V3(),v:V3(),pa:a.clone(),pv:V3()}; }
+    const av=V3().subVectors(a,s.pa).divideScalar(dt), acc=V3().subVectors(av,s.pv).divideScalar(dt); s.pa.copy(a); s.pv.copy(av);
+    if(acc.length()>80) acc.setLength(80);
+    const eq=V3().copy(av).multiplyScalar(-J.drag); if(eq.length()>.008) eq.setLength(.008);
+    const nS=Math.ceil(dt*240), h=dt/nS;
+    for(let i=0;i<nS;i++){ s.v.x+=(-J.k*(s.o.x-eq.x)-J.c*s.v.x-acc.x)*h; s.v.y+=(-J.k*(s.o.y-eq.y)-J.c*s.v.y-acc.y)*h; s.v.z+=(-J.k*(s.o.z-eq.z)-J.c*s.v.z-acc.z)*h; s.o.addScaledVector(s.v,h); }
+    if(s.o.length()>J.lim){ s.o.setLength(J.lim); const out=s.v.dot(s.o)/J.lim; if(out>0) s.v.addScaledVector(s.o,-out/J.lim); }
+    const o=V3().copy(s.o).multiplyScalar(J.gain);
+    if(J.mode==='move'){ b.position.copy(b.parent.worldToLocal(hd.add(o))); }
+    else {
+      const ax=V3().subVectors(tl,hd), L=ax.length(); ax.divideScalar(L);
+      const along=o.dot(ax);                                          // along the bone: a bounce; across it: a swing
+      const to=V3().copy(tl).add(o).addScaledVector(ax,-along).sub(hd).normalize();
+      _jq.setFromUnitVectors(ax,to); b.parent.getWorldQuaternion(_jq2); b.quaternion.premultiply(_jq2.clone().invert().multiply(_jq).multiply(_jq2));
+      b.position.copy(b.parent.worldToLocal(hd.addScaledVector(ax,along*J.bounce)));
+    }
+    b.updateMatrixWorld(true);
+  }
+}
+// ---- planted feet: a foot on the ground stays put in the world until it steps ----
+// Each foot is either planted (locked to a spot on the ground) or stepping (travelling from its old spot to where
+// the animated leg wants it). A two-bone solve bends the elbow/knee so the paw reaches that spot. At a walk or
+// trot the steps follow the gait; standing or pivoting, a foot re-steps when the body has drifted too far off it.
+const _ia=V3(),_ib=V3(),_ic=V3(),_id=V3(),_iax=V3(),_iq=new THREE.Quaternion(),_iq2=new THREE.Quaternion(),_iq3=new THREE.Quaternion(),_iq4=new THREE.Quaternion();
+function ikRot(bone,ef,T,axis,maxA){
+  bone.getWorldPosition(_ia); ef.getWorldPosition(_ib); const v1=_ib.sub(_ia), v2=_ic.copy(T).sub(_ia);
+  if(axis){ v1.addScaledVector(axis,-v1.dot(axis)); v2.addScaledVector(axis,-v2.dot(axis)); if(v1.lengthSq()<1e-8||v2.lengthSq()<1e-8) return;
+    const a=clamp(Math.atan2(axis.dot(_id.crossVectors(v1,v2)),v1.dot(v2)),-maxA,maxA); _iq.setFromAxisAngle(axis,a); }
+  else { if(v1.lengthSq()<1e-8||v2.lengthSq()<1e-8) return; _iq.setFromUnitVectors(v1.normalize(),v2.normalize()); const a=2*Math.acos(clamp(_iq.w,-1,1)); if(a>maxA) _iq.slerp(_iq2.identity(),1-maxA/a); }
+  bone.parent.getWorldQuaternion(_iq2); _iq3.copy(_iq2).invert().multiply(_iq).multiply(_iq2); bone.quaternion.premultiply(_iq3); bone.updateMatrixWorld(true); }
+// analytic two-bone solve: set the elbow/knee angle for the reach (law of cosines), keeping the way it already bends, then aim the upper bone
+function twoBone(up,lo,ef,T,sag,fwd,kneeFwd){
+  const J0=up.getWorldPosition(V3()), J1=lo.getWorldPosition(V3()), E=ef.getWorldPosition(V3());
+  const a=J0.distanceTo(J1), b=J1.distanceTo(E); if(a<1e-5||b<1e-5) return;
+  const D=V3().subVectors(T,J0); let d=D.length(); if(d<1e-5) return; D.divideScalar(d); d=clamp(d,Math.abs(a-b)+1e-4,(a+b)*.998);
+  const al=Math.acos(clamp((a*a+d*d-b*b)/(2*a*d),-1,1));
+  const p=V3().crossVectors(sag,D).normalize(); if((p.dot(fwd)>0)!==kneeFwd) p.negate();    // knees bend forward, elbows back
+  const K=V3().copy(J0).addScaledVector(D,a*Math.cos(al)).addScaledVector(p,a*Math.sin(al));
+  const Tc=V3().copy(J0).addScaledVector(D,d);
+  ikRot(up,lo,K,null,Math.PI); ikRot(lo,ef,Tc,null,Math.PI); ef.updateMatrixWorld(true); }
+function footIK(P,m,dt,I){
+  const R=P.rig, B=R.B;
+  const ok=DATA.pig.anim.ik!==false&&!['riding','leap','caught','dead'].includes(m.state)&&!(P.tumble>0);
+  R.ikW=damp(R.ikW??0,ok?Math.max(0,1-I.airW*1.5)*(1-.65*clamp((I.sp-1)/2.1,0,1)):0,I.airW>.3?30:9,dt);   // full at a walk/trot, lighter in a flat-out run
+  P.g.updateMatrixWorld(true);
+  // body velocity over the ground (for placing the next step ahead of the hip)
+  const gp=P.g.position, jumpd=R.pg?Math.hypot(gp.x-R.pg.x,gp.z-R.pg.z)>.3:true;
+  if(!R.vel||jumpd){ R.vel=V3(); R.pg=gp.clone(); R.ft=null; }
+  R.vel.x=damp(R.vel.x,(gp.x-R.pg.x)/Math.max(dt,1e-4),12,dt); R.vel.z=damp(R.vel.z,(gp.z-R.pg.z)/Math.max(dt,1e-4),12,dt); R.pg.copy(gp);
+  if(R.ikW<.01){ R.ft=null; return; }
+  R.ft=R.ft||{};
+  const gy=gp.y-(P.popY||0)+.05, fx=Math.sin(P.g.rotation.y), fz=Math.cos(P.g.rotation.y);
+  R.inner.getWorldQuaternion(_iq4); _iax.set(1,0,0).applyQuaternion(_iq4); const fwdW=V3(0,0,1).applyQuaternion(_iq4);      // his left: the axis elbows and knees hinge on
+  const stanceT=I.duty/Math.max(I.hz,.5), swingT=(1-I.duty)/Math.max(I.hz,.5);
+  for(const S of ['L','R']) for(const fr of [1,0]){
+    const up=B[(fr?'fUp':'hTh')+S], lo=B[(fr?'fLo':'hSh')+S], ef=B[(fr?'fPaw':'hFt')+S], key=(fr?'f':'h')+S, off=fr?.012:.010;
+    const fk=ef.getWorldPosition(V3()), J=up.getWorldPosition(V3());
+    // neutral spot: under the shoulder / just behind the hip
+    const N=V3(J.x+fx*(fr?.009:-.025),0,J.z+fz*(fr?.009:-.025)); N.y=heightAt(N.x,N.z,gy)+off;
+    const reach=fr?.06:.075, w=R.ikW*(1-I.re);   // rearing sits on the haunches: that pose is hand-set
+    let f=R.ft[key]; if(!f||w<.05) f=R.ft[key]={P:V3(fk.x,heightAt(fk.x,fk.z,gy)+off,fk.z),from:V3(),sw:0};
+    if(w<.05) continue;
+    const u=I.U(I.ph+I.offs[(fr?'fUp':'hTh')+S]*Math.PI*2), gaitSw=I.moving&&u>=I.duty;
+    const err=Math.hypot(f.P.x-N.x,f.P.z-N.z);
+    if(!f.sw&&((gaitSw&&!f.was)||err>(I.moving?reach:.022))){ f.sw=1; f.gait=gaitSw; f.t=0; f.dur=I.moving?(gaitSw?swingT:Math.min(.1,swingT)):.13; f.from.copy(f.P); }
+    f.was=gaitSw;
+    const T=V3();
+    if(f.sw){
+      f.t+=dt; const s=f.gait&&I.moving?(gaitSw?clamp((u-I.duty)/(1-I.duty),0,1):1):clamp(f.t/f.dur,0,1), e=smooth(s);
+      // land a little ahead so the foot passes under the hip mid-stance
+      const lead=Math.min(1,(fr?.028:.04)/Math.max(1e-4,Math.hypot(R.vel.x,R.vel.z)*stanceT*.5)), lx=N.x+R.vel.x*stanceT*.5*lead, lz=N.z+R.vel.z*stanceT*.5*lead, ly=heightAt(lx,lz,gy)+off;
+      const lift=I.moving?(I.hz>6.5?.022:.014):.012;
+      T.set(lerp(f.from.x,lx,e),lerp(f.from.y,ly,e)+lift*Math.sin(Math.PI*s),lerp(f.from.z,lz,e));
+      if(s>=1){ f.sw=0; f.P.set(lx,ly,lz); }
+    } else T.copy(f.P);
+    { const mh=fr?.035:.05, dx=T.x-N.x, dz=T.z-N.z, hh=Math.hypot(dx,dz); if(hh>mh){ T.x=N.x+dx*mh/hh; T.z=N.z+dz*mh/hh; } }   // never over-reach: past this the foot slides rather than the leg over-stretching (tears the mesh)
+    T.lerpVectors(fk,T,w);
+    const q0=ef.getWorldQuaternion(new THREE.Quaternion());                // keep the paw flat as the leg bends
+    twoBone(up,lo,ef,T,_iax,fwdW,true);
+    ef.parent.getWorldQuaternion(_iq2); _iq3.copy(_iq2).invert().multiply(q0); ef.quaternion.slerp(_iq3,w); ef.updateMatrixWorld(true);
+  }
+}
+// footfall surge: the body speeds up a touch with each push-off and eases between them
+function gaitPulse(P,sp){ const k=clamp(sp/.6,0,1); return sp>DATA.pig.anim.boundAt?1+.32*k*Math.sin(P.phase-4.1):1+.16*k*Math.sin(2*P.phase-2.8); }
+function keyf(t,K){ if(t<=K[0][0]) return K[0][1]; for(let i=1;i<K.length;i++){ if(t<=K[i][0]){ const [t0,v0]=K[i-1],[t1,v1]=K[i]; return lerp(v0,v1,smooth((t-t0)/(t1-t0))); } } return K[K.length-1][1]; }
+  async function load() {
+    const gl = await parseGLB(await getBuf(PIG_GLB)); scene.add(PIG.g); attachPigModel(gl); PIG.ready = true; PIG.g.visible = false;
+  }
+  return { PIG, load, animRig };
+})();
+
+
+/* ================= The Kauaʻi Bus through Kapaʻa: real timetable, stops, buses, boarding =================
+   Timetable (checked 25 Sep 2026, transitapp.com + en.wikipedia.org/wiki/The_Kauaʻi_Bus):
+     400 Hanalei → Līhuʻe mainline: leaves Hanalei hourly at :15. In Kapaʻa: Across Kealia Beach +42 min, Across Kapaʻa Neighborhood
+         Center +46, Kapaʻa Skate Park +49, Kapaʻa Big Save +52, Kūhiō Hwy / Hoi Rd +55, Kūhiō Hwy / Haleilio Rd +60.
+     500 Līhuʻe → Hanalei mainline: leaves KCC hourly at :25. Waipouli Courtyards +27, Waipouli Beach Resort +30, Kapaʻa Hongwanji +33,
+         Pono Kai +34, Kapaʻa Skate Park +37, Kapaʻa Library +40, Kapaʻa Neighborhood Center +41.
+     No Sunday service (staffing). First/last trips below are approximate: check the county timetable before relying on them.
+   Stop places: map landmarks; Skate Park, Hongwanji and Waipouli Courtyards are placed by timetable (approximate). */
+const DATA = {
+  bus: {
+    routes: {
+      '400': { label: '400 → Līhuʻe', sign: '400 LIHUE', dir: 1, depart: ':15', first: '5:15', last: '19:15',
+        stops: [['Across Kealia Beach', 42], ['Kapaa Neighborhood Center', 46, 'Across Kapaʻa Neighborhood Center'], ['Kapaa Skate Park', 49], ['Kapaa Big Save', 52], ['Kuhio Hwy / Hoi Rd', 55], ['Kuhio Hwy / Haleilio Rd', 60]] },
+      '500': { label: '500 → Hanalei', sign: '500 HANALEI', dir: -1, depart: ':25', first: '5:25', last: '19:25',
+        stops: [['Waipouli Courtyards', 27], ['Waipouli Beach Resort', 30], ['Kapaa Hongwanji', 33], ['Pono Kai', 34], ['Kapaa Skate Park', 37], ['Kapaa Library', 40], ['Kapaa Neighborhood Center', 41], ['Across Kealia Beach', 45, 'Kealia Beach']] },   // Kealia +45 is our estimate
+    },
+    serviceDays: [1, 2, 3, 4, 5, 6],   // Mon–Sat
+    dwell: 22,                         // seconds a bus waits at a stop (it leaves at the timetable minute)
+    cruise: 12.5,                      // m/s entering / leaving the mapped area
+    lane: 3.35,                        // bus centre from the road centre line (pulls in to the curb)
+    shelterOff: 8.6,                   // shelter from the road centre line
+    boardRange: 9,                     // metres from the doors to board
+    ffRate: 420,                       // fast-forward: game seconds per real second while waiting
+    ffLead: 14,                        // stop fast-forwarding this many seconds before the bus pulls in (it's in sight by then)
+    length: 10.7, width: 2.55, height: 3.05,
+  },
+};
+const BUSD = DATA.bus;
+const hm = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+const fmtT = (sec, withSec = false) => { sec = ((sec % 86400) + 86400) % 86400; let h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(m).padStart(2, '0')}${withSec ? ':' + String(Math.floor(sec % 60)).padStart(2, '0') : ''} ${ap}`; };
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/* ---------------- clock (Hawaiʻi time) ---------------- */
+const CLOCK = { t: 0, day: 1, rate: 1, ff: null, note: '' };
+function initClock() {
+  const qs = new URLSearchParams(location.search);
+  const now = new Date(Date.now() - 10 * 3600e3);                 // HST = UTC-10, no daylight saving
+  let t = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds(), day = now.getUTCDay();
+  const inService = BUSD.serviceDays.includes(day) && t > 5.5 * 3600 && t < 19.9 * 3600;
+  if (qs.get('t')) { t = hm(qs.get('t')) * 60; day = 1; CLOCK.note = 'Clock set from the link.'; }
+  else if (!inService) { day = BUSD.serviceDays.includes(day) && t < 5.5 * 3600 ? day : (day + 1) % 7; if (!BUSD.serviceDays.includes(day)) day = (day + 1) % 7; t = 8 * 3600 + 52 * 60;
+    CLOCK.note = `It's ${fmtT(now.getUTCHours() * 3600 + now.getUTCMinutes() * 60)} on a ${DAYS[now.getUTCDay()]} in Kapaʻa — no buses run then, so the test starts at 8:52 AM on ${DAYS[day]}.`; }
+  else CLOCK.note = 'Running on real Hawaiʻi time.';
+  CLOCK.t = t; CLOCK.day = day;
+}
+function clockUpdate(dt) {                  // dt is already slow-motion scaled
+  if (CLOCK.ff) { const want = CLOCK.ff.until - CLOCK.t; const step = Math.min(want, dt * BUSD.ffRate); CLOCK.t += Math.max(0, step); if (want <= .5) { CLOCK.ff = null; toast('The bus is nearly here'); } }
+  else CLOCK.t += dt * CLOCK.rate;
+  if (CLOCK.t >= 86400) { CLOCK.t -= 86400; CLOCK.day = (CLOCK.day + 1) % 7; }
+}
+
+/* ---------------- route geometry ---------------- */
+const ROUTE = { pts: [], S: [], len: 0 };
+function initRoute() {
+  const p = T.bus.route; ROUTE.pts = p; ROUTE.S = [0];
+  for (let i = 1; i < p.length; i++) ROUTE.S.push(ROUTE.S[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]));
+  ROUTE.len = ROUTE.S[ROUTE.S.length - 1];
+}
+// position + unit tangent (+s direction) at arclength s
+function routeAt(s) {
+  s = clamp(s, 0, ROUTE.len); const S = ROUTE.S, p = ROUTE.pts;
+  let lo = 0, hi = S.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (S[m] <= s) lo = m; else hi = m; }
+  const u = (s - S[lo]) / Math.max(1e-6, S[hi] - S[lo]), a = p[lo], b = p[hi];
+  const tx = b[0] - a[0], tz = b[1] - a[1], l = Math.hypot(tx, tz) || 1;
+  return { x: a[0] + tx * u, z: a[1] + tz * u, tx: tx / l, tz: tz / l };
+}
+// smoothed heading (looks a few metres ahead / behind so the bus doesn't twitch on polyline corners)
+function routeFrame(s, dir, lateral) {
+  const a = routeAt(s - 3 * dir), b = routeAt(s + 3 * dir), c = routeAt(s);
+  let tx = b.x - a.x, tz = b.z - a.z; const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
+  const rx = -tz, rz = tx;                                        // right-hand side of travel
+  return { x: c.x + rx * lateral, z: c.z + rz * lateral, yaw: Math.atan2(tx, tz), rx, rz };
+}
+
+/* ---------------- stops + shelters ---------------- */
+const STOPS = [];              // one per side: {key, name, label, s, dir, x, z, yaw, routes:[{r, off}]}
+function prettyStop(n) { return n.replace(/Kapaa/g, 'Kapaʻa').replace(/Kuhio/g, 'Kūhiō').replace(/Hwy/g, 'Hwy'); }
+function initStops() {
+  for (const [rid, R] of Object.entries(BUSD.routes)) for (const [name, off, label] of R.stops) {
+    const s = T.bus.stops[name]; if (s === undefined) continue;
+    let st = STOPS.find(q => q.name === name && q.dir === R.dir);
+    if (!st) { const f = routeFrame(s, R.dir, BUSD.shelterOff); st = { key: name + R.dir, name, label: prettyStop(label || name), s, dir: R.dir, x: f.x, z: f.z, yaw: f.yaw, face: Math.atan2(f.rx, f.rz), routes: [], approx: T.bus.approx.includes(name) }; STOPS.push(st); }
+    st.routes.push({ r: rid, off });
+  }
+  // shelters (drop OSM shelters that are the same stop)
+  for (const st of STOPS) for (const p of T.pois) if (p.k === 'bus' && Math.hypot(p.x - st.x, p.z - st.z) < 45) p.k = 'bus-dup';
+}
+function buildShelters() {
+  const S = newCBuf(), green = new THREE.Color(0x3d6b5a), glass = new THREE.Color(0x9fb8c0), bench = new THREE.Color(0x7a5a3c), blue = new THREE.Color(0x2c5ea8);
+  boxInto(S, -1.8, 1.8, 2.4, 2.55, -.9, .9, green); boxInto(S, -1.8, 1.8, .35, 2.4, .82, .9, glass);
+  for (const x of [-1.75, 1.75]) boxInto(S, x - .05, x + .05, -.5, 2.4, -.9, .9, green);
+  boxInto(S, -1.4, 1.4, .45, .52, .35, .8, bench); boxInto(S, 2.4, 2.46, -.5, 2.6, -.56, -.5, DK); boxInto(S, 2.2, 2.66, 2.1, 2.6, -.58, -.5, blue);
+  const geo = cbufGeo(S), m = new THREE.Matrix4(), q = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0), list = [];
+  for (const st of STOPS) { q.setFromAxisAngle(UPV, st.face); m.compose(new THREE.Vector3(st.x, hAt(st.x, st.z) + .1, st.z), q, new THREE.Vector3(1, 1, 1)); list.push({ m: m.clone() });
+    addCollider([stopLocal(st, -1.85, .76), stopLocal(st, 1.85, .76), stopLocal(st, 1.85, .95), stopLocal(st, -1.85, .95)]);   // the back panel
+    for (const [x0, x1, z0, z1] of [[-1.85, 1.85, .76, .95], [-1.85, -1.65, -.95, .95], [1.65, 1.85, -.95, .95]])        // back glass + the two side walls
+      camPolys.push([stopLocal(st, x0, z0), stopLocal(st, x1, z0), stopLocal(st, x1, z1), stopLocal(st, x0, z1)]); }
+  instanced(geo, MAT.prop, list, true);
+  // labels for the map view
+  for (const st of STOPS) { const d = document.createElement('div'); d.className = 'lab bus'; d.textContent = '🚏 ' + st.label; $('labels').appendChild(d); LAB.push({ el: d, v: new THREE.Vector3(st.x, hAt(st.x, st.z) + 6, st.z) }); }
+}
+
+/* ---------------- trips (one per timetable departure) ---------------- */
+function tripsFor(day) {
+  const out = []; if (!BUSD.serviceDays.includes(day)) return out;
+  for (const [rid, R] of Object.entries(BUSD.routes)) {
+    for (let d = hm(R.first); d <= hm(R.last); d += 60) {
+      const stops = R.stops.map(([n, off]) => ({ n, s: T.bus.stops[n], dep: (d + off) * 60 })).filter(q => q.s !== undefined).sort((a, b) => a.dep - b.dep);
+      const entryS = R.dir > 0 ? 0 : ROUTE.len, exitS = R.dir > 0 ? ROUTE.len : 0;
+      const keys = [{ s: entryS, t: stops[0].dep - BUSD.dwell - Math.abs(stops[0].s - entryS) / BUSD.cruise, kind: 'enter' }];
+      for (const q of stops) keys.push({ s: q.s, t: q.dep - BUSD.dwell, kind: 'arr', n: q.n }, { s: q.s, t: q.dep, kind: 'dep', n: q.n });
+      const lastS = stops[stops.length - 1].s; keys.push({ s: exitS, t: stops[stops.length - 1].dep + Math.abs(exitS - lastS) / BUSD.cruise, kind: 'exit' });
+      out.push({ id: rid + '@' + d, rid, R, dir: R.dir, keys, t0: keys[0].t, t1: keys[keys.length - 1].t, depart: d });
+    }
+  }
+  return out;
+}
+let TRIPS = [], tripsDay = -1;
+// where a trip is at time t: {s, v (m/s along route), dwell: stop name or null}
+function tripState(tr, t) {
+  const K = tr.keys; if (t < tr.t0 || t > tr.t1) return null;
+  for (let i = 0; i < K.length - 1; i++) {
+    const a = K[i], b = K[i + 1]; if (t < a.t || t > b.t) continue;
+    if (a.kind === 'arr' && b.kind === 'dep') return { s: a.s, v: 0, dwell: a.n, doors: clamp(Math.min(t - a.t, b.t - t) / 1.2, 0, 1) };
+    const u = (t - a.t) / Math.max(1e-3, b.t - a.t), ds = b.s - a.s;
+    // enter: already at speed, brakes into the first stop; exit: pulls away and keeps going; between stops: accelerate, cruise, brake
+    let e, de;
+    if (a.kind === 'enter') { e = 1 - (1 - u) * (1 - u); de = 2 * (1 - u); }
+    else if (b.kind === 'exit') { const r = .25; e = u < r ? u * u / (r * (2 - r)) : (2 * u - r) / (2 - r); de = u < r ? 2 * u / (r * (2 - r)) : 2 / (2 - r); }
+    else { const r = .22; e = u < r ? u * u / (2 * r * (1 - r)) : u > 1 - r ? 1 - (1 - u) * (1 - u) / (2 * r * (1 - r)) : (u - r / 2) / (1 - r); de = u < r ? u / (r * (1 - r)) : u > 1 - r ? (1 - u) / (r * (1 - r)) : 1 / (1 - r); }
+    return { s: a.s + ds * e, v: ds * de / Math.max(1e-3, b.t - a.t), dwell: null, doors: 0 };
+  }
+  return null;
+}
+
+/* ---------------- the bus model ----------------
+   Local frame: +Z forward, +X = the bus's left, y up from the road. Low floor at 0.42 m. Doors on the right (−X).
+   Roughly a 35-ft Kauaʻi Bus mainline bus (31–33 seats); generic livery, not the operator's branding. */
+const BUSM = { geo: null, glass: null, sign: {}, seatGeo: null, mats: null };
+const FLOOR = .42, BL = BUSD.length, BW = BUSD.width, BH = BUSD.height;
+const SEAT_ROWS = [2.35, 1.55, .75, -.05, -.85, -1.65, -2.45], SEAT_X = [.88, .42, -.42, -.88];   // 7 rows × 4, plus a 4-seat rear bench
+const REAR_X = [.9, .45, -.45, -.9], REAR_Z = -4.55, REAR_Y = .72;
+function busGeometry() {
+  const O = newCBuf(), white = new THREE.Color(0xf1f1ee), teal = new THREE.Color(0x1d7a78), green = new THREE.Color(0x5aa05a), dark = new THREE.Color(0x2b2f33), grey = new THREE.Color(0x8b9196), black = new THREE.Color(0x151515);
+  const L = BL / 2, W = BW / 2, t = .06;
+  // skirt, lower body, livery stripes
+  boxInto(O, -W, W, .32, .5, -L, L, dark);
+  for (const sx of [-1, 1]) {
+    const x0 = sx > 0 ? W - t : -W, x1 = sx > 0 ? W : -W + t;
+    boxInto(O, x0, x1, .5, 1.22, -L, L, white);
+    boxInto(O, x0 - .002 * sx, x1 + .002 * sx, .62, .8, -L, L, teal); boxInto(O, x0 - .003 * sx, x1 + .003 * sx, .8, .88, -L, L, green);
+    boxInto(O, x0, x1, 2.3, BH - .05, -L, L, white);                          // band above the windows
+    for (let z = -L + .25; z < L - 1.2; z += 1.55) boxInto(O, x0, x1, 1.22, 2.3, z, z + .12, dark);   // window pillars
+  }
+  // right side doors are gaps in the lower body: the frames stay
+  // front + rear
+  boxInto(O, -W, W, .5, .95, L - t, L, white); boxInto(O, -W, W, 2.62, BH - .05, L - t, L, dark);     // below windscreen / sign box
+  boxInto(O, -W, W, .5, BH - .05, -L, -L + t, white); boxInto(O, -W, W, .62, .8, -L - .002, -L + t, teal);
+  boxInto(O, -W + .15, W - .15, BH - .05, BH, -L + .1, L - .1, white);                               // roof
+  boxInto(O, -.8, .8, BH, BH + .32, -L + 1.4, -L + 4.2, new THREE.Color(0xdedede));                   // A/C pod
+  for (const sx of [-1, 1]) { boxInto(O, sx * W - .02, sx * W + .02, .55, .8, L - .5, L - .02, new THREE.Color(0xf5e9b0)); }  // corner lights
+  boxInto(O, -W + .1, -W + .35, .55, .7, L - .01, L + .02, new THREE.Color(0xfff6d8)); boxInto(O, W - .35, W - .1, .55, .7, L - .01, L + .02, new THREE.Color(0xfff6d8));
+  boxInto(O, -W + .1, -W + .35, .55, .7, -L - .02, -L + .01, new THREE.Color(0xc0281e)); boxInto(O, W - .35, W - .1, .55, .7, -L - .02, -L + .01, new THREE.Color(0xc0281e));
+  boxInto(O, -.9, .9, .35, .5, L - .02, L + .12, black);                                             // bumper
+  // interior: floor, rear platform, ceiling, stanchions, driver area, farebox
+  boxInto(O, -W + t, W - t, .32, FLOOR, -L + t, L - t, new THREE.Color(0x4a4d52));
+  boxInto(O, -W + t, W - t, FLOOR, .72, -L + t, -3.05, new THREE.Color(0x4a4d52));                   // raised rear (engine)
+  boxInto(O, -W + t, W - t, BH - .12, BH - .06, -L + t, L - t, new THREE.Color(0xe9ecee));           // ceiling panel
+  boxInto(O, -.12, .12, BH - .13, BH - .12, -L + .5, L - .5, new THREE.Color(0xfffbe8));             // light strip
+  const yel = new THREE.Color(0xe8c21e);
+  for (const z of [3.3, 1.95, .35, -1.25, -2.85]) for (const x of [.64, -.64]) boxInto(O, x - .02, x + .02, FLOOR, BH - .1, z - .02, z + .02, yel);
+  for (const x of [.64, -.64]) boxInto(O, x - .02, x + .02, 2.05, 2.09, -L + .6, L - 1.5, yel);        // grab rails
+  boxInto(O, .5, 1.15, FLOOR, .95, 4.25, 4.9, dark); boxInto(O, .55, 1.1, .95, 1.55, 4.2, 4.3, dark); // driver seat
+  boxInto(O, -.05, .25, FLOOR, 1.2, 3.75, 3.95, grey);                                                // farebox
+  boxInto(O, -W + t, W - t, .9, 1.25, L - .4, L - t, dark);                                           // dash
+  // seats
+  const blue = new THREE.Color(0x27466e), frame = new THREE.Color(0x70757b);
+  const seat = (x, z, y0 = FLOOR) => { boxInto(O, x - .21, x + .21, y0 + .38, y0 + .46, z - .02, z + .4, blue); boxInto(O, x - .21, x + .21, y0 + .46, y0 + .95, z - .06, z + .02, blue); boxInto(O, x - .02, x + .02, y0, y0 + .38, z + .15, z + .19, frame); };
+  for (const z of SEAT_ROWS) for (const x of SEAT_X) seat(x, z - .2);
+  for (const x of REAR_X) seat(x, REAR_Z, REAR_Y);
+  return cbufGeo(O);
+}
+function busGlassGeo() {
+  const G = newCBuf(), c = new THREE.Color(1, 1, 1), L = BL / 2, W = BW / 2;
+  for (const sx of [-1, 1]) boxInto(G, sx * W - .01, sx * W + .01, 1.22, 2.3, -L + .2, L - 1.2, c);
+  boxInto(G, -W + .05, W - .05, .95, 2.62, L - .02, L, c);                           // windscreen
+  boxInto(G, -W + .3, W - .3, 1.5, 2.3, -L, -L + .02, c);                           // rear window
+  // right side doors (glass): front door and rear door
+  boxInto(G, -W - .01, -W + .01, .5, 2.3, L - 1.2, L - .25, c); boxInto(G, -W - .01, -W + .01, .5, 2.3, -.35, .75, c);
+  return cbufGeo(G);
+}
+function signTex(text) {
+  return canvasTex(512, 64, (g, w, h) => { g.fillStyle = '#0b0b0b'; g.fillRect(0, 0, w, h); g.fillStyle = '#ffb030'; g.font = '700 44px monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = '#ff8a00'; g.shadowBlur = 8; g.fillText(text, w / 2, h / 2 + 2); }, false);
+}
+function initBusModel() {
+  BUSM.geo = busGeometry(); BUSM.glass = busGlassGeo();
+  BUSM.mats = { body: MAT.prop, glass: new THREE.MeshStandardMaterial({ color: 0x223038, roughness: .08, metalness: .3, transparent: true, opacity: .32, depthWrite: false, side: THREE.DoubleSide }),
+    wheel: new THREE.MeshStandardMaterial({ color: 0x151515, roughness: .9 }), hub: new THREE.MeshStandardMaterial({ color: 0xbfc4c8, roughness: .4, metalness: .6 }) };
+  for (const [rid, R] of Object.entries(BUSD.routes)) BUSM.sign[rid] = new THREE.MeshBasicMaterial({ map: signTex(R.sign), toneMapped: false });
+  // the people you see through the windows of every bus: 11 seated passengers baked into one static mesh
+  { const tmp = new THREE.Group(), seats = seatList().sort(() => Math.random() - .5).slice(0, 11), list = [];
+    seats.forEach((st, i) => { const tint = new THREE.Color(...CLOTH[i % CLOTH.length]).multiplyScalar(.9 + Math.random() * .15), ch = makeChar('ant', { tint });
+      ch.sitW = 1; ch.g.position.set(st.x, st.y - .02, st.z); ch.g.scale.setScalar(.95 + Math.random() * .1); tmp.add(ch.g);
+      const pr = ['thighs', 'phone', 'phone', 'elbows', 'lap'][i % 5]; writeSeat(ch, presetChan(pr, st.c === 0 ? .9 : st.c === 3 ? -.9 : 0), false); poseChar(ch, 0); list.push({ ch, tint }); });
+    BUSM.crowdGeo = bakeChars(list, tmp); for (const { ch } of list) disposeChar(ch); }
+  BUSM.wheelGeo = new THREE.CylinderGeometry(.5, .5, .32, 18); BUSM.wheelGeo.rotateZ(Math.PI / 2); BUSM.hubGeo = new THREE.CylinderGeometry(.25, .25, .34, 10); BUSM.hubGeo.rotateZ(Math.PI / 2);
+}
+function makeBus(rid) {
+  const g = new THREE.Group(), body = new THREE.Mesh(BUSM.geo, BUSM.mats.body); body.castShadow = body.receiveShadow = true;
+  const glass = new THREE.Mesh(BUSM.glass, BUSM.mats.glass); glass.renderOrder = 2;
+  g.add(body, glass);
+  let crowd = null; if (BUSM.crowdGeo) { crowd = new THREE.Mesh(BUSM.crowdGeo, crowdMat()); crowd.castShadow = false; g.add(crowd); }
+  const sf = new THREE.Mesh(new THREE.PlaneGeometry(1.9, .24), BUSM.sign[rid]); sf.position.set(0, 2.76, BL / 2 + .012); g.add(sf);
+  const ss = new THREE.Mesh(new THREE.PlaneGeometry(1.5, .19), BUSM.sign[rid]); ss.position.set(-BW / 2 - .012, 2.12, BL / 2 - 2.2); ss.rotation.y = -Math.PI / 2; g.add(ss);
+  const wheels = [];
+  for (const [x, z] of [[1.08, BL / 2 - 2.1], [-1.08, BL / 2 - 2.1], [1.08, -BL / 2 + 2.4], [-1.08, -BL / 2 + 2.4]]) { const w = new THREE.Group(); w.add(new THREE.Mesh(BUSM.wheelGeo, BUSM.mats.wheel), new THREE.Mesh(BUSM.hubGeo, BUSM.mats.hub)); w.position.set(x, .5, z); g.add(w); wheels.push(w); }
+  // doors: two leaves each, slide outward-back when open
+  const doorMat = new THREE.MeshStandardMaterial({ color: 0x2b2f33, roughness: .5 }), doors = [];
+  for (const [z0, z1] of [[BL / 2 - 1.2, BL / 2 - .25], [-.35, .75]]) { const d = new THREE.Mesh(new THREE.BoxGeometry(.05, 1.85, z1 - z0), doorMat); d.position.set(-BW / 2 - .02, 1.4, (z0 + z1) / 2); g.add(d); doors.push({ m: d, z: (z0 + z1) / 2, w: z1 - z0 }); }
+  // a driver (the Anthony model, in a uniform tint), seated
+  let driver = null;
+  if (MODELS.ant) { driver = makeChar('ant', { tint: new THREE.Color(.72, .8, .95) }); driver.sitW = 1; driver.g.position.set(.82, FLOOR - .02, 4.38); g.add(driver.g);
+    const S = driver.S; S.hands.l.set(.2, .98, .5); S.hands.r.set(-.2, .98, .5); S.elbow.l.set(.6, -.5, -.6); S.elbow.r.set(-.6, -.5, -.6); S.lean.z = .05; S.look.set(0, 1.3, 6); poseChar(driver, 0); }
+  scene.add(g);
+  return { g, wheels, doors, driver, rid, spin: 0, crowd };
+}
+
+/* ---------------- live buses ---------------- */
+const BUSES = new Map();          // trip id -> {bus, tr}
+const POOL = { '400': [], '500': [] };
+function busUpdate(dt) {
+  if (CLOCK.day !== tripsDay) { TRIPS = tripsFor(CLOCK.day); tripsDay = CLOCK.day; }
+  const t = CLOCK.t, live = new Set();
+  for (const tr of TRIPS) {
+    const st = tripState(tr, t); if (!st) continue; live.add(tr.id);
+    let e = BUSES.get(tr.id); if (!e) { const b = POOL[tr.rid].pop() || makeBus(tr.rid); b.g.visible = true; e = { bus: b, tr, st }; BUSES.set(tr.id, e); }
+    e.st = st; placeBus(e, dt);
+  }
+  for (const [id, e] of BUSES) if (!live.has(id) && !(RIDE.on && RIDE.trip === e.tr)) { e.bus.g.visible = false; POOL[e.tr.rid].push(e.bus); BUSES.delete(id); }
+}
+function placeBus(e, dt) {
+  const { bus, tr, st } = e, f = routeFrame(st.s, tr.dir, BUSD.lane), y = Math.max(hAt(f.x, f.z), 0) + .12;
+  const g = bus.g; g.position.set(f.x, y, f.z);
+  const cy = g.rotation.y, d = Math.atan2(Math.sin(f.yaw - cy), Math.cos(f.yaw - cy)); g.rotation.y = e.placed ? cy + d * (1 - Math.exp(-6 * dt)) : f.yaw; e.placed = true;
+  // lean into curves + nose dip on braking (tiny)
+  const acc = (st.v - (e.pv ?? st.v)) / Math.max(dt, 1e-3); e.pv = st.v;
+  g.rotation.x = damp(g.rotation.x, clamp(-acc * .004, -.02, .02), 4, dt); g.rotation.z = damp(g.rotation.z, clamp(d * 1.5, -.03, .03), 3, dt);
+  bus.spin += Math.abs(st.v) * dt / .5; for (const w of bus.wheels) w.rotation.x = bus.spin;
+  for (const dr of bus.doors) { const o = st.doors; dr.m.position.x = -BW / 2 - .02 - o * .08; dr.m.scale.z = 1 - o * .85; dr.m.position.z = dr.z + o * dr.w * .42; }
+  // sounds: brakes as it pulls in, the pneumatic whoosh of the doors, the kneel hiss (louder the closer you are; full when you're on it)
+  if (bus.crowd) bus.crowd.visible = !(RIDE.on && RIDE.e === e) && g.position.distanceTo(cam.position) < 90;
+  if (dt > 0 && !CLOCK.ff) { const mine = RIDE.on && RIDE.e === e, dcam = g.position.distanceTo(cam.position), gain = mine ? .8 : Math.pow(clamp(1 - dcam / 55, 0, 1), 1.5);
+    const pd = e.pd ?? st.doors; if (st.doors > 0 && pd === 0) { sfx('doors', 0, gain); sfx('kneel', 0, gain * .7); } if (st.doors < 1 && pd === 1) sfx('doorsClose', 0, gain);
+    if (Math.abs(st.v) < 3.5 && Math.abs(e.pv2 ?? 0) >= 3.5 && !st.dwell) sfx('brake', 0, gain);
+    e.pd = st.doors; e.pv2 = st.v; }
+  if (bus.driver && dt > 0 && bus.g.visible) { bus.driver.S.breath = Math.sin(performance.now() / 700); }
+}
+function busWorld(e) { return e.bus.g; }
+
+/* ---------------- guidance: nearest stop, next buses, arrow, beacon ---------------- */
+const GUIDE = { stop: null, beacon: null, arrowEl: null, pick: 0 };
+function initGuide() {
+  const g = new THREE.Group();
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(.35, .35, 40, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: .22, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+  col.position.y = 20; g.add(col);
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(.55, 1, 4), new THREE.MeshBasicMaterial({ color: 0xffd36a, fog: false })); cone.rotation.x = Math.PI; cone.position.y = 4.2; g.add(cone); g.userData.cone = cone;
+  scene.add(g); GUIDE.beacon = g;
+}
+function nextAt(st, t, count = 2) {       // next departures at a stop: [{rid, dep, trip}]
+  const list = [];
+  for (const tr of TRIPS) for (const k of tr.keys) if (k.kind === 'dep' && k.n === st.name && tr.dir === st.dir && k.t >= t - BUSD.dwell) list.push({ rid: tr.rid, dep: k.t, trip: tr });
+  return list.sort((a, b) => a.dep - b.dep).slice(0, count);
+}
+function stopsByDistance(x, z) { return STOPS.map(st => ({ st, d: Math.hypot(st.x - x, st.z - z) })).sort((a, b) => a.d - b.d); }
+function guideUpdate(dt) {
+  const show = P.mode === 'walk' && !RIDE.on;
+  $('busPanel').hidden = !show && P.mode !== 'map';
+  const list = stopsByDistance(P.x, P.z); GUIDE.stop = list[GUIDE.pick % 3].st; const st = GUIDE.stop, d = list[GUIDE.pick % 3].d;
+  GUIDE.beacon.visible = show; GUIDE.beacon.position.set(st.x, hAt(st.x, st.z), st.z); GUIDE.beacon.userData.cone.position.y = 4.2 + Math.sin(performance.now() / 300) * .25; GUIDE.beacon.userData.cone.rotation.y += dt;
+  GUIDE.beacon.children[0].material.opacity = clamp(d / 60, .05, .22);
+  // HUD arrow: direction to the stop relative to the camera
+  const camYaw = Math.atan2(cam.position.x - P.x, cam.position.z - P.z) + Math.PI;
+  const a = Math.atan2(st.x - P.x, st.z - P.z) - camYaw;
+  $('busArrow').style.transform = `rotate(${(-a) * 180 / Math.PI}deg)`;
+  const nx = nextAt(st, CLOCK.t, 2);
+  const lines = nx.map(n => { const mins = Math.round((n.dep - CLOCK.t) / 60); return `<b>${BUSD.routes[n.rid].label}</b> ${fmtT(n.dep)} <small>${mins <= 0 ? 'boarding now' : 'in ' + mins + ' min'}</small>`; });
+  $('busStop').innerHTML = `<b>${st.label}</b>${st.approx ? ' <small>(approx. spot)</small>' : ''} <small>· ${d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1) + ' km'}</small>`;
+  $('busNext').innerHTML = lines.length ? lines.join('<br>') : 'No more buses from this stop today';
+  $('clock').textContent = `${DAYS[CLOCK.day].slice(0, 3)} ${fmtT(CLOCK.t)}` + (CLOCK.ff ? ' ⏩' : '');
+  // boarding
+  let can = null;
+  if (show && !CLOCK.ff) for (const e of BUSES.values()) { if (!e.st.dwell || e.st.doors < .6 || e.tr.id === RIDE.leftTrip) continue; const g = e.bus.g, door = g.localToWorld(new THREE.Vector3(-BW / 2 - .6, 0, BL / 2 - .75));
+    if (Math.hypot(door.x - P.x, door.z - P.z) < BUSD.boardRange) { can = e; break; } }
+  GUIDE.board = can; $('boardBtn').hidden = !can; if (can) $('boardBtn').textContent = `Board the ${BUSD.routes[can.tr.rid].label}`;
+  $('waitBtn').disabled = !!CLOCK.ff || !nx.length || (nx[0] && nx[0].dep - CLOCK.t < BUSD.ffLead + 5);
+}
+function waitForBus() {
+  const nx = nextAt(GUIDE.stop, CLOCK.t, 1)[0]; if (!nx) { toast('No more buses from here today'); return; }
+  const tArr = nx.dep - BUSD.dwell; CLOCK.ff = { until: Math.max(CLOCK.t, tArr - BUSD.ffLead) }; toast(`Waiting for the ${BUSD.routes[nx.rid].label}…`);
+}
+let toastT = null; function toast(msg, ms = 2600) { const el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, ms); }
+
+/* ---------------- someone waiting at the stop ----------------
+   The three stops nearest Ben each get a person sitting on the bench, glancing up the road. When their bus opens its
+   doors they stand, walk over and get on first; somebody new turns up a few minutes later. */
+const WAIT = { list: [] };
+function stopLocal(st, lx, lz) { const c = Math.cos(st.face), s = Math.sin(st.face); return [st.x + lx * c + lz * s, st.z - lx * s + lz * c]; }
+function spawnWaiter(st) {
+  const tint = new THREE.Color(...CLOTH[(Math.random() * CLOTH.length) | 0]).multiplyScalar(.9 + Math.random() * .15), ch = makeChar('ant', { tint, scale: .95 + Math.random() * .1 });
+  const lx = (Math.random() - .5) * 1.8, [x, z] = stopLocal(st, lx, .62); ch.g.position.set(x, hAt(st.x, st.z) + .1, z); ch.g.rotation.y = st.face + Math.PI; ch.sitW = 1; scene.add(ch.g);
+  const w = { st, ch, state: 'sit', t: 0, lookT: 1, base: presetChan(Math.random() < .5 ? 'thighs' : 'phone', 0), n: 0 }; w.cur = cloneChan(w.base); WAIT.list.push(w);
+}
+function waitingUpdate(dt) {
+  if (RIDE.on && RIDE.phase !== 'enter') { for (const w of WAIT.list) w.ch.g.visible = false; return; }
+  const near = stopsByDistance(P.x, P.z).filter(o => o.d < 350).slice(0, 3).map(o => o.st);
+  for (const w of WAIT.list) if (!near.includes(w.st) && w.state === 'sit') { disposeChar(w.ch); w.dead = true; }
+  WAIT.list = WAIT.list.filter(w => !w.dead);
+  for (const st of near) if (!WAIT.list.some(w => w.st === st) && !(st.cool > CLOCK.t)) spawnWaiter(st);
+  for (const w of WAIT.list) waiterUpdate(w, dt);
+}
+function waiterUpdate(w, dt) {
+  const ch = w.ch, d = ch.g.position.distanceTo(cam.position); ch.g.visible = d < 140 && P.mode !== 'map'; if (!ch.g.visible) return;
+  if (w.state === 'sit') {
+    // their bus is here: stand up and get on
+    for (const e of BUSES.values()) if (e.st.dwell === w.st.name && e.tr.dir === w.st.dir && e.st.doors > .6 && e.tr.id !== RIDE.leftTrip) { w.state = 'stand'; w.t = 0; w.bus = e; break; }
+    w.lookT -= dt; if (w.lookT <= 0) { w.lookT = 2 + Math.random() * 5; if (w.base.preset !== 'phone' || Math.random() < .3) w.base.lookYaw = Math.random() < .6 ? 1.2 * w.st.dir * -1 : (Math.random() - .5) * .8; }
+    const c = w.cur; for (const k of ['lookYaw', 'lookPitch', 'leanX', 'leanZ']) c[k] = damp(c[k], w.base[k], 3, dt);
+    w.n++; if (d < 60 && w.n % 2 === 0) { writeSeat(ch, c, false); w.br = (w.br || 0) + dt * 2.8; ch.S.breath = Math.sin(w.br); poseChar(ch, 0); }
+    return;
+  }
+  if (w.state === 'stand') { w.t += dt; ch.sitW = Math.max(0, 1 - w.t / .8); play(ch, 'Idle'); poseChar(ch, dt); if (w.t > .8) { w.state = 'walk'; w.t = 0; } return; }
+  if (w.state === 'walk') {
+    const g = w.bus.bus.g, door = g.localToWorld(V3(-BW / 2 - .3, 0, BL / 2 - .75)), dx = door.x - ch.g.position.x, dz = door.z - ch.g.position.z, L = Math.hypot(dx, dz);
+    w.t += dt; ch.sitW = 0; play(ch, 'Walk'); ch.g.rotation.y = Math.atan2(dx, dz); const stp = Math.min(L, 1.3 * dt); ch.g.position.x += dx / L * stp; ch.g.position.z += dz / L * stp; ch.g.position.y = hAt(ch.g.position.x, ch.g.position.z) + .12; poseChar(ch, dt);
+    if (L < .35 || w.t > 12 || !w.bus.st.dwell) { disposeChar(ch); w.dead = true; w.st.cool = CLOCK.t + 180 + Math.random() * 420; WAIT.list = WAIT.list.filter(q => !q.dead); }
+  }
+}
+
+
+/* ================= Riding the bus: choose a seat, read the people around you, shield, and the astral fight =================
+   Built from Anthony's design notes (astral-combat-design.md) and the bus-stop prototype. Where the notes leave a gap,
+   the numbers below are PLACEHOLDERS for Anthony to change (flagged "placeholder"). */
+Object.assign(DATA, {
+  ride: {
+    freeSeats: 4, attackers: 4,              // Anthony: only four seats free; two next to an attacker, two across the aisle from one
+    walkSpeed: 1.7, sitTime: .75,
+    boardShot: 6.5,                           // seconds watching the bus pull away before the cut inside
+    standCost: 12, standDrainPerSec: .35,     // bus-stop rule: standing up while engaged costs emotional energy; standing tires him
+  },
+  meters: { astral: 100, emotional: 100 },
+  shield: { raiseCost: 2, costPerSec: 1.2 },  // from the bus-stop prototype
+  encounter: {                              // the everyday layer: tells, shielding (placeholder timings)
+    onset: [3.5, 7], gap: [1.2, 3.2],
+    next: { pulseDmg: 7, fieldDmg: 1.2 }, across: { pulseDmg: 4.5, fieldDmg: .6 }, nearby: { fieldDmg: .35, range: 1.7 },
+    blocksToGo: 2, engagedToGo: 10,           // Anthony: after a couple of shields, ~10 s in, it goes astral
+    pullInAfter: 28, pullInPenalty: 10,       // if he never manages it, the entity drags him in anyway (placeholder)
+    counterTurn: .35,                         // automatic counter when a tell is shielded: Ben turns his head / shoulder away
+  },
+  astral: {                                 // the astral fight (placeholders built on Anthony's notes)
+    timeScale: .06, cineIn: 2.2, cineOut: 1.6, arenaR: 4.4,
+    ben: { speed: 3.2, fireCost: 4, windup: .28, cooldown: .55, waveSpeed: 8.5, waveRange: 8, waveR: .45, rollDist: 2.3, rollTime: .35, rollCost: 2, rollCD: .9 },
+    ent: { next: { hp: 6, tell: .62, gap: [1.7, 3], bolt: 6.2, lunge: 8 }, across: { hp: 4, tell: .85, gap: [2.2, 3.6], bolt: 5, lunge: 7 },
+      radius: [3, 4.2], orbit: [.45, .95], boltDmg: 9, lungeDmg: 14, blockChip: 1.5, lungeBlockChip: 3, readDmg: 1, stun: 1.6 },
+    emoWhenEmpty: 12,                        // once astral is gone, hits drain emotional instead
+    attentionPerHit: 16,                     // Anthony: doing badly makes Ben do odd things in the real world
+  },
+});
+const RD = DATA.ride, EN = DATA.encounter, AS = DATA.astral;
+const RIDE = { on: false, phase: '', trip: null, e: null, t: 0, seats: [], pax: [], ben: null, seat: null, requested: false, astralW: 0, ts: 1, attention: 0, results: [] };
+const METER = { astral: DATA.meters.astral, emo: DATA.meters.emotional };
+let rngR = mulberryR(Date.now() % 100000);
+function mulberryR(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rr = (a, b) => a + rngR() * (b - a), pickR = a => a[Math.floor(rngR() * a.length)];
+function wpick(list) { let s = 0; for (const e of list) s += e.w; let r = rngR() * s; for (const e of list) { r -= e.w; if (r <= 0) return e; } return list[list.length - 1]; }
+const env = (t, d, a = .35, r = .45) => t < 0 || t > d ? 0 : Math.min(1, smooth(clamp(t / Math.min(a * d, .9), 0, 1)), smooth(clamp((d - t) / Math.min(r * d, 1.1), 0, 1)));
+
+/* ---------------- seats ---------------- */
+function seatList() {
+  const L = [];
+  SEAT_ROWS.forEach((z, r) => SEAT_X.forEach((x, c) => L.push({ r, c, x, z: z - .2 + .14, y: FLOOR, rear: false })));
+  REAR_X.forEach((x, c) => L.push({ r: 7, c, x, z: REAR_Z + .14, y: REAR_Y, rear: true }));
+  return L;
+}
+// four free seats in four different rows: two next to an attacker, two across the aisle from one
+function planSeats(L) {
+  const rows = [0, 1, 2, 3, 4, 5, 6].sort(() => rngR() - .5).slice(0, 4), plan = [];
+  const kinds = ['next', 'next', 'across', 'across'].sort(() => rngR() - .5);
+  rows.forEach((r, i) => {
+    const k = kinds[i], side = rngR() < .5 ? 0 : 1;           // 0 = left pair (cols 0,1), 1 = right pair (cols 2,3)
+    let free, att;
+    if (k === 'next') { const aisleFree = rngR() < .5; free = side === 0 ? (aisleFree ? 1 : 0) : (aisleFree ? 2 : 3); att = side === 0 ? (aisleFree ? 0 : 1) : (aisleFree ? 3 : 2); }
+    else { free = side === 0 ? 1 : 2; att = side === 0 ? 2 : 1; }
+    plan.push({ free: L.find(s => s.r === r && s.c === free), att: L.find(s => s.r === r && s.c === att), kind: k });
+  });
+  return plan;
+}
+
+/* ---------------- people ---------------- */
+const CLOTH = [[.95, .78, .62], [.62, .8, .95], [.9, .9, .9], [.7, .95, .72], [.98, .72, .72], [.8, .7, .95], [1, .95, .7], [.6, .66, .7], [.85, .6, .5], [.7, .85, .85]];
+const PRESETS = {
+  thighs: { hands: { l: [.15, .66, .28], r: [-.15, .66, .28] }, lean: [0, .1], pitch: .12, feet: { l: [.13, .08, .47], r: [-.13, .08, .47] }, look: [.3, -.08] },
+  elbows: { hands: { l: [.05, .60, .46], r: [-.05, .60, .46] }, elbowP: { l: [.5, -.6, -.3], r: [-.5, -.6, -.3] }, lean: [0, .42], pitch: .02, feet: { l: [.15, .08, .44], r: [-.15, .08, .44] }, look: [.2, -.18] },
+  phone: { hands: { l: [.03, .78, .30], r: [-.06, .76, .28] }, elbowP: { l: [.6, -.6, -.4], r: [-.6, -.6, -.4] }, lean: [0, .2], pitch: .1, feet: { l: [.13, .08, .47], r: [-.13, .08, .47] }, look: [.05, -.62], phone: 1 },
+  lap: { hands: { l: [.06, .63, .34], r: [-.06, .63, .34] }, lean: [0, .15], pitch: .1, feet: { l: [.1, .08, .45], r: [-.1, .08, .45] }, look: [0, -.2] },
+};
+function chan() { return { hipX: 0, hipZ: 0, leanX: 0, leanZ: .1, pitch: .12, yaw: 0, lookYaw: .3, lookPitch: -.08, hl: V3(.15, .66, .28), hr: V3(-.15, .66, .28), el: V3(.5, -.3, -1), er: V3(-.5, -.3, -1), fl: V3(.13, .08, .47), fr: V3(-.13, .08, .47), kl: V3(.1, 1, .6), kr: V3(-.1, 1, .6), tension: 0, shrug: 0, phone: 0, headTilt: 0 }; }
+function cloneChan(b) { return { ...b, hl: b.hl.clone(), hr: b.hr.clone(), el: b.el.clone(), er: b.er.clone(), fl: b.fl.clone(), fr: b.fr.clone(), kl: b.kl.clone(), kr: b.kr.clone() }; }
+function presetChan(name, lookYaw) { const P0 = PRESETS[name], b = chan(); b.hl.set(...P0.hands.l); b.hr.set(...P0.hands.r); b.el.set(...(P0.elbowP?.l || [.5, -.3, -1])); b.er.set(...(P0.elbowP?.r || [-.5, -.3, -1]));
+  b.leanX = P0.lean[0]; b.leanZ = P0.lean[1]; b.pitch = P0.pitch; b.fl.set(...P0.feet.l); b.fr.set(...P0.feet.r); b.lookYaw = lookYaw ?? P0.look[0]; b.lookPitch = P0.look[1]; b.phone = P0.phone || 0; b.preset = name; return b; }
+// write channels into a character's seated pose; mirror = Ben is on this person's LEFT (+X), so flip everything
+function writeSeat(ch, c, mirror) {
+  const S = ch.S, m = mirror ? -1 : 1, fx = v => V3(v.x * m, v.y, v.z);
+  S.hip.set(c.hipX * m, .56, c.hipZ); S.lean.x = c.leanX * m; S.lean.z = c.leanZ; S.pitch = c.pitch; S.yaw = c.yaw * m;
+  if (mirror) { S.hands.l.copy(fx(c.hr)); S.hands.r.copy(fx(c.hl)); S.elbow.l.copy(fx(c.er)); S.elbow.r.copy(fx(c.el)); S.feet.l.copy(fx(c.fr)); S.feet.r.copy(fx(c.fl)); S.knee.l.copy(fx(c.kr)); S.knee.r.copy(fx(c.kl)); }
+  else { S.hands.l.copy(c.hl); S.hands.r.copy(c.hr); S.elbow.l.copy(c.el); S.elbow.r.copy(c.er); S.feet.l.copy(c.fl); S.feet.r.copy(c.fr); S.knee.l.copy(c.kl); S.knee.r.copy(c.kr); }
+  S.shrug.l = S.shrug.r = c.shrug * .25; S.tension = c.tension; S.headTilt = c.headTilt * m;
+  const cy = Math.cos(c.lookPitch); S.look.set(c.hipX * m + Math.sin(c.lookYaw * m) * cy * 3, 1.22 + Math.sin(c.lookPitch) * 3, Math.cos(c.lookYaw * m) * cy * 3);
+}
+// micro-movements (from the bus-stop prototype; "toward" = toward Ben, who is on this person's right (−X) before mirroring)
+const MOVES = {
+  shiftSeat: { w: 1.2, toward: 0, dur: [1, 1.8], part: 'hips' }, turnToward: { w: .6, toward: 1, dur: [2, 4.5], part: 'rSh' },
+  glanceBen: { w: .8, toward: 1, dur: [.7, 1.8], part: 'head' }, glanceAway: { w: 3, toward: 0, dur: [1.5, 3.5], part: 'head' },
+  handBench: { w: .5, toward: 1, dur: [2.5, 5], part: 'rHand' }, handKnee: { w: 1.5, toward: 0, dur: [2, 4], part: 'rHand' },
+  handFace: { w: 1.5, toward: 0, dur: [1.5, 3], part: 'rHand' }, elbowBackrest: { w: .4, toward: 1, dur: [3, 6], part: 'rFore' },
+  elbowOut: { w: .6, toward: 1, dur: [2, 4], part: 'rFore' }, legsSpread: { w: .7, toward: 1, dur: [3, 6], part: 'rShin' },
+  footExtend: { w: .4, toward: 1, dur: [2, 4], part: 'rFoot' }, crossAnkles: { w: 1, toward: 0, dur: [4, 8], part: 'lFoot' },
+  footTap: { w: 1.5, toward: 0, dur: [2, 4], part: 'rFoot' }, leanCloser: { w: .5, toward: 1, dur: [2.5, 5], part: 'rSh' },
+  bagRustle: { w: 1.2, toward: 0, dur: [2.5, 5], part: 'lHand' }, phoneCheck: { w: 2, toward: 0, dur: [5, 12], part: 'lHand' },
+  sigh: { w: 1, toward: 0, dur: [1.5, 2.5], part: 'rSh' },
+};
+function applyMove(c, m, e, t) {
+  switch (m.name) {
+    case 'turnToward': c.yaw -= m.a * e; c.lookYaw -= .35 * e; break;
+    case 'glanceBen': c.lookYaw = lerp(c.lookYaw, -1.5, e); c.lookPitch = lerp(c.lookPitch, -.06, e); break;
+    case 'glanceAway': c.lookYaw = lerp(c.lookYaw, m.dir, e); c.lookPitch = lerp(c.lookPitch, .02, e); break;
+    case 'handBench': c.hr.lerp(V3(-.36, .52, .1), e); c.er.lerp(V3(-.3, .5, -.6), e); c.leanX -= .04 * e; break;
+    case 'handKnee': c.hr.lerp(V3(-.12, .60, .43), e); break;
+    case 'handFace': c.hr.lerp(V3(-.02, 1.13, .17), e); c.er.lerp(V3(-.4, -.8, .2), e); c.lookPitch -= .05 * e; break;
+    case 'elbowBackrest': c.hr.lerp(V3(-.5, .98, -.12), e); c.er.lerp(V3(-.1, .9, -.2), e); c.leanZ -= .06 * e; c.leanX -= .03 * e; break;
+    case 'elbowOut': c.hr.lerp(V3(-.17, .63, .06), e); c.er.lerp(V3(-1, .15, -.35), e); break;
+    case 'legsSpread': c.fl.x += .1 * e; c.fr.x -= .12 * e; c.kl.lerp(V3(.9, 1, .6), e); c.kr.lerp(V3(-.9, 1, .6), e); break;
+    case 'footExtend': c.fr.lerp(V3(-.3, .08, .56), e); c.kr.lerp(V3(-.5, 1, .5), e); break;
+    case 'crossAnkles': c.fl.lerp(V3(-.03, .09, .56), e); c.fr.lerp(V3(.06, .08, .54), e); c.kl.lerp(V3(-.1, 1, .6), e); c.kr.lerp(V3(.1, 1, .6), e); c.leanZ -= .05 * e; break;
+    case 'footTap': c.fr.y += Math.max(0, Math.sin(t * m.hz * 6.283)) * .045 * e; break;
+    case 'leanCloser': c.leanX -= .14 * e; c.hipX -= .04 * e; c.lookYaw -= .2 * e; break;
+    case 'bagRustle': c.hl.lerp(V3(.3 + Math.sin(t * 9) * .02, .6 + Math.sin(t * 6.3) * .015, .3), e); c.el.lerp(V3(.6, .5, -.5), e); c.lookYaw = lerp(c.lookYaw, .5, e); c.lookPitch = lerp(c.lookPitch, -.55, e); break;
+    case 'phoneCheck': c.phone = Math.max(c.phone, e > .5 ? 1 : 0); c.hl.lerp(V3(.03, .78, .30), e); c.hr.lerp(V3(-.06, .76, .28), e); c.el.lerp(V3(.6, -.6, -.4), e); c.er.lerp(V3(-.6, -.6, -.4), e); c.lookYaw = lerp(c.lookYaw, .05, e); c.lookPitch = lerp(c.lookPitch, -.62, e); break;
+    case 'sigh': { const k = Math.sin(Math.min(1, t / m.dur) * Math.PI); c.shrug += .5 * k; c.leanZ -= .05 * k; c.lookPitch += .12 * k; break; }
+  }
+}
+function newMove(name, pressure, size = 1) {
+  const M = MOVES[name], m = { name, t: 0, dur: rr(M.dur[0], M.dur[1]), part: M.part, toward: M.toward, pressure, size, amp: 0, pd: 0, p0: 0 };
+  if (name === 'turnToward') m.a = rr(.2, .34); if (name === 'glanceAway') m.dir = rngR() < .7 ? rr(.8, 1.2) : rr(-.4, 0); if (name === 'footTap') m.hz = rr(1.6, 2.4);
+  if (pressure) { m.amp = rr(.7, 1); m.p0 = rr(.15, .35) * m.dur; m.pd = Math.max(1.1, m.dur * rr(.5, .8)); }
+  return m;
+}
+// the visual tell: a brief shimmer at the moving body part (bus-stop shader), plus a faint haze
+function cueMat(mat) {
+  mat.userData.cue = { uCueP: { value: V3(0, -99, 0) }, uCueK: { value: 0 }, uCueR: { value: .16 }, uTime: { value: 0 }, uScale: { value: 1 } };
+  mat.onBeforeCompile = sh => { Object.assign(sh.uniforms, mat.userData.cue);
+    sh.vertexShader = 'uniform vec3 uCueP; uniform float uCueK; uniform float uCueR; uniform float uTime; uniform float uScale; varying float vCue;\n' + sh.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' +
+      ' vec4 cw=modelMatrix*vec4(transformed,1.0); float cd=distance(cw.xyz,uCueP); float cf=uCueK*(1.0-smoothstep(uCueR*.35,uCueR,cd));\n vCue=cf; transformed+=normalize(objectNormal)*uScale*cf*(sin(cw.y*47.0+uTime*9.0)*.006+sin(cw.x*61.0-uTime*7.0)*.004);');
+    sh.fragmentShader = 'varying float vCue;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.82,.93,1.18)+vec3(.05,.07,.12),min(1.0,clamp(vCue,0.0,3.0)*.33));'); };
+  mat.customProgramCacheKey = () => 'koa-cue';
+}
+function partBone(ch, p, mirror) { const R = ch.R, sw = s => mirror ? s.replace(/^r/, 'L').replace(/^l/, 'r').replace(/^L/, 'l') : s; const q = sw(p);
+  return { hips: R.hips, head: R.head, rSh: R.rArm, lSh: R.lArm, rHand: R.rHand, lHand: R.lHand, rFore: R.rFore, lFore: R.lFore, rShin: R.rShin, lShin: R.lShin, rFoot: R.rFoot, lFoot: R.lFoot }[q] || R.head; }
+
+/* ---------------- boarding + setting up the bus ---------------- */
+function boardBus(e) {
+  RIDE.on = true; RIDE.e = e; RIDE.trip = e.tr; RIDE.phase = 'board'; RIDE.t = 0; RIDE.departT = undefined; RIDE.camW = null; RIDE.requested = false; RIDE.attention = 0; RIDE.astralW = 0; RIDE.ts = 1; RIDE.enc = null; RIDE.fight = null; RIDE.boardedAt = e.st.dwell;
+  GUIDE.beacon.visible = false; $('boardBtn').hidden = true;
+  RIDE.phase = 'enter'; RIDE.enterT = 0;                  // Ben walks to the open doors and steps on; then we're inside
+  setupInterior(e.bus); rideHud(true); $('meters').hidden = true;
+}
+// stepping on: town Ben walks to the front door
+function enterUpdate(dt) {
+  const g = RIDE.e.bus.g, door = g.localToWorld(V3(-BW / 2 - .45, 0, BL / 2 - .75)), dx = door.x - P.x, dz = door.z - P.z, L = Math.hypot(dx, dz);
+  RIDE.enterT += dt;
+  const stp = Math.min(L, 1.7 * dt); P.x += dx / Math.max(L, 1e-3) * stp; P.z += dz / Math.max(L, 1e-3) * stp; P.y = hAt(P.x, P.z) + .12;
+  benTownUpdate(dt, L > .05, 1.7, Math.atan2(dx, dz));
+  const cp = g.localToWorld(V3(-BW / 2 - 3.6, 1.75, BL / 2 + 2.6)), lk = g.localToWorld(V3(-BW / 2 - .8, 1.15, BL / 2 - 1.4));   // on the kerb ahead of the bus, looking back at the doors
+  cam.position.copy(cp); cam.position.y = Math.max(cp.y, hAt(cp.x, cp.z) + 1.2); cam.lookAt(lk);
+  if (L < .3 || RIDE.enterT > 5) {
+    BEN.visible = false; if (BEN.ch) BEN.ch.g.visible = false; $('meters').hidden = false;
+    RIDE.phase = 'choose'; $('seatUI').hidden = false; sfx('card');
+    sub(`Beep — card tapped. The ${BUSD.routes[RIDE.trip.rid].label}. Four seats free: pick one (tap its ring) — or stand.`, 5);
+  }
+}
+function setupInterior(bus) {
+  clearInterior();
+  const L = seatList(), plan = planSeats(L); RIDE.seats = L; RIDE.plan = plan;
+  const free = new Set(plan.map(p => p.free)), att = new Map(plan.map(p => [p.att, p]));
+  let ci = 0; const freeRows = new Set(plan.map(p => p.free.r)), bake = [];
+  if (bus.crowd) bus.crowd.visible = false;
+  for (const s of L) {
+    if (free.has(s)) continue;
+    const p = att.get(s), tint = new THREE.Color(...CLOTH[ci++ % CLOTH.length]).multiplyScalar(rr(.9, 1.05));
+    const ch = makeChar('ant', { tint, scale: rr(.95, 1.05) }); ch.sitW = 1; ch.g.position.set(s.x, s.y - .02, s.z); bus.g.add(ch.g);
+    const preset = pickR(['thighs', 'thighs', 'phone', 'phone', 'elbows', 'lap']);
+    const lookYaw = preset === 'phone' ? .05 : (s.c === 0 ? rr(.7, 1.1) : s.c === 3 ? rr(-1.1, -.7) : rr(-.3, .3));  // window seats look out
+    const base = presetChan(preset, lookYaw);
+    if (!p && !freeRows.has(s.r)) { writeSeat(ch, base, false); poseChar(ch, 0); bake.push({ ch, tint }); continue; }   // far from any free seat: baked (static, cheap)
+    const pax = { ch, seat: s, base, cur: cloneChan(base), move: null, nextT: rr(2, 8), attacker: !!p, kind: p?.kind, target: p?.free, pulse: 0, lookT: rr(1, 6), gl: 0 };
+    if (p) { cueMat(ch.mat); ch.mat.needsUpdate = true; const ws = V3(); ch.meshes[0].getWorldScale(ws); ch.mat.userData.cue.uScale.value = 1 / Math.max(1e-4, ws.x); }
+    writeSeat(ch, pax.cur, false); poseChar(ch, 0); s.pax = pax; RIDE.pax.push(pax);
+  }
+  for (const p of plan) { p.free.attacker = p.att.pax; p.free.kind = p.kind; }
+  const bg = bakeChars(bake, bus.g); for (const { ch } of bake) disposeChar(ch);
+  if (bg) { RIDE.crowd = new THREE.Mesh(bg, crowdMat()); bus.g.add(RIDE.crowd); }
+  // Ben (a second copy for the bus; the town copy waits outside)
+  RIDE.ben = makeChar('ben', { cal: { head: -.1, spine: .05 } }); RIDE.ben.g.position.set(-.5, FLOOR, 3.62); RIDE.ben.g.rotation.y = Math.PI; bus.g.add(RIDE.ben.g); play(RIDE.ben, 'Idle');
+  RIDE.benC = chan(); RIDE.benLook = V3(0, 1.2, 5);
+  // seat markers (tap to choose)
+  RIDE.markers = [];
+  plan.forEach((p, i) => { const s = p.free, g = new THREE.Group();
+    const ring = new THREE.Mesh(new THREE.RingGeometry(.16, .21, 32), new THREE.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: .85, side: THREE.DoubleSide, depthTest: false }));
+    ring.rotation.x = -Math.PI / 2; ring.renderOrder = 5; g.add(ring);
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(.8, 1.5, .9), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = .35; g.add(hit); hit.userData.seat = i;
+    const lab = new THREE.Sprite(new THREE.SpriteMaterial({ map: numTex(i + 1), transparent: true, depthTest: false })); lab.scale.setScalar(.2); lab.position.y = .42; lab.renderOrder = 6; g.add(lab);
+    g.position.set(s.x, s.y + .47, s.z + .06); g.visible = false; bus.g.add(g); RIDE.markers.push({ g, ring, hit, i }); });
+  // interior light (warm fluorescent) + the cue haze sprite
+  RIDE.light = new THREE.PointLight(0xfff4dc, 6, 9, 1.6); RIDE.light.position.set(0, 2.7, 0); bus.g.add(RIDE.light);
+  RIDE.haze = new THREE.Sprite(new THREE.SpriteMaterial({ map: hazeTex(), color: 0xdfe9ff, transparent: true, opacity: 0, depthWrite: false })); RIDE.haze.scale.setScalar(.22); bus.g.add(RIDE.haze);
+  RIDE.shieldFx = new THREE.Mesh(new THREE.SphereGeometry(.5, 32, 16), fresnelMat(0xffd36a));
+  bus.g.add(RIDE.shieldFx);
+}
+function clearInterior() {
+  for (const p of RIDE.pax) disposeChar(p.ch); RIDE.pax = [];
+  if (RIDE.crowd) { RIDE.crowd.parent?.remove(RIDE.crowd); RIDE.crowd.geometry.dispose(); RIDE.crowd = null; }
+  if (RIDE.e?.bus?.crowd) RIDE.e.bus.crowd.visible = true;
+  if (RIDE.ben) { disposeChar(RIDE.ben); RIDE.ben = null; }
+  for (const k of ['light', 'haze', 'shieldFx']) { const o = RIDE[k]; if (o) { o.parent?.remove(o); o.geometry?.dispose(); o.material?.dispose(); } RIDE[k] = null; }
+  for (const m of RIDE.markers || []) m.g.parent?.remove(m.g); RIDE.markers = [];
+  if (RIDE.fight) endFightObjects();
+}
+// shield: only the rim glows (fresnel), so it never covers his face
+function fresnelMat(color) { return new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uC: { value: new THREE.Color(color) }, uA: { value: 0 } },
+  vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }',
+  fragmentShader: 'uniform vec3 uC; uniform float uA; varying vec3 vN; varying vec3 vV; void main(){ float f=pow(1.-abs(dot(vN,vV)),2.5); gl_FragColor=vec4(uC*f*uA,1.); }' }); }
+const _num = {}; function numTex(n) { return _num[n] ||= canvasTex(64, 64, (x, w, h) => { x.fillStyle = 'rgba(12,21,16,.85)'; x.beginPath(); x.arc(32, 32, 29, 0, 7); x.fill(); x.strokeStyle = '#d9b45a'; x.lineWidth = 3; x.stroke(); x.fillStyle = '#ffd36a'; x.font = '700 36px Karla, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(n, 32, 34); }, false); }
+let _haze = null; function hazeTex() { if (_haze) return _haze; _haze = canvasTex(128, 128, (x, w, h) => { for (let i = 0; i < 26; i++) { const r = 8 + Math.random() * 18, cx = 28 + Math.random() * 72, cy = 28 + Math.random() * 72, g = x.createRadialGradient(cx, cy, 0, cx, cy, r); const c = Math.random() < .5 ? '255,255,255' : '170,190,230'; g.addColorStop(0, `rgba(${c},.55)`); g.addColorStop(1, `rgba(${c},0)`); x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); } }, false); return _haze; }
+
+/* ---------------- per-frame ride update ---------------- */
+function rideUpdate(rdt) {
+  const bus = RIDE.e.bus, dt = rdt * RIDE.ts; RIDE.t += rdt;
+  if (RIDE.phase === 'enter') { enterUpdate(rdt); for (const p of RIDE.pax) paxUpdate(p, dt); return; }
+  breathe(rdt, RIDE.fight ? .75 + (RIDE.fight.ben.roll ? .3 : 0) : .15 + (RIDE.bk || 0) * .7 + (RIDE.walk && RIDE.phase === 'walk' ? .2 : 0));
+  // alighting: the bus is dwelling at a stop and we asked to get off (or it's the last stop in town)
+  const st = RIDE.e.st;
+  if (st && st.dwell && st.dwell !== RIDE.boardedAt && st.doors > .6 && ['seated', 'stand', 'choose', 'kicked'].includes(RIDE.phase) && !RIDE.fight && !RIDE.cine) {
+    const lastInTown = RIDE.trip.keys.filter(k => k.kind === 'dep').slice(-1)[0].n === st.dwell;
+    if (RIDE.requested || RIDE.kickedOff || lastInTown) { alight(st.dwell, lastInTown && !RIDE.requested && !RIDE.kickedOff); return; }
+  }
+  if (st && !st.dwell) RIDE.boardedAt = null;
+  // people
+  for (const p of RIDE.pax) paxUpdate(p, dt);
+  benRideUpdate(dt, rdt);
+  if (RIDE.phase === 'seated' || RIDE.phase === 'stand') encounterUpdate(dt);
+  cineUpdate(rdt);
+  if (RIDE.fight) fightUpdate(rdt);
+  // after a win: that person has let go, but anyone else within two seats may start in later
+  if (RIDE.after && RIDE.phase === 'seated') { RIDE.after.t += dt; if (RIDE.after.t > 45) { RIDE.after = null; const s = RIDE.seat, next = RIDE.pax.filter(p => p.attacker && !p.done && p !== s.attacker && Math.hypot(p.seat.x - s.x, p.seat.z - s.z) < EN.nearby.range)[0];
+    if (next) { s.attacker.done = true; s.attacker = next; s.kind = Math.abs(next.seat.z - s.z) < .1 && Math.abs(next.seat.x - s.x) < .6 ? 'next' : 'across'; startEncounter(); } } }
+  if (!RIDE.enc && !RIDE.fight && RIDE.phase !== 'kicked') METER.astral = Math.min(100, METER.astral + .25 * dt);
+  // markers pulse
+  for (const m of RIDE.markers) { m.g.visible = RIDE.phase === 'choose'; m.ring.material.opacity = .55 + .35 * Math.sin(RIDE.t * 4 + m.i); }
+  meters(rdt);
+  $('rideBtns').hidden = !['seated', 'stand', 'kicked'].includes(RIDE.phase) || !!RIDE.cine || !!RIDE.fight;
+  rideCamera(rdt);
+}
+function paxUpdate(p, dt) {
+  const ch = p.ch; if (dt <= 0) return;
+  // ordinary people: an occasional glance or small shift; attackers run the director (encounterUpdate) instead
+  const engaged = p.attacker && RIDE.enc && RIDE.enc.who.includes(p);
+  if (!engaged) {
+    p.lookT -= dt; if (p.lookT <= 0) { p.lookT = rr(3, 9); const b = p.base; if (b.preset !== 'phone') b.lookYaw = p.seat.c === 0 ? rr(.5, 1.2) : p.seat.c === 3 ? rr(-1.2, -.5) : rr(-.5, .5); }
+    if (RIDE.attention > 30 && p.attnT === undefined && rngR() < dt * RIDE.attention / 400 && p.seat.z < (RIDE.seat?.z ?? 0) + 2.5 && p.seat.z > (RIDE.seat?.z ?? 0) - 2.5) { p.attnT = rr(1.5, 3.5); }
+  }
+  const w = cloneChan(p.base);
+  if (p.move) { p.move.t += dt; applyMove(w, p.move, env(p.move.t, p.move.dur) * p.move.size, p.move.t); if (p.move.t >= Math.max(p.move.dur, p.move.p0 + p.move.pd)) { p.move = null; p.pulse = 0; p.nextT = rr(EN.gap[0], EN.gap[1]); } }
+  if (p.attnT !== undefined) { p.attnT -= dt; const bs = RIDE.seat || { x: 0, z: 0 }; w.lookYaw = Math.atan2(-(bs.x - p.seat.x), (bs.z - p.seat.z)) * -1; w.lookPitch = -.1; if (p.attnT <= 0) p.attnT = undefined; }
+  if (p.flinch > 0) { p.flinch -= dt; }
+  // people don't snap: ease channels (update in batches so 28 people stay cheap)
+  const c = p.cur, k = 5;
+  for (const key of ['hipX', 'hipZ', 'leanX', 'leanZ', 'pitch', 'yaw', 'lookYaw', 'lookPitch', 'tension', 'shrug', 'phone', 'headTilt']) c[key] = damp(c[key], w[key], key.startsWith('look') ? 5 : k, dt);
+  for (const key of ['hl', 'hr', 'el', 'er', 'fl', 'fr', 'kl', 'kr']) dampV(c[key], w[key], k, dt);
+  p.breath = (p.breath || rr(0, 6)) + dt * 1.4; ch.S.breath = Math.sin(p.breath);
+  const live = engaged || p.move || p.attnT !== undefined || RIDE.phase === 'walk';
+  p.skip = (p.skip || 0) + 1;
+  if (live || p.skip > 6) { p.skip = 0; writeSeat(ch, c, p.mirror); poseChar(ch, 0); }
+}
+
+/* ---------------- Ben on the bus: walk to the chosen seat, sit, his body's responses ---------------- */
+function chooseSeat(i) {
+  if (RIDE.phase !== 'choose') return;
+  const p = RIDE.plan[i]; RIDE.seat = p.free; RIDE.phase = 'walk'; RIDE.walk = { t: 0, from: RIDE.ben.g.position.clone() };
+  $('seatUI').hidden = true; sfx('step');
+}
+function standInstead() { if (RIDE.phase !== 'choose') return; RIDE.seat = null; RIDE.phase = 'stand'; $('seatUI').hidden = true; RIDE.standZ = 3.0; sub('You stay standing by the front. It tires you, but no one is right next to you.', 4); }
+function benRideUpdate(dt, rdt) {
+  const ch = RIDE.ben, g = ch.g;
+  if (RIDE.phase === 'board' || RIDE.phase === 'choose') { ch.sitW = 0; play(ch, 'Idle'); poseChar(ch, dt); g.position.set(-.5, FLOOR, 3.62); g.rotation.y = Math.PI; return; }
+  if (RIDE.phase === 'walk') {
+    const s = RIDE.seat, W = RIDE.walk; W.t += dt;
+    const aisle = V3(0, FLOOR, s.z + .62), seatP = V3(s.x, s.y, s.z);
+    if (!W.atAisle) { const d = aisle.clone().sub(g.position); d.y = 0; const L = d.length();
+      if (L < .06) W.atAisle = true; else { const stp = Math.min(L, RD.walkSpeed * dt); g.position.addScaledVector(d.normalize(), stp); footsteps(stp, false, 'road'); g.rotation.y = Math.atan2(d.x, d.z); play(ch, 'Walk', { speed: 1.2 }); }
+      ch.sitW = 0; poseChar(ch, dt); return; }
+    W.sit = (W.sit || 0) + dt / RD.sitTime; const k = smooth(Math.min(1, W.sit));
+    g.position.lerpVectors(aisle, seatP, k); const yaw = Math.atan2(s.x > 0 ? 1 : -1, 0) * (1 - k); g.rotation.y = yaw;
+    ch.sitW = k; RIDE.benC = chan(); writeBen(); poseChar(ch, dt);
+    if (W.sit >= 1) { RIDE.phase = 'seated'; ch.sitW = 1; startEncounter(); }
+    return;
+  }
+  if (RIDE.phase === 'stand') { ch.sitW = 0; g.position.set(-.1, FLOOR, RIDE.standZ); g.rotation.y = Math.PI * .92; play(ch, RIDE.leak > 0 ? 'Stumble' : 'Idle'); poseChar(ch, dt); return; }
+  if (RIDE.phase === 'kicked') { ch.sitW = damp(ch.sitW, 0, 4, dt); play(ch, 'Idle'); if (ch.sitW < .05) { ch.sitW = 0; g.position.x = damp(g.position.x, 0, 3, dt); } else writeBen(); poseChar(ch, dt); return; }
+  // seated
+  writeBen(dt); poseChar(ch, dt);
+}
+// Ben's seated body: tension rises with exposure; a shielded tell gets an automatic counter (he turns away)
+function writeBen(dt = 0) {
+  const ch = RIDE.ben, S = ch.S, s = RIDE.seat; if (!s) return;
+  const E = RIDE.enc, k = E ? clamp(E.expS * 2.2, 0, 1.2) : 0, ctr = E ? E.counter : 0, leak = RIDE.leak || 0;
+  RIDE.bk = damp(RIDE.bk || 0, k, k > (RIDE.bk || 0) ? 1.2 : .5, dt || 1);
+  const b = RIDE.bk; RIDE.bph = (RIDE.bph || 0) + (dt || 0) * 6.283 * (.22 + .2 * b); S.breath = Math.sin(RIDE.bph) * (1 + 1.4 * b);
+  S.tension = Math.min(1, b * .9 + leak * .8);
+  const toward = E && E.primary ? Math.sign(E.primary.seat.x - s.x) || 1 : 1;       // +1: the attacker is on Ben's left (+X)
+  S.hands.l.lerpVectors(V3(.2, .66, .3), V3(.045, .61, .36), Math.min(1, b * 1.1)); S.hands.r.lerpVectors(V3(-.2, .66, .3), V3(-.045, .61, .36), Math.min(1, b * 1.1));
+  if (leak > 0) { S.hands.r.lerp(V3(-.02, 1.12, .2), leak); S.hands.l.lerp(V3(.05, 1.05, .22), leak * .6); }
+  S.elbow.l.set(.5, -.3 - .3 * b, -1); S.elbow.r.set(-.5, -.3 - .3 * b, -1);
+  S.lean.x = -.06 * b * toward - ctr * .08 * toward; S.lean.z = .1 + .12 * b + leak * .15; S.pitch = .12 - .05 * b;
+  S.yaw = -ctr * .35 * toward; S.hip.set(0, .56, 0);
+  const lk = V3(-toward * 2.5 * ctr, 1.1 - .4 * b, 3).add(V3(0, 0, 0)); RIDE.benLook.lerp(lk, dt ? 1 - Math.exp(-4 * dt) : 1); S.look.copy(RIDE.benLook);
+}
+
+/* ---------------- the everyday layer: tells + shielding ---------------- */
+function startEncounter() {
+  const s = RIDE.seat, prim = s.attacker, near = RIDE.pax.filter(p => p.attacker && p !== prim && Math.hypot(p.seat.x - s.x, p.seat.z - s.z) < EN.nearby.range);
+  for (const p of [prim, ...near]) p.mirror = (s.x > p.seat.x);          // Ben on this person's left → mirror their moves
+  RIDE.enc = { primary: prim, who: [prim, ...near], near, kind: s.kind, t: 0, onset: rr(EN.onset[0], EN.onset[1]), engagedT: 0, first: -1, blocks: 0, hits: 0, expS: 0, counter: 0, log: [] };
+  sub(s.kind === 'next' ? 'You sit down. Someone right beside you.' : 'You sit down. Someone across the aisle.', 3);
+}
+function encounterUpdate(dt) {
+  const E = RIDE.enc; if (!E || RIDE.fight || RIDE.after || RIDE.cine) { if (E) E.counter = damp(E.counter, 0, 2, dt); pressureHum(0); if (RIDE.haze) RIDE.haze.visible = false; return; }
+  E.t += dt;
+  const C = E.kind === 'next' ? EN.next : EN.across, standing = RIDE.phase === 'stand';
+  // director: the primary attacker's micro-movements; after onset, movements toward Ben carry pressure
+  const p = E.primary; if (!p) return;
+  if (!p.move) { p.nextT -= dt; if (p.nextT <= 0) {
+    const on = E.t > E.onset; let list = Object.keys(MOVES).map(n => ({ n, w: MOVES[n].w })); if (!on) list = list.filter(e => !MOVES[e.n].toward);
+    if (on && rngR() < .7) list = list.filter(e => MOVES[e.n].toward);
+    const n = wpick(list).n; p.move = newMove(n, on && (MOVES[n].toward || rngR() < .25), rr(.5, 1)); } }
+  const m = p.move; p.pulse = m && m.pressure ? m.amp * env(m.t - m.p0, m.pd, .3, .4) : 0;
+  // resolve each pulse once its window closes: shielded at the peak = blocked (auto counter), otherwise it lands
+  if (m && m.pressure) {
+    if (m.t >= m.p0 + m.pd * .45 && !m.peak) { m.peak = true; m.shieldAtPeak = SHIELD.up; if (E.first < 0) E.first = E.t; }
+    if (m.t >= m.p0 + m.pd && !m.done) { m.done = true;
+      if (m.shieldAtPeak || SHIELD.upSince <= E.t - .1 && SHIELD.up) { E.blocks++; E.counter = 1; sfx('block'); flashShield(); E.log.push('block'); }
+      else if (!standing) { E.hits++; hurt(C.pulseDmg * m.amp, 'pulse'); E.log.push('hit'); }
+    } }
+  E.counter = damp(E.counter, 0, .8, dt);
+  // continuous field from the primary and anyone else within two seats (weaker; shield cuts it)
+  const field = (E.first >= 0 ? C.fieldDmg : 0) + (E.first >= 0 ? E.near.length * EN.nearby.fieldDmg : 0);
+  const shieldK = SHIELD.up ? .15 : 1, standK = standing ? .3 : 1;
+  if (field > 0) hurt(field * shieldK * standK * dt, 'field', true);
+  E.expS = damp(E.expS, (p.pulse + (E.first >= 0 ? .2 : 0)) * shieldK * standK, 1.2, dt);
+  if (standing) { METER.emo = Math.max(0, METER.emo - RD.standDrainPerSec * dt); }
+  // visual tell + sound
+  cueUpdate(p, dt);
+  pressureHum(p.pulse * (SHIELD.up ? .4 : 1));
+  // go astral: a couple of shields, about ten seconds in (Anthony). Or, if he can't manage it, it pulls him in.
+  if (E.first >= 0 && !standing) { E.engagedT = E.t - E.first;
+    if (E.blocks >= EN.blocksToGo && E.engagedT >= EN.engagedToGo) startCinematic(false);
+    else if (E.engagedT >= EN.pullInAfter) startCinematic(true); }
+}
+function cueUpdate(p, dt) {
+  const m = p.move, u = p.ch.mat.userData.cue; if (!u) return; u.uTime.value = performance.now() / 1000;
+  let k = 0; if (m && m.pressure) { if (!m.fl) { m.fl = []; const n = rngR() < .25 ? 1 : 2; for (let i = 0; i < n; i++) { const s = m.p0 + rngR() * m.pd * .7; m.fl.push([s, s + rr(.35, .8)]); } }
+    k = m.fl.some(([a, b]) => m.t >= a && m.t <= b) ? m.amp * .9 : 0; }
+  p.vk = damp(p.vk || 0, k, k > (p.vk || 0) ? 9 : 5, dt);
+  if (p.vk > .01) { const bp = boneW(partBone(p.ch, m?.part || 'rHand', p.mirror)); u.uCueP.value.copy(bp); u.uCueK.value = Math.min(3, p.vk); u.uCueR.value = .15;
+    RIDE.haze.position.copy(RIDE.e.bus.g.worldToLocal(bp.clone())); RIDE.haze.material.opacity = Math.min(.4, .12 * p.vk); RIDE.haze.visible = true; RIDE.haze.material.rotation += dt * .6; }
+  else { u.uCueK.value = 0; RIDE.haze.visible = false; }
+}
+
+/* ---------------- shield (both layers) ---------------- */
+const SHIELD = { up: false, upSince: 0, held: false, fx: 0 };
+function shieldSet(on) {
+  if (on && !SHIELD.up) { if (METER.astral < DATA.shield.raiseCost) { sub('Not enough astral energy to shield', 1.5); return; } METER.astral -= DATA.shield.raiseCost; SHIELD.up = true; SHIELD.upSince = RIDE.enc ? RIDE.enc.t : 0; SHIELD.upAt = performance.now(); sfx('shield'); }
+  if (!on) SHIELD.up = false;
+  $('shieldBtn').setAttribute('aria-pressed', SHIELD.up);
+}
+function flashShield() { SHIELD.fx = 1; }
+function hurt(n, why, quiet) {
+  if (METER.astral > 0) { METER.astral = Math.max(0, METER.astral - n); if (METER.astral <= 0 && !quiet) sub('Your astral energy is gone — it gets to you emotionally now', 3); }
+  else METER.emo = Math.max(0, METER.emo - n * (why === 'field' ? 1 : 1.2));
+}
+function meters(rdt) {
+  if (SHIELD.up) { METER.astral = Math.max(0, METER.astral - DATA.shield.costPerSec * rdt); if (METER.astral <= 0) shieldSet(false); }
+  $('mAstral').style.width = METER.astral + '%'; $('mEmo').style.width = METER.emo + '%';
+  $('mAstralV').textContent = Math.round(METER.astral); $('mEmoV').textContent = Math.round(METER.emo);
+  SHIELD.fx = Math.max(0, SHIELD.fx - rdt * 2);
+  if (RIDE.shieldFx && RIDE.ben) { const u = RIDE.shieldFx.material.uniforms.uA, on = (SHIELD.up && !RIDE.fight) ? .7 : 0; u.value = damp(u.value, on + SHIELD.fx * 1.2, 10, rdt);
+    const c = chestW(RIDE.ben); RIDE.shieldFx.position.copy(RIDE.e.bus.g.worldToLocal(c)); RIDE.shieldFx.visible = u.value > .01; }
+}
+
+/* ---------------- camera on the bus ---------------- */
+const RC = { off: 0, pitch: 0 };
+function rideCamera(rdt) {
+  const g = RIDE.e.bus.g; g.updateMatrixWorld(true);
+  let pos, look;
+  if (RIDE.phase === 'board') {                              // outside: the doors close, the bus pulls away and we ride along behind it
+    if (!RIDE.e.st.dwell && RIDE.departT === undefined) RIDE.departT = RIDE.t;
+    const k = RIDE.departT === undefined ? 0 : clamp((RIDE.t - RIDE.departT) / RD.boardShot, 0, 1), e = smooth(k);
+    if (!RIDE.camW) RIDE.camW = { pos: g.localToWorld(V3(-7.5, 1.9, 7)), look: g.localToWorld(V3(0, 1.5, 1)) };
+    const chase = { pos: g.localToWorld(V3(-3.2, 3.6, -13)), look: g.localToWorld(V3(0, 1.8, 3)) };
+    pos = RIDE.camW.pos.clone().lerp(chase.pos, e); look = RIDE.camW.look.clone().lerp(chase.look, e);
+    if (k >= 1) { RIDE.phase = 'choose'; $('seatUI').hidden = false; sub('Four seats free. Pick one — or stand.', 4); }
+  } else if (RIDE.phase === 'choose') {
+    pos = g.localToWorld(V3(.18 + Math.sin(RC.off) * .2, FLOOR + 1.98, 4.7)); look = g.localToWorld(V3(Math.sin(RC.off) * 2.5, FLOOR + .8 + RC.pitch, -3));
+  } else if (RIDE.fight && !RIDE.fight.done) { const f = fightCamera(); pos = f.pos; look = f.look; }
+  else {                                                      // seated / standing: a close three-quarter view from the aisle, drag to swing
+    const s = RIDE.seat || { x: -.1, z: RIDE.standZ ?? 3, y: FLOOR }, a = RIDE.enc?.primary?.seat || RIDE.seat?.attacker?.seat || s;
+    const px = clamp(Math.sin(RC.off) * .35, -.3, .3), pz = s.z + .95;
+    pos = g.localToWorld(V3(px, FLOOR + 1.48 + RC.pitch * .3, pz)); look = g.localToWorld(V3((s.x + a.x) / 2 + Math.sin(RC.off) * .6, FLOOR + .98, (s.z + a.z) / 2 - .05));
+    if (RIDE.cine) { const c = RIDE.cine, k = smooth(clamp(c.t / (c.dur * .6), 0, 1)), tgt = { pos: g.localToWorld(c.focus.pos.clone()), look: g.localToWorld(c.focus.look.clone()) };
+      if (c.dir === 'in') { pos.lerp(tgt.pos, k); look.lerp(tgt.look, k); } else { pos.copy(tgt.pos.clone().lerp(pos, k)); look.copy(tgt.look.clone().lerp(look, k)); } }
+  }
+  cam.position.copy(pos); cam.lookAt(look); cam.near = .05; cam.updateProjectionMatrix();
+}
+
+/* ---------------- request stop, alighting, consequences ---------------- */
+function requestStop() { if (RIDE.requested) return; RIDE.requested = true; sfx('bell'); sub('Ding. Stop requested.', 2); $('stopBtn').setAttribute('aria-pressed', true); }
+function alight(stopName, forced) {
+  const st = STOPS.find(q => q.name === stopName && q.dir === RIDE.trip.dir) || STOPS[0];
+  const msg = RIDE.kickedOff ? 'The driver waits with the doors open until you step off.' : forced ? 'Last stop in town — you get off here. The bus heads out of Kapaʻa.' : 'You step off.';
+  RIDE.leftTrip = RIDE.trip.id;
+  endRide(); const rx = -Math.sin(st.face), rz = -Math.cos(st.face);             // step out between the shelter and the kerb
+  P.x = st.x + rx * 2.2 + rz * 1.5; P.z = st.z + rz * 2.2 - rx * 1.5; P.y = hAt(P.x, P.z); P.yaw = st.face + Math.PI / 2; P.pitch = .15; BEN.heading = st.face + Math.PI; sfx('doors');
+  sub(`${prettyStop(stopName)}. ${msg}`, 4);
+}
+function endRide() {
+  if (RIDE.fight) endFightObjects(); clearInterior(); RIDE.on = false; RIDE.phase = ''; RIDE.enc = null; RIDE.after = null; RIDE.kickedOff = false; RIDE.ts = 1; setAstralLook(0);
+  shieldSet(false); BEN.visible = true; rideHud(false); cam.near = MODES.walk.near; cam.updateProjectionMatrix(); engine(0);
+  METER.astral = Math.max(METER.astral, 5);
+}
+function rideHud(on) {
+  $('rideHud').hidden = !on; $('busPanel').hidden = on; for (const id of ['joy']) $(id).style.display = 'none';
+  $('stopBtn').setAttribute('aria-pressed', false); $('seatUI').hidden = true; $('fightBtns').hidden = true;
+  document.body.classList.toggle('riding', on);
+}
+// subtitles / small narration line
+let subT = 0; function sub(t, s = 3) { const el = $('sub'); el.textContent = t; el.hidden = false; subT = s; }
+function subUpdate(dt) { if (subT > 0) { subT -= dt; if (subT <= 0) $('sub').hidden = true; } }
+
+/* ---------------- ride input ---------------- */
+const _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2();
+function pointerRay(e) { _ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); _ray.setFromCamera(_ndc, cam); return _ray; }
+function aimFromPointer(e) {
+  const F = RIDE.fight; if (!F) return; const g = F.g, r = pointerRay(e);
+  const o = g.worldToLocal(r.ray.origin.clone()), d = g.worldToLocal(r.ray.origin.clone().add(r.ray.direction)).sub(o).normalize();
+  const y = FLOOR + 1.1; if (Math.abs(d.y) < 1e-4) return; const t = (y - o.y) / d.y; if (t < 0) return;
+  F.aim.set(o.x + d.x * t, FLOOR, o.z + d.z * t); F.aimSet = true;
+}
+const RDRAG = { id: null, x: 0, y: 0, moved: 0 };
+addEventListener('pointerdown', e => {
+  if (!RIDE.on || e.target !== canvas) return; audioInit();
+  const fightLive = RIDE.fight && !RIDE.fight.done;
+  if (fightLive && e.clientX < innerWidth * .45) return;             // left thumb: the joystick (main.js) moves him
+  if (fightLive) { aimFromPointer(e); fire(); e.stopImmediatePropagation(); return; }
+  RDRAG.id = e.pointerId; RDRAG.x = e.clientX; RDRAG.y = e.clientY; RDRAG.moved = 0; e.stopImmediatePropagation();
+}, true);
+addEventListener('pointermove', e => {
+  if (!RIDE.on) return;
+  if (RIDE.fight && e.pointerType === 'mouse' && !e.buttons) aimFromPointer(e);
+  if (e.pointerId !== RDRAG.id) return; const dx = e.clientX - RDRAG.x, dy = e.clientY - RDRAG.y; RDRAG.x = e.clientX; RDRAG.y = e.clientY; RDRAG.moved += Math.abs(dx) + Math.abs(dy);
+  RC.off = clamp(RC.off - dx * .004, -1.2, 1.2); RC.pitch = clamp(RC.pitch - dy * .003, -.6, .6); e.stopImmediatePropagation();
+}, true);
+addEventListener('pointerup', e => {
+  if (!RIDE.on || e.pointerId !== RDRAG.id) return; RDRAG.id = null;
+  if (RIDE.phase === 'choose' && RDRAG.moved < 14) {
+    const hits = pointerRay(e).intersectObjects(RIDE.markers.map(m => m.hit), false);
+    if (hits.length) { chooseSeat(hits[0].object.userData.seat); return; }
+    // otherwise the ring nearest the tap on screen (within ~70 px)
+    let best = -1, bd = 70; for (const m of RIDE.markers) { const v = m.g.getWorldPosition(V3()).project(cam); if (v.z > 1) continue; const d = Math.hypot((v.x * .5 + .5) * innerWidth - e.clientX, (-v.y * .5 + .5) * innerHeight - e.clientY); if (d < bd) { bd = d; best = m.i; } }
+    if (best >= 0) chooseSeat(best); }
+}, true);
+addEventListener('keydown', e => {
+  if (!RIDE.on || e.target.tagName === 'INPUT') return; const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (k === ' ') { shieldSet(true); e.preventDefault(); e.stopImmediatePropagation(); return; }
+  if (k === 'f' || k === 'j') { fire(); e.stopImmediatePropagation(); return; }
+  if (k === 'r' || k === 'k') { roll(); e.stopImmediatePropagation(); return; }
+  if (['1', '2', '3', '4'].includes(k)) { chooseSeat(+k - 1); return; }
+  if (k === 'x') { standInstead(); return; }
+  if (k === 'b') { requestStop(); return; }
+  if (['m', 't', 'g'].includes(k)) e.stopImmediatePropagation();
+}, true);
+addEventListener('keyup', e => { if (RIDE.on && e.key === ' ') shieldSet(false); }, true);
+function holdBtn(el, on, off) { el.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); on(); el.setPointerCapture(e.pointerId); }); for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) el.addEventListener(ev, () => off()); }
+holdBtn($('shieldBtn'), () => shieldSet(true), () => shieldSet(false));
+$('rollBtn').addEventListener('pointerdown', e => { e.preventDefault(); roll(); });
+$('fireBtn').addEventListener('pointerdown', e => { e.preventDefault(); if (RIDE.fight) RIDE.fight.aimSet = false; fire(); });
+$('stopBtn').onclick = requestStop; $('standBtn').onclick = standInstead;
+document.querySelectorAll('#seatUI [data-seat]').forEach(b => b.onclick = () => chooseSeat(+b.dataset.seat));
+$('boardBtn').onclick = () => { audioInit(); if (GUIDE.board) boardBus(GUIDE.board); };
+$('waitBtn').onclick = () => { audioInit(); waitForBus(); };
+$('cycleStop').onclick = () => { GUIDE.pick = (GUIDE.pick + 1) % 3; };
+
+
+/* ================= The astral fight =================
+   Anthony's notes: entering is cinematic (zoom in, everything slows); the fight happens "just behind" where Ben and the
+   other person are; astral bolts, shields, rolling away; you can't aim straight at the enemy (aim ahead of it); reading
+   what it's about to do lets Ben counter more easily and more powerfully, saving astral power and taking less injury;
+   doing badly leaks into the physical world (coughing, getting up) and can get him kicked off the bus; winning doesn't
+   banish the entity — it only gets him through this interaction. Everything else here is a placeholder to change. */
+const WIRE = new THREE.MeshBasicMaterial({ color: 0x7fb5d5, wireframe: true, transparent: true, opacity: .42, fog: true });
+const FOG0 = { c: new THREE.Color(), near: 0, far: 0 }, MIST = new THREE.Color(0x0c1828);
+let astralLookW = -1;
+function setAstralLook(w) {
+  if (astralLookW === w) return; if (astralLookW < 0 || astralLookW === 0) { FOG0.c.copy(scene.fog.color); FOG0.near = scene.fog.near; FOG0.far = scene.fog.far; }
+  astralLookW = w;
+  scene.fog.color.copy(FOG0.c).lerp(MIST, w); scene.fog.near = lerp(FOG0.near, 1.5, w); scene.fog.far = lerp(FOG0.far, 38, w);
+  sky.visible = w < .5; scene.background = w >= .5 ? MIST : null;
+  $('astralFx').style.opacity = w > 0 && w < 1 ? String(Math.sin(w * Math.PI) * .85) : '0';
+  $('astralTint').style.opacity = String(w * .55);
+}
+function renderFrame() {
+  if (RIDE.on && RIDE.astralW >= .5) {
+    scene.overrideMaterial = WIRE; cam.layers.set(0); renderer.render(scene, cam); scene.overrideMaterial = null;
+    const bg = scene.background; scene.background = null;             // a colour background would force a clear and wipe the first pass
+    renderer.autoClear = false; cam.layers.set(1); renderer.render(scene, cam); renderer.autoClear = true; cam.layers.set(0); scene.background = bg;
+  } else renderer.render(scene, cam);
+}
+for (const l of [hemi, sun]) l.layers.enable(1);
+
+/* ---------------- cinematic in / out ---------------- */
+function startCinematic(pulled) {
+  const E = RIDE.enc, s = RIDE.seat, a = E.primary, g = RIDE.e.bus.g;
+  shieldSet(false); $('rideBtns').hidden = true;
+  const mid = V3((s.x + a.seat.x) / 2, FLOOR + 1.05, (s.z + a.seat.z) / 2), side = s.x > 0 ? -1 : 1;
+  const focus = { pos: V3(mid.x + side * .55, FLOOR + 1.25, mid.z + .95), look: mid.clone() };          // bus-local
+  RIDE.cine = { t: 0, dur: AS.cineIn, pulled, focus, dir: 'in' };
+  if (pulled) { hurt(EN.pullInPenalty, 'pull'); sub('It pulls you in.', 2.5); } else sub('You go after it.', 2.5);
+  sfx('whoosh'); heartbeat(true);
+}
+function cineUpdate(rdt) {
+  const c = RIDE.cine; if (!c) return; c.t += rdt; const u = clamp(c.t / c.dur, 0, 1);
+  if (c.dir === 'in') {
+    RIDE.ts = lerp(1, AS.timeScale, smooth(clamp(u / .6, 0, 1)));
+    RIDE.astralW = smooth(clamp((u - .45) / .55, 0, 1)); setAstralLook(RIDE.astralW);
+    if (u >= 1) { RIDE.cine = null; startFight(); }
+  } else {
+    RIDE.ts = lerp(AS.timeScale, 1, smooth(clamp((u - .3) / .7, 0, 1)));
+    RIDE.astralW = 1 - smooth(clamp(u / .6, 0, 1)); setAstralLook(RIDE.astralW);
+    if (u >= 1) { RIDE.cine = null; RIDE.ts = 1; setAstralLook(0); afterFight(c.win); }
+  }
+}
+
+/* ---------------- astral bodies ---------------- */
+function astralBody(kind, hue) {
+  const ch = makeChar(kind === 'ben' ? 'ben' : 'ant', { cal: kind === 'ben' ? { head: -.1, spine: .05 } : { head: 0, spine: 0 } });
+  const m = kind === 'ben'
+    ? new THREE.MeshStandardMaterial({ map: MODELS.ben.tex, color: 0xfff0cf, emissive: 0xffc15a, emissiveIntensity: .55, transparent: true, opacity: .8, roughness: .5 })
+    : new THREE.MeshStandardMaterial({ map: MODELS.ant.tex, color: 0x5a4380, emissive: 0x8a3ae0, emissiveIntensity: 1.25, transparent: true, opacity: .9, roughness: .6 });
+  m.userData.u = { uTime: { value: 0 }, uWob: { value: kind === 'ben' ? .25 : 1.1 }, uScale: { value: 1 } };
+  m.onBeforeCompile = s => { Object.assign(s.uniforms, m.userData.u);
+    s.vertexShader = 'uniform float uTime; uniform float uWob; uniform float uScale;\n' + s.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n transformed += normalize(objectNormal) * uScale * (sin(position.y*9.0+uTime*5.0)*0.018 + sin(position.x*13.0-uTime*3.0)*0.012) * uWob;'); };
+  m.customProgramCacheKey = () => 'koa-astral-' + kind;
+  for (const o of ch.meshes) o.material = m; ch.mat = m;
+  ch.g.traverse(o => o.layers.set(1));
+  const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: kind === 'ben' ? 0xffd27a : 0x8a4ad0, transparent: true, opacity: kind === 'ben' ? .28 : .35, depthWrite: false, blending: THREE.AdditiveBlending }));
+  aura.scale.set(1.2, 2.0, 1); aura.position.y = 1; aura.layers.set(1); ch.g.add(aura); ch.aura = aura;
+  return ch;
+}
+let _glow = null; function glowTex() { if (_glow) return _glow; _glow = canvasTex(128, 128, (x, w, h) => { const g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.35, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); }, false); return _glow; }
+function glowSprite(color, size) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); s.scale.setScalar(size); s.layers.set(1); return s; }
+
+/* ---------------- the fight ---------------- */
+function startFight() {
+  const E = RIDE.enc, s = RIDE.seat, a = E.primary, g = RIDE.e.bus.g, K = AS.ent[E.kind];
+  const C = V3((s.x + a.seat.x) / 2, FLOOR, (s.z + a.seat.z) / 2);
+  const ben = astralBody('ben'), ent = astralBody('ent');
+  const uS = V3(); ent.meshes[0].getWorldScale(uS); ent.mat.userData.u.uScale.value = 1 / Math.max(1e-4, uS.x); ben.meshes[0].getWorldScale(uS); ben.mat.userData.u.uScale.value = 1 / Math.max(1e-4, uS.x);
+  g.add(ben.g, ent.g);
+  const bStart = V3(s.x, FLOOR, s.z), eStart = V3(a.seat.x, FLOOR, a.seat.z);
+  const away = V3(s.x - a.seat.x, 0, s.z - a.seat.z); if (away.lengthSq() < .01) away.set(1, 0, 0); away.normalize();
+  const floor = new THREE.Mesh(new THREE.RingGeometry(AS.arenaR - .08, AS.arenaR, 64), new THREE.MeshBasicMaterial({ color: 0x9fd0ff, transparent: true, opacity: .35, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+  floor.rotation.x = -Math.PI / 2; floor.position.copy(C).add(V3(0, .02, 0)); floor.layers.set(1); g.add(floor);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(AS.arenaR, 48), new THREE.MeshBasicMaterial({ color: 0x0f2438, transparent: true, opacity: .45, depthWrite: false }));
+  disc.rotation.x = -Math.PI / 2; disc.position.copy(C).add(V3(0, .01, 0)); disc.layers.set(1); g.add(disc);
+  const hand = glowSprite(0xb070ff, .05); ent.g.add(hand); hand.position.set(0, 1.3, .4);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.85, 28, 14, 0, Math.PI * 2, 0, Math.PI * .55), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+  dome.layers.set(1); g.add(dome);
+  RIDE.fight = { t: 0, C, g, kind: E.kind, objs: [ben.g, ent.g, floor, disc, dome], dome, hand, waves: [], bolts: [], fx: [],
+    ben: { ch: ben, pos: bStart.clone(), to: C.clone().addScaledVector(away, 2.1), face: Math.atan2(-away.x, -away.z), fire: null, cd: 0, roll: null, rollCD: 0, stag: 0, kb: V3() },
+    ent: { ch: ent, pos: eStart.clone(), to: C.clone().addScaledVector(away, -2.4), ang: 0, dir: rngR() < .5 ? 1 : -1, R: rr(...AS.ent.radius), state: 'intro', t: 0, hp: K.hp, max: K.hp, K, next: 1.6, flipT: rr(1.5, 3), kb: V3() },
+    aim: C.clone(), aimSet: false, result: null };
+  play(ben, 'Idle'); play(ent, 'Idle');
+  $('fightBtns').hidden = false; $('entBar').hidden = false;
+  sub(E.kind === 'next' ? 'Behind the seats, it shows itself.' : 'Across the aisle, it shows itself.', 2.5);
+}
+function endFightObjects() { const F = RIDE.fight; if (!F) return; for (const o of F.objs) o.parent?.remove(o); for (const w of [...F.waves, ...F.bolts, ...F.fx]) w.m.parent?.remove(w.m); RIDE.fight = null; $('fightBtns').hidden = true; $('entBar').hidden = true; }
+const _fv = V3();
+function fightInput() {
+  let ix = (keys.has('d') || keys.has('ArrowRight')) - (keys.has('a') || keys.has('ArrowLeft')), iz = (keys.has('s') || keys.has('ArrowDown')) - (keys.has('w') || keys.has('ArrowUp'));
+  if (joy) { ix += joy.dx; iz += joy.dy; } const l = Math.hypot(ix, iz); if (l > 1) { ix /= l; iz /= l; }
+  return { ix, iz, l: Math.min(1, l) };
+}
+function fightUpdate(rdt) {
+  const F = RIDE.fight; if (!F) return; const dt = rdt; F.t += dt;
+  const B = F.ben, N = F.ent, A = AS.ben, T = performance.now() / 1000;
+  B.ch.mat.userData.u.uTime.value = T; N.ch.mat.userData.u.uTime.value = T;
+  // ---- intro: both astral bodies step back out of the physical ones
+  if (F.t < .9) { const k = smooth(F.t / .9); B.pos.lerp(B.to, k * .12 + .02); N.pos.lerp(N.to, k * .12 + .02); }
+  // ---- Ben
+  const inp = fightInput(), fwd = V3(N.pos.x - B.pos.x, 0, N.pos.z - B.pos.z); if (fwd.lengthSq() < 1e-4) fwd.set(0, 0, 1); fwd.normalize();
+  const right = V3(-fwd.z, 0, fwd.x);           // screen-right when the camera looks along fwd
+  const mv = right.clone().multiplyScalar(-inp.ix).addScaledVector(fwd, -inp.iz);
+  B.rollCD = Math.max(0, B.rollCD - dt); B.cd = Math.max(0, B.cd - dt); B.stag = Math.max(0, B.stag - dt);
+  if (B.roll) { B.roll.t += dt; const k = B.roll.t / A.rollTime; B.pos.addScaledVector(B.roll.dir, A.rollDist / A.rollTime * dt * (1.2 - k * .4)); if (k >= 1) B.roll = null; }
+  else if (F.t > .9 && !B.stag) B.pos.addScaledVector(mv, A.speed * inp.l * dt / Math.max(1e-3, mv.length() || 1) * (mv.length() > 0 ? 1 : 0));
+  B.pos.add(B.kb.clone().multiplyScalar(dt * 6)); B.kb.multiplyScalar(Math.exp(-6 * dt));
+  clampArena(F, B.pos);
+  // aim: pointer if we have one, otherwise straight at it
+  if (!F.aimSet) F.aim.copy(N.pos);
+  const aimDir = V3(F.aim.x - B.pos.x, 0, F.aim.z - B.pos.z); if (aimDir.lengthSq() < .01) aimDir.copy(fwd); aimDir.normalize();
+  const faceTo = B.fire || B.roll ? Math.atan2(aimDir.x, aimDir.z) : (inp.l > .15 ? Math.atan2(mv.x, mv.z) : Math.atan2(fwd.x, fwd.z));
+  B.face = B.face + Math.atan2(Math.sin(faceTo - B.face), Math.cos(faceTo - B.face)) * (1 - Math.exp(-12 * dt));
+  if (B.fire) { B.fire.t += dt; if (B.fire.t >= A.windup && !B.fire.done) { B.fire.done = true; spawnWave(F, B, aimDir); } if (B.fire.t > A.windup + .25) B.fire = null; }
+  const anim = B.stag ? 'Hit' : B.roll ? 'Run' : B.fire ? 'Punch' : inp.l > .15 ? 'Run' : 'Idle';
+  play(B.ch, anim, { speed: anim === 'Punch' ? 1.8 : anim === 'Run' ? 1.2 : 1 });
+  B.ch.g.position.copy(B.pos); B.ch.g.rotation.y = B.face; B.ch.sitW = 0; poseChar(B.ch, dt);
+  // shield dome
+  F.dome.position.copy(B.pos).add(V3(0, .15, 0)); F.dome.material.opacity = damp(F.dome.material.opacity, SHIELD.up ? .22 + SHIELD.fx * .4 : SHIELD.fx * .4, 12, dt);
+  // ---- the entity
+  entUpdate(F, dt);
+  // ---- projectiles
+  for (const w of F.waves) { w.age += dt; w.m.position.addScaledVector(w.v, dt); w.m.material.opacity = 1 - w.age / (A.waveRange / A.waveSpeed);
+    if (N.state !== 'dead' && N.state !== 'intro' && dist2(w.m.position, N.pos) < A.waveR + .3) { w.dead = true; entHit(F, 1); fxBurst(F, w.m.position, 0xffd27a); }
+    if (w.age > A.waveRange / A.waveSpeed) w.dead = true; }
+  for (const b of F.bolts) { b.age += dt;
+    if (!b.reflected) { const to = V3(B.pos.x - b.m.position.x, 0, B.pos.z - b.m.position.z).normalize(); const cur = b.v.clone().normalize(); const ang = Math.atan2(cur.x * to.z - cur.z * to.x, cur.dot(to)), turn = clamp(ang, -1.2 * dt, 1.2 * dt); b.v.applyAxisAngle(V3(0, 1, 0), -turn); }
+    b.m.position.addScaledVector(b.v, dt); b.m.scale.setScalar(.45 + .08 * Math.sin(b.age * 30));
+    if (b.reflected) { if (dist2(b.m.position, N.pos) < .6) { b.dead = true; entHit(F, AS.ent.readDmg); fxBurst(F, b.m.position, 0xffd27a); } }
+    else if (dist2(b.m.position, B.pos) < .55 && !B.roll) boltHitsBen(F, b);
+    if (b.age > 4) b.dead = true; }
+  for (const f of F.fx) { f.age += dt; f.m.scale.setScalar(f.s * (1 + f.age * 3)); f.m.material.opacity = Math.max(0, 1 - f.age / .45); if (f.age > .45) f.dead = true; }
+  for (const L of [F.waves, F.bolts, F.fx]) for (let i = L.length - 1; i >= 0; i--) if (L[i].dead) { L[i].m.parent?.remove(L[i].m); L.splice(i, 1); }
+  $('entHp').style.width = Math.max(0, N.hp / N.max * 100) + '%';
+  // ---- outcome
+  if (!F.result && N.state === 'dead' && N.t > 1.1) endFight(true);
+  if (!F.result && METER.emo <= 0) { F.result = 'lose'; sub('It has you.', 2.5); setTimeout(() => endFight(false), 900); }
+  RIDE.leak = Math.max(0, (RIDE.leak || 0) - dt * .8);
+}
+const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+function clampArena(F, p) { const d = V3(p.x - F.C.x, 0, p.z - F.C.z), l = d.length(); if (l > AS.arenaR - .3) { d.multiplyScalar((AS.arenaR - .3) / l); p.x = F.C.x + d.x; p.z = F.C.z + d.z; } }
+function spawnWave(F, B, dir) {
+  if (METER.astral < AS.ben.fireCost) { sub('No astral energy left to strike with', 1.5); sfx('empty'); return; }
+  METER.astral -= AS.ben.fireCost;
+  const m = new THREE.Mesh(new THREE.TorusGeometry(.32, .06, 6, 20, Math.PI * .9), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  m.layers.set(1); m.position.copy(B.pos).add(V3(0, 1.15, 0)).addScaledVector(dir, .5); m.rotation.y = Math.atan2(dir.x, dir.z) + Math.PI / 2 * 0; m.rotation.x = Math.PI / 2; m.rotation.z = -Math.atan2(dir.x, dir.z) - Math.PI / 2 - .05;
+  const glow = glowSprite(0xffd27a, 1); glow.material.opacity = .6; m.add(glow);
+  F.g.add(m); F.waves.push({ m, v: dir.clone().multiplyScalar(AS.ben.waveSpeed), age: 0 }); sfx('wave');
+}
+function fire() {
+  const F = RIDE.fight; if (!F) return; const B = F.ben;
+  if (B.fire || B.cd > 0 || B.roll || B.stag) { sfx('empty'); return; }   // no buffering: spamming does nothing (from the 2D game)
+  B.fire = { t: 0 }; B.cd = AS.ben.windup + AS.ben.cooldown;
+}
+function roll() {
+  const F = RIDE.fight; if (!F) return; const B = F.ben, N = F.ent; if (B.roll || B.rollCD > 0) return;
+  if (METER.astral < AS.ben.rollCost) { sfx('empty'); return; } METER.astral -= AS.ben.rollCost;
+  const inp = fightInput(), fwd = V3(N.pos.x - B.pos.x, 0, N.pos.z - B.pos.z).normalize(), right = V3(-fwd.z, 0, fwd.x);
+  let d = right.clone().multiplyScalar(-inp.ix).addScaledVector(fwd, -inp.iz); if (d.lengthSq() < .01) d = right.clone().multiplyScalar(rngR() < .5 ? 1 : -1); d.normalize();
+  B.roll = { t: 0, dir: d }; B.rollCD = AS.ben.rollCD; sfx('roll');
+}
+function entUpdate(F, dt) {
+  const N = F.ent, B = F.ben, K = N.K; N.t += dt;
+  const toBen = V3(B.pos.x - N.pos.x, 0, B.pos.z - N.pos.z), dB = toBen.length(); toBen.normalize();
+  let speedAnim = 'Walk', face = Math.atan2(toBen.x, toBen.z), animSpeed = 1;
+  if (N.state === 'intro') { N.pos.lerp(N.to, 1 - Math.exp(-2.5 * dt)); if (N.t > 1) { N.state = 'circle'; N.t = 0; N.ang = Math.atan2(N.pos.x - B.pos.x, N.pos.z - B.pos.z); } speedAnim = 'Idle'; }
+  else if (N.state === 'circle' || N.state === 'tell') {
+    // it drifts round him — you have to lead your strikes
+    N.flipT -= dt; if (N.flipT <= 0) { N.flipT = rr(1.4, 3.4); if (rngR() < .55) N.dir *= -1; N.R = rr(...AS.ent.radius); N.w = rr(...AS.ent.orbit); }
+    const w = (N.w || .7) * (N.state === 'tell' ? .2 : 1);
+    N.ang += N.dir * w * dt;
+    const want = V3(B.pos.x + Math.sin(N.ang) * N.R, FLOOR, B.pos.z + Math.cos(N.ang) * N.R); clampArena(F, want);
+    const prev = N.pos.clone(); N.pos.lerp(want, 1 - Math.exp(-3 * dt));
+    const v = N.pos.clone().sub(prev).length() / Math.max(dt, 1e-4); speedAnim = v > 2.2 ? 'Run' : v > .3 ? 'Walk' : 'Idle'; animSpeed = clamp(v / 1.5, .6, 1.6);
+    if (N.state === 'circle') { N.next -= dt; if (N.next <= 0) { N.state = 'tell'; N.t = 0; N.atk = rngR() < .7 ? 'bolt' : 'lunge'; sfx(N.atk === 'bolt' ? 'tellBolt' : 'tellLunge'); } }
+    else {                                                                // the tell: it stops drifting, faces him, winds up
+      const k = N.t / K.tell; F.hand.scale.setScalar(.05 + k * (N.atk === 'bolt' ? .55 : .9)); F.hand.material.opacity = .4 + k * .6;
+      F.hand.position.set(N.atk === 'bolt' ? -.25 : 0, N.atk === 'bolt' ? 1.35 : .9, .35);
+      speedAnim = N.atk === 'bolt' ? 'Punch' : 'Push'; animSpeed = .35;
+      if (N.t >= K.tell) { N.releasedAt = performance.now(); if (N.atk === 'bolt') releaseBolt(F); else { N.state = 'lunge'; N.t = 0; N.lv = toBen.clone().multiplyScalar(K.lunge); N.lDist = dB + .6; N.hitDone = false; sfx('lunge'); } F.hand.scale.setScalar(.05); if (N.state === 'tell') { N.state = 'recover'; N.t = 0; } }
+    }
+  } else if (N.state === 'lunge') {
+    N.pos.addScaledVector(N.lv, dt); N.lDist -= K.lunge * dt; speedAnim = 'Run'; animSpeed = 1.8; face = Math.atan2(N.lv.x, N.lv.z);
+    if (!N.hitDone && dist2(N.pos, B.pos) < .8) { N.hitDone = true; lungeHitsBen(F); }
+    if (N.lDist <= 0 || N.t > .8) { N.state = N.state === 'lunge' ? 'recover' : N.state; N.t = 0; }
+    clampArena(F, N.pos);
+  } else if (N.state === 'recover') { speedAnim = 'Idle'; if (N.t > .5) { N.state = 'circle'; N.t = 0; N.next = rr(...K.gap); N.ang = Math.atan2(N.pos.x - B.pos.x, N.pos.z - B.pos.z); } }
+  else if (N.state === 'stagger') { speedAnim = 'Hit'; if (N.t > .38) { N.state = 'circle'; N.t = 0; N.next = Math.max(N.next, .6); N.ang = Math.atan2(N.pos.x - B.pos.x, N.pos.z - B.pos.z); } }
+  else if (N.state === 'stun') { speedAnim = 'Stumble'; animSpeed = .6; if (N.t > AS.ent.stun) { N.state = 'circle'; N.t = 0; N.next = rr(...K.gap); N.ang = Math.atan2(N.pos.x - B.pos.x, N.pos.z - B.pos.z); } }
+  else if (N.state === 'dead') { speedAnim = 'Stumble'; animSpeed = .5; N.ch.mat.opacity = Math.max(0, .85 - N.t * .8); N.ch.aura.material.opacity = Math.max(0, .5 - N.t * .5); N.pos.y += dt * .25; }
+  N.pos.add(N.kb.clone().multiplyScalar(dt * 6)); N.kb.multiplyScalar(Math.exp(-6 * dt));
+  play(N.ch, speedAnim, { speed: animSpeed });
+  N.ch.g.position.copy(N.pos); const cy = N.ch.g.rotation.y; N.ch.g.rotation.y = cy + Math.atan2(Math.sin(face - cy), Math.cos(face - cy)) * (1 - Math.exp(-10 * dt));
+  N.ch.sitW = 0; poseChar(N.ch, dt);
+}
+function releaseBolt(F) {
+  const N = F.ent, B = F.ben, hp = N.ch.g.localToWorld(V3(0, 0, 0)), start = F.g.worldToLocal(boneW(N.ch.R.rHand, V3()));
+  const m = glowSprite(0xb070ff, .45); m.material.opacity = .95; m.position.copy(start); m.position.y = FLOOR + 1.2;
+  const core = glowSprite(0xffffff, .18); m.add(core);
+  const v = V3(B.pos.x - start.x, 0, B.pos.z - start.z).normalize().multiplyScalar(N.K.bolt);
+  F.g.add(m); F.bolts.push({ m, v, age: 0, releasedAt: N.releasedAt, reflected: false }); sfx('bolt');
+}
+// shield timing: raised during the tell (before the release) = a READ — Ben counters by himself, stronger and cheaper
+function wasRead(releasedAt) { return SHIELD.up && SHIELD.upAt <= releasedAt; }
+function boltHitsBen(F, b) {
+  if (SHIELD.up && wasRead(b.releasedAt)) {            // read: it goes back where it came from
+    b.reflected = true; b.v = V3(F.ent.pos.x - b.m.position.x, 0, F.ent.pos.z - b.m.position.z).normalize().multiplyScalar(9.5); b.m.material.color.set(0xffd27a);
+    METER.astral = Math.min(100, METER.astral + DATA.shield.raiseCost); SHIELD.fx = 1; sfx('read'); floatText(F, 'read'); return; }
+  b.dead = true;
+  if (SHIELD.up) { hurt(AS.ent.blockChip, 'block'); SHIELD.fx = 1; sfx('block'); fxBurst(F, b.m.position, 0xffd27a); return; }
+  benHit(F, AS.ent.boltDmg, b.m.position);
+}
+function lungeHitsBen(F) {
+  const B = F.ben, N = F.ent, away = V3(B.pos.x - N.pos.x, 0, B.pos.z - N.pos.z).normalize();
+  if (B.roll) return;
+  if (SHIELD.up && wasRead(N.releasedAt)) { N.state = 'stun'; N.t = 0; N.kb.copy(away).multiplyScalar(-1.6); SHIELD.fx = 1; sfx('read'); floatText(F, 'read', 0xffe39a); entHit(F, 1, true); return; }
+  if (SHIELD.up) { hurt(AS.ent.lungeBlockChip, 'block'); SHIELD.fx = 1; sfx('block'); B.kb.copy(away).multiplyScalar(.5); N.kb.copy(away).multiplyScalar(-.8); return; }
+  B.kb.copy(away).multiplyScalar(1.2); benHit(F, AS.ent.lungeDmg, B.pos.clone().add(V3(0, 1, 0)));
+}
+function benHit(F, dmg, at) {
+  const B = F.ben; B.stag = .35;
+  if (METER.astral > 0) hurt(dmg, 'hit'); else METER.emo = Math.max(0, METER.emo - AS.emoWhenEmpty);
+  fxBurst(F, at, 0xb070ff); sfx('hurt'); shakeCam(.25);
+  // it leaks into the physical world: his body flinches and coughs; people notice
+  RIDE.leak = 1; RIDE.attention = Math.min(100, RIDE.attention + AS.attentionPerHit); sfx('cough');
+}
+function entHit(F, n, quiet) {
+  const N = F.ent; if (N.state === 'dead') return; N.hp -= n; if (!quiet) { N.state = 'stagger'; N.t = 0; } sfx('impact');
+  N.kb.copy(V3(N.pos.x - F.ben.pos.x, 0, N.pos.z - F.ben.pos.z).normalize().multiplyScalar(.6));
+  if (N.hp <= 0) { N.state = 'dead'; N.t = 0; sfx('dissolve'); sub('It lets go.', 2.5); }
+}
+function fxBurst(F, p, color) { const m = glowSprite(color, .5); m.position.copy(p); F.g.add(m); F.fx.push({ m, age: 0, s: .5 }); }
+function floatText(F, t, color) { const el = $('readFx'); el.textContent = t === 'read' ? 'Read it' : t; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+let shake = 0; function shakeCam(s) { shake = Math.max(shake, s); }
+function fightCamera() {
+  const F = RIDE.fight, g = F.g, B = F.ben, N = F.ent;
+  const d = V3(N.pos.x - B.pos.x, 0, N.pos.z - B.pos.z); if (d.lengthSq() < .01) d.set(0, 0, 1); d.normalize();
+  const side = V3(-d.z, 0, d.x);
+  const pos = B.pos.clone().addScaledVector(d, -2.6).addScaledVector(side, 1.5).add(V3(0, 2.5, 0));
+  const look = B.pos.clone().lerp(N.pos, .55).add(V3(0, .75, 0));
+  FC.pos = FC.pos ? FC.pos.lerp(pos, .12) : pos.clone(); FC.look = FC.look ? FC.look.lerp(look, .15) : look.clone();
+  const p = g.localToWorld(FC.pos.clone()), l = g.localToWorld(FC.look.clone());
+  if (shake > 0) { p.x += (Math.random() - .5) * shake * .15; p.y += (Math.random() - .5) * shake * .15; shake = Math.max(0, shake - .02); }
+  return { pos: p, look: l };
+}
+const FC = { pos: null, look: null };
+function endFight(win) {
+  const F = RIDE.fight; if (!F || F.done) return; F.done = true; F.result = win ? 'win' : 'lose';
+  RIDE.results.push({ kind: RIDE.enc.kind, win, blocks: RIDE.enc.blocks, attention: Math.round(RIDE.attention) });
+  $('fightBtns').hidden = true; $('entBar').hidden = true; shieldSet(false);
+  const bg = RIDE.e.bus.g; RIDE.cine = { t: 0, dur: AS.cineOut, dir: 'out', win, focus: { pos: bg.worldToLocal(cam.position.clone()), look: bg.worldToLocal(cam.position.clone().add(cam.getWorldDirection(V3()).multiplyScalar(2))) } };
+  heartbeat(false); sfx('whoosh');
+  setTimeout(() => { endFightObjects(); FC.pos = FC.look = null; }, AS.cineOut * 600);
+}
+function afterFight(win) {
+  const E = RIDE.enc; $('rideBtns').hidden = false;
+  if (win) {
+    const a = E.primary; a.move = null; a.pulse = 0; a.base = presetChan('phone', .05);
+    RIDE.enc = null; RIDE.after = { t: 0 };
+    sub(RIDE.attention >= 50 ? 'It lets go — for now. The driver catches your eye in the mirror: "Everything okay back there, brah?"' : 'It lets go — for now. Not gone, just done with you for this ride.', 5);
+  } else {
+    RIDE.enc = null; RIDE.after = { t: 0 }; RIDE.phase = 'kicked'; RIDE.kickedOff = true; RIDE.attention = 100;
+    sub('You’re on your feet, coughing, before you know it. People stare. The driver: "Eh! Sit down or get off, brah." At the next stop, he waits for you to get off.', 7);
+    sfx('cough');
+  }
+}
+
+
+/* ================= sound: synthesised placeholders (bus, astral) ================= */
+const AU = { ctx: null, master: null, eng: null, hum: null, hb: null, noise: null };
+function audioInit() {
+  if (AU.ctx) { AU.ctx.resume?.(); return; }
+  try { AU.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  const c = AU.ctx; AU.master = c.createGain(); AU.master.gain.value = .8; AU.master.connect(c.destination);
+  const nb = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; AU.noise = nb;
+  // bus engine: two detuned saws through a low-pass (muffled when you're inside)
+  const eg = c.createGain(); eg.gain.value = 0; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260; lp.connect(eg); eg.connect(AU.master);
+  const o1 = c.createOscillator(), o2 = c.createOscillator(); o1.type = o2.type = 'sawtooth'; o1.frequency.value = 42; o2.frequency.value = 63.5; o1.connect(lp); o2.connect(lp); o1.start(); o2.start();
+  AU.eng = { g: eg, lp, o1, o2 };
+  // astral pressure hum (from the bus-stop test): 43 Hz + harmonics so phone speakers carry it
+  const hg = c.createGain(); hg.gain.value = 0; hg.connect(AU.master);
+  for (const [f, a] of [[43, 1], [86, .5], [129, .3], [290, .08]]) { const o = c.createOscillator(); o.frequency.value = f; const g = c.createGain(); g.gain.value = a; o.connect(g); g.connect(hg); o.start(); }
+  AU.hum = hg;
+}
+let SFXG = 1;
+function aenv(g, t0, a, peak, r) { peak *= SFXG; if (peak < .0005) peak = .0005; g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(peak, t0 + a); g.gain.exponentialRampToValueAtTime(.0001, t0 + a + r); }
+function tone(f, type, peak, a, r, f2, delay = 0) { const c = AU.ctx; if (!c) return; const t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + a + r); o.connect(g); g.connect(AU.master); aenv(g, t, a, peak, r); o.start(t); o.stop(t + a + r + .05); }
+function noise(peak, a, r, type, f, f2, q = 1, delay = 0) { const c = AU.ctx; if (!c) return; const t = c.currentTime + delay, s = c.createBufferSource(); s.buffer = AU.noise; const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.setValueAtTime(f, t); if (f2) fl.frequency.exponentialRampToValueAtTime(f2, t + a + r); fl.Q.value = q; const g = c.createGain(); s.connect(fl); fl.connect(g); g.connect(AU.master); aenv(g, t, a, peak, r); s.start(t); s.stop(t + a + r + .05); }
+function sfx(n, arg, gain = 1) {
+  if (!AU.ctx || gain < .01) return; SFXG = gain; const r = () => .85 + Math.random() * .3;
+  switch (n) {
+    case 'doors': noise(.5, .03, .55, 'bandpass', 3800, 900, 1.4); noise(.22, .01, .25, 'lowpass', 300, 120, 1, .5); tone(95, 'sine', .15, .005, .2, 60, .52); break;       // pneumatic whoosh + thunk
+    case 'doorsClose': noise(.4, .03, .45, 'bandpass', 2500, 700, 1.4); tone(80, 'sine', .2, .005, .2, 55, .45); break;
+    case 'kneel': noise(.18, .2, .9, 'highpass', 4000, 2500, .7); break;
+    case 'brake': tone(1650, 'sine', .03, .25, .5, 1500); noise(.12, .3, .6, 'bandpass', 2600, 1800, 6); break;
+    case 'card': tone(1760, 'square', .06, .003, .09); tone(2350, 'square', .05, .003, .12, null, .1); break;
+    case 'step': noise(.11 * r(), .004, .09, 'lowpass', (arg ? 700 : 560) * r(), 160, 1.2); noise(.04, .002, .03, 'highpass', 3500, null, 1); break;
+    case 'stepRun': noise(.16 * r(), .003, .08, 'lowpass', (arg ? 900 : 760) * r(), 200, 1.2); noise(.05, .002, .03, 'highpass', 3000, null, 1); break;
+    case 'stepGrass': noise(.09 * r(), .01, .14, 'bandpass', 2400 * r(), 1200, .8); break;
+    case 'inhale': noise(arg * .9, .45, .15, 'bandpass', 900, 1500, 1.5); break;
+    case 'exhale': noise(arg, .08, .65, 'bandpass', 1100, 500, 1.2); break;
+    case 'bell': tone(1318, 'sine', .25, .005, .9); tone(1046, 'sine', .2, .005, 1.1, null, .18); break;
+    case 'shield': tone(420, 'sine', .08, .05, .35, 640); break;
+    case 'block': tone(880, 'triangle', .12, .005, .5, 660); break;
+    case 'read': tone(660, 'sine', .18, .005, .6); tone(990, 'sine', .14, .005, .7, null, .06); tone(1320, 'sine', .1, .005, .8, null, .12); break;
+    case 'whoosh': noise(.35, .5, .9, 'bandpass', 180, 2600, 1.2); break;
+    case 'wave': noise(.22, .01, .35, 'bandpass', 700, 2400, 2); tone(300, 'sine', .08, .01, .3, 600); break;
+    case 'bolt': tone(140, 'sawtooth', .12, .02, .4, 90); break;
+    case 'tellBolt': tone(170, 'sine', .1, .5, .3, 330); break;
+    case 'tellLunge': tone(70, 'sawtooth', .12, .7, .3, 120); break;
+    case 'lunge': noise(.3, .01, .3, 'lowpass', 900, 200); break;
+    case 'impact': tone(110, 'sine', .3, .005, .25, 60); noise(.15, .005, .15, 'lowpass', 1500); break;
+    case 'hurt': tone(80, 'square', .18, .005, .35, 45); break;
+    case 'dissolve': noise(.25, .6, 1.4, 'bandpass', 3000, 400, 3); break;
+    case 'cough': for (const dl of [0, .28]) noise(.3, .01, .16, 'bandpass', 650, 420, 3, dl); break;
+    case 'empty': tone(1800, 'square', .03, .002, .04); break;
+    case 'roll': noise(.18, .02, .3, 'bandpass', 400, 1400, 1); break;
+  }
+}
+function engine(level, speed = 0, inside = false) { if (!AU.eng) return; const t = AU.ctx.currentTime; AU.eng.g.gain.setTargetAtTime(level * (inside ? .5 : .25), t, .3); AU.eng.lp.frequency.setTargetAtTime(inside ? 160 + speed * 8 : 300 + speed * 20, t, .3); AU.eng.o1.frequency.setTargetAtTime(38 + speed * 1.6, t, .4); AU.eng.o2.frequency.setTargetAtTime(57 + speed * 2.4, t, .4); }
+function pressureHum(k) { if (AU.hum) AU.hum.gain.setTargetAtTime(clamp(k, 0, 1) * .12, AU.ctx.currentTime, .15); }
+let hbTimer = null; function heartbeat(on) { clearInterval(hbTimer); if (!on) return; const beat = () => { tone(55, 'sine', .35, .01, .18); tone(50, 'sine', .25, .01, .2, null, .22); }; beat(); hbTimer = setInterval(beat, 1100); }
+
+// Ben's breathing: effort 0..1 (standing .15, walking .35, running .8; tension and the astral push it up)
+const BR = { t: 0, phase: 0 };
+function breathe(dt, effort) {
+  if (!AU.ctx) return; BR.t -= dt; if (BR.t > 0) return;
+  const e = clamp(effort, 0, 1.2), period = lerp(4.2, 1.1, Math.min(1, e)), vol = lerp(.015, .09, Math.min(1, e));
+  if (BR.phase === 0) { sfx('inhale', vol * .8); BR.t = period * .42; BR.phase = 1; } else { sfx('exhale', vol); BR.t = period * .58; BR.phase = 0; }
+}
+
 /* ================= boot ================= */
 let last = performance.now(), frames = 0, fpsT = 0, fps = 0, oceanN = null;
 function resize() { renderer.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.fov = cam.aspect < .8 ? 76 : 66; cam.updateProjectionMatrix(); }
 addEventListener('resize', resize);
+addEventListener('error', e => { try { toast('Error: ' + e.message + ' — screenshot this for Claude', 9000); } catch (_) {} });
 function loop() {
   requestAnimationFrame(loop); const now = performance.now(), dt = Math.min(.05, (now - last) / 1000); last = now;
-  try { update(dt); updateSun(); updateChunks(); if (oceanN) oceanN.offset.set(now * 2e-6, now * 1.3e-6); renderer.render(scene, cam); drawLabels(); drawMini(); updateWhere(dt); } catch (e) { console.error(e); }
+  try { if (!PAUSED) frame(dt); if (oceanN) oceanN.offset.set(now * 2e-6, now * 1.3e-6); renderFrame(); drawLabels(); drawMini(); updateWhere(dt); } catch (e) { console.error(e); if (!loop.shown) { loop.shown = 1; toast('Something broke: ' + e.message + ' — screenshot this for Claude', 9000); } }
   frames++; fpsT += dt; if (fpsT > .5) { fps = frames / fpsT; frames = 0; fpsT = 0; if (!$('perf').hidden) { const i = renderer.info.render; $('perf').textContent = `${fps.toFixed(0)} fps · ${(i.triangles / 1000).toFixed(0)}k tris · ${i.calls} draws\n${BUILD}`; } }
+}
+let PAUSED = false;
+function frame(dt) {
+  const wdt = RIDE.on ? dt * RIDE.ts : dt;               // slow motion slows the world (the clock, the buses, the people)
+  clockUpdate(wdt); busUpdate(wdt);
+  if (RIDE.on) {
+    const g = RIDE.e.bus.g; if (RIDE.phase !== 'enter') { P.x = g.position.x; P.z = g.position.z; P.y = g.position.y; P.yaw = g.rotation.y + Math.PI; }
+    rideUpdate(dt); engine(1, Math.abs(RIDE.e.st?.v || 0), true);
+  } else {
+    update(dt); guideUpdate(dt);
+    let nd = 1e9, nv = 0; for (const e of BUSES.values()) { const d = e.bus.g.position.distanceTo(cam.position); if (d < nd) { nd = d; nv = Math.abs(e.st.v); } }
+    engine(clamp(1 - nd / 70, 0, 1), nv, false);
+  }
+  waitingUpdate(wdt); updateSun(); updateChunks(); subUpdate(dt);
 }
 (async () => {
   try {
     const [town, hb, img] = await Promise.all([loadJSON(TOWN_SRC), loadBin(HEIGHTS_SRC), loadImg(GROUND_SRC)]);
     T = town; META = T.meta; const u16 = new Uint16Array(hb); HGT = new Float32Array(u16.length); for (let i = 0; i < u16.length; i++) HGT[i] = u16[i] / 100 - 10;
     groundImg = img; const gt = new THREE.Texture(img); gt.flipY = false; gt.colorSpace = THREE.SRGBColorSpace; gt.anisotropy = renderer.capabilities.getMaxAnisotropy(); gt.needsUpdate = true;
+    $('load').textContent = 'Building Kapaʻa… (loading people)'; await loadModels(); await PIGM.load();
     buildTerrain(gt); buildFar(); oceanN = buildOcean(); buildRoads();
+    initClock(); initRoute(); initStops();
     for (const p of T.pois) if (p.k === 'bus' && p.n === 'Bus stop') { const r = nearestRoad(p.x, p.z, 40); if (r && r.n) p.n = 'Bus stop, ' + r.n.replace('Highway', 'Hwy'); } buildBuildings(); buildHouses(); buildTrees(); buildBen(); buildProps(); buildPlaces(); buildLabels();
+    buildShelters(); initBusModel(); initGuide(); initBen(); $('clockNote').textContent = CLOCK.note; $('busPanel').hidden = false;
     if (T.ben) { const [x, z, fx, fz] = benFront(); goTo(x, z, fx, fz); P.yaw += Math.PI * .75; }
     resize(); setMode('walk'); $('load').hidden = true; $('card').hidden = false; loop();
-    window.KT = { P, MAPV, setMode, goTo, T, hAt, renderer, update, cam, toggleFast, benFront };
+    window.KT = { P, MAPV, setMode, goTo, T, hAt, renderer, update, cam, toggleFast, benFront, CLOCK, STOPS, BUSES, TRIPS: () => TRIPS, RIDE, METER, SHIELD, GUIDE, DATA, frame, pause: v => { PAUSED = v; }, boardBus, chooseSeat, shieldSet, fire, roll, requestStop, waitForBus, nextAt, keys, startCinematic, renderFrame, routeAt, ROUTE, makeChar, MODELS, sideLift, surfY, PIGM, rayDown: (x, z) => { const rc = new THREE.Raycaster(new THREE.Vector3(x, 400, z), new THREE.Vector3(0, -1, 0)); const h = rc.intersectObjects(scene.children.filter(o => o.isMesh && !o.isInstancedMesh && o !== sky), false); return h.slice(0, 3).map(q => +q.point.y.toFixed(3)); } };
   } catch (e) { console.error(e); $('load').textContent = 'Could not build the town: ' + e.message; }
 })();
-$('go').onclick = () => { $('card').hidden = true; };
+$('go').onclick = () => { $('card').hidden = true; audioInit(); };
+
 
 </script>
 </body></html>

@@ -1,0 +1,203 @@
+{
+ "bus": {
+  "routes": {
+   "400": {
+    "label": "400 → Līhuʻe",
+    "sign": "400 LIHUE",
+    "dir": 1,
+    "depart": ":15",
+    "first": "5:15",
+    "last": "19:15",
+    "stops": [
+     [
+      "Across Kealia Beach",
+      42
+     ],
+     [
+      "Kapaa Neighborhood Center",
+      46,
+      "Across Kapaʻa Neighborhood Center"
+     ],
+     [
+      "Kapaa Skate Park",
+      49
+     ],
+     [
+      "Kapaa Big Save",
+      52
+     ],
+     [
+      "Kuhio Hwy / Hoi Rd",
+      55
+     ],
+     [
+      "Kuhio Hwy / Haleilio Rd",
+      60
+     ]
+    ]
+   },
+   "500": {
+    "label": "500 → Hanalei",
+    "sign": "500 HANALEI",
+    "dir": -1,
+    "depart": ":25",
+    "first": "5:25",
+    "last": "19:25",
+    "stops": [
+     [
+      "Waipouli Courtyards",
+      27
+     ],
+     [
+      "Waipouli Beach Resort",
+      30
+     ],
+     [
+      "Kapaa Hongwanji",
+      33
+     ],
+     [
+      "Pono Kai",
+      34
+     ],
+     [
+      "Kapaa Skate Park",
+      37
+     ],
+     [
+      "Kapaa Library",
+      40
+     ],
+     [
+      "Kapaa Neighborhood Center",
+      41
+     ],
+     [
+      "Across Kealia Beach",
+      45,
+      "Kealia Beach"
+     ]
+    ]
+   }
+  },
+  "serviceDays": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ],
+  "dwell": 22,
+  "cruise": 12.5,
+  "lane": 3.35,
+  "shelterOff": 8.6,
+  "boardRange": 9,
+  "ffRate": 420,
+  "ffLead": 14,
+  "length": 10.7,
+  "width": 2.55,
+  "height": 3.05
+ },
+ "ride": {
+  "freeSeats": 4,
+  "attackers": 4,
+  "walkSpeed": 1.7,
+  "sitTime": 0.75,
+  "boardShot": 6.5,
+  "standCost": 12,
+  "standDrainPerSec": 0.35
+ },
+ "meters": {
+  "astral": 100,
+  "emotional": 100
+ },
+ "shield": {
+  "raiseCost": 2,
+  "costPerSec": 1.2
+ },
+ "encounter": {
+  "onset": [
+   3.5,
+   7
+  ],
+  "gap": [
+   1.2,
+   3.2
+  ],
+  "next": {
+   "pulseDmg": 7,
+   "fieldDmg": 1.2
+  },
+  "across": {
+   "pulseDmg": 4.5,
+   "fieldDmg": 0.6
+  },
+  "nearby": {
+   "fieldDmg": 0.35,
+   "range": 1.7
+  },
+  "blocksToGo": 2,
+  "engagedToGo": 10,
+  "pullInAfter": 28,
+  "pullInPenalty": 10,
+  "counterTurn": 0.35
+ },
+ "astral": {
+  "timeScale": 0.06,
+  "cineIn": 2.2,
+  "cineOut": 1.6,
+  "arenaR": 4.4,
+  "ben": {
+   "speed": 3.2,
+   "fireCost": 4,
+   "windup": 0.28,
+   "cooldown": 0.55,
+   "waveSpeed": 8.5,
+   "waveRange": 8,
+   "waveR": 0.45,
+   "rollDist": 2.3,
+   "rollTime": 0.35,
+   "rollCost": 2,
+   "rollCD": 0.9
+  },
+  "ent": {
+   "next": {
+    "hp": 6,
+    "tell": 0.62,
+    "gap": [
+     1.7,
+     3
+    ],
+    "bolt": 6.2,
+    "lunge": 8
+   },
+   "across": {
+    "hp": 4,
+    "tell": 0.85,
+    "gap": [
+     2.2,
+     3.6
+    ],
+    "bolt": 5,
+    "lunge": 7
+   },
+   "radius": [
+    3,
+    4.2
+   ],
+   "orbit": [
+    0.45,
+    0.95
+   ],
+   "boltDmg": 9,
+   "lungeDmg": 14,
+   "blockChip": 1.5,
+   "lungeBlockChip": 3,
+   "readDmg": 1,
+   "stun": 1.6
+  },
+  "emoWhenEmpty": 12,
+  "attentionPerHit": 16
+ }
+}
