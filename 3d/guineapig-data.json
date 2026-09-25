@@ -24,6 +24,7 @@
    "postHead": -0.34,
    "rearMax": 0.45,
    "headLead": 0.5,
+   "landKick": 1.6,
    "hz0": 3,
    "hzPerMs": 2.4,
    "hzMax": 9,
@@ -130,6 +131,10 @@
   "speed": 1.1,
   "see": 6,
   "touchR": 0.4
+ },
+ "fate": {
+  "carKillAt": 3,
+  "dazed": 2.6
  },
  "damage": {
   "kidCatch": 1,

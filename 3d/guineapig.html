@@ -32,7 +32,6 @@
   #show .row{flex-wrap:wrap;justify-content:center;} #show .showhint{color:var(--dim);font-size:12px;text-shadow:0 1px 3px #000;}
   body.showing .hud.br, body.showing #obj, body.showing .hud.tl{display:none!important;}
   #obj{transition:opacity .8s;}
-  @media (min-width:641px) and (max-width:1100px){ #obj{top:calc(env(safe-area-inset-top,0px) + 104px);max-width:min(420px,calc(100% - 540px));} }
   #obj{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);background:rgba(12,21,16,.66);border:1px solid var(--line);border-radius:12px;
        padding:7px 14px;font:700 14.5px Karla,system-ui,sans-serif;text-align:center;max-width:min(460px,calc(100% - 330px));text-wrap:balance;pointer-events:none;}
   button,select{font:700 14px Karla,system-ui,sans-serif;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px;cursor:pointer;}
@@ -70,6 +69,7 @@
     #readout{font-size:9.5px;bottom:auto;top:calc(env(safe-area-inset-top,0px) + 150px);max-width:calc(100% - 32px);}
     .act{min-width:74px;height:48px;font-size:14px;} #actBtn{min-width:100px;height:54px;}
   }
+  @media (min-width:641px) and (max-width:1100px){ #obj{top:calc(env(safe-area-inset-top,0px) + 104px);max-width:min(420px,calc(100% - 540px));} }
 </style>
 
 <canvas id="gl"></canvas>
@@ -95,6 +95,7 @@
 </div>
 <div id="obj">Eat the carrot Ben left by his door</div>
 <div id="say"></div>
+<div id="fade" style="position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:8"></div>
 <div id="show" hidden>
   <div class="showname"><b id="showName">Walk</b><small id="showNote"></small></div>
   <div class="row">
@@ -188,14 +189,14 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
-const AGLB='url:assets/anthony.glb?v=gp01', ASKIN='url:assets/anthony-skin.jpg?v=gp01', PIGGLB='url:assets/guineapig2.glb?v=gp04', PIGSKIN='url:assets/guineapig2-skin.jpg?v=gp04', PIGNORM='url:assets/guineapig2-normal.jpg?v=gp04';
-const BUILD='Guinea pig grounds v0.7 · 24 Sep 2026';
+const AGLB='url:assets/anthony.glb?v=gp01', ASKIN='url:assets/anthony-skin.jpg?v=gp01', PIGGLB='url:assets/guineapig3.glb?v=gp05', PIGSKIN='url:assets/guineapig2-skin.jpg?v=gp04', PIGNORM='url:assets/guineapig2-normal.jpg?v=gp04';
+const BUILD='Guinea pig grounds v0.10 · 24 Sep 2026';
 const $=id=>document.getElementById(id);
 
 /* ---------------- GAME DATA — every tunable number (mirrored in guineapig-data.json) ---------------- */
 const DATA={
   pig:{walk:.85,run:3.1,winded:.78,accel:13,turn:10,steer:2.4,spinRate:11,step:.27,height:.16,radius:.11,hearts:5,food:70,foodDrain:.2,stamina:100,runCost:6,stamRegen:12,jump:2.5,gravity:9.8,
-       anim:{postChest:.42,postHips:.12,postHead:-.34,rearMax:.45,headLead:.5,hz0:3,hzPerMs:2.4,hzMax:9,boundAt:1.6,creepBelow:.45,stretch:1.1,breathHz:1.4,breathHzMax:3,sniffHz:6.5,chewHz:4.5},noiseWalk:1.6,noiseRun:5,noiseFreeze:0},
+       anim:{postChest:.42,postHips:.12,postHead:-.34,rearMax:.45,headLead:.5,landKick:1.6,hz0:3,hzPerMs:2.4,hzMax:9,boundAt:1.6,creepBelow:.45,stretch:1.1,breathHz:1.4,breathHzMax:3,sniffHz:6.5,chewHz:4.5},noiseWalk:1.6,noiseRun:5,noiseFreeze:0},
   food:{carrot:30,greens:14,basil:18,mango:40,papaya:28},
   day:{start:8,end:17,warnAt:16.5,minutesPerHour:.8,shadeFrom:15},            // 8am→5pm in ~7 real minutes
   cover:{grass:.2,under:.15,behind:.35,open:1},                                  // multiplies how far enemies can see him
@@ -209,6 +210,7 @@ const DATA={
   car:{count:4,speed:[10,14],hitR:1.1},
   peds:{count:4,speed:1.25,stepR:.3},
   shade:{speed:1.1,see:6,touchR:.4},
+  fate:{carKillAt:3,dazed:2.6},
   damage:{kidCatch:1,dog:2,cat:1,peck:.5,rat:.5,bike:2,car:3,step:1,shade:1,fall:.5},
 };
 
@@ -616,29 +618,48 @@ function animRig(P,m,dt){
   const turn=clamp(angDiff(P.prevHead??m.heading,m.heading)/Math.max(dt,1e-3),-12,12); P.prevHead=m.heading; P.turnS=damp(P.turnS||0,turn,10,dt);
   const decel=((P.prevSp??sp)-sp)/Math.max(dt,1e-3); P.prevSp=sp; if(decel>3) P.brake=Math.min(1,(P.brake||0)+decel*.04); P.brake=Math.max(0,(P.brake||0)-dt*3.5);
   const cautious=(sp>.04&&sp<A.creepBelow)||P.eat>0; P.stretch=damp(P.stretch||1,frozen?.94:cautious?A.stretch:bound?1.04:1,6,dt);
-  const bHz=frozen?2.2:lerp(A.breathHz,A.breathHzMax,P.exert), bAmp=frozen?.005:lerp(.012,.024,P.exert); P.bph=(P.bph||0)+dt*Math.PI*2*bHz; const breath=Math.sin(P.bph)*bAmp;
+  const bHz=frozen?2.2:lerp(A.breathHz,A.breathHzMax,P.exert), bAmp=m.state==='dead'?0:frozen?.005:lerp(.012,.024,P.exert); P.bph=(P.bph||0)+dt*Math.PI*2*bHz; const breath=Math.sin(P.bph)*bAmp;
   // ---- whole-body moves on the inner group: popcorn, rearing, jumping, bumping ----
-  let bodyPitch=0, bodyRoll=0, lift=0, twist=R.inner.rotation.y, kick=0, stretchAir=0, squash=0;
-  if(P.pop>0){ // popcorn .55 s: crouch .08, air .3 (twist + hind kick), land .17
+  // Everything here is a continuous curve (no pose snapping), so every rendered frame is an in-between.
+  let bodyPitch=0, bodyRoll=0, lift=0, twist=0, kick=0, stretchAir=0;
+  // jump phase p: 0 = take-off .. 0.5 = top .. 1 = touch-down, from the actual vertical speed
+  if(P.air&&!P.wasAir){ P.v0=Math.max(.8,m.vy); P.fall=m.vy<=.05; } if(P.air) P.lastVy=m.vy;
+  if(!P.air&&P.wasAir){ P.sq.v=(P.sq.v||0)+clamp(-(P.lastVy||0),0,5)*A.landKick; P.land=.14; }   // touch-down: squash impulse
+  P.wasAir=P.air; P.sq=P.sq||{};
+  const jp=P.air?(P.fall?clamp(.5-m.vy/(2*2.5),.5,1):clamp(.5-m.vy/(2*P.v0),0,1)):1;
+  P.airW=damp(P.airW||0,P.air?1:0,P.air?22:14,dt);
+  if(P.airW>.001){ const w=P.airW;
+    bodyPitch+=w*keyf(jp,[[0,-.36],[.25,-.24],[.5,-.02],[.75,.2],[1,.34]]);
+    stretchAir=Math.max(stretchAir,w*keyf(jp,[[0,1],[.4,.8],[.7,.35],[1,.15]])); }
+  // popcorn (.62 s), from the slow-mo video: crouch, spring, stretch, twist + roll + hind kick, front-first landing
+  if(P.pop>0){
     if(!P.popTw) P.popTw=(Math.random()<.5?-1:1)*rnd(.7,1.3);
-    P.pop=Math.max(0,P.pop-dt); const u=1-P.pop/.55;
-    if(u<.15){ squash=smooth(u/.15)*.6; }
-    else if(u<.7){ const a=(u-.15)/.55; lift=Math.sin(a*Math.PI)*.075; stretchAir=Math.sin(a*Math.PI); bodyPitch=lerp(-.25,.35,a); bodyRoll=Math.sin(a*Math.PI)*.25*Math.sign(P.popTw); twist=P.popTw*smooth(a); kick=Math.sin(a*Math.PI*2); }
-    else { twist=P.popTw; squash=(1-(u-.7)/.3)*.8; }
-    if(P.pop===0){ m.heading+=P.popTw; P.g.rotation.y=m.heading; P.prevHead=m.heading; twist=0; P.popTw=0; P.land=.14; }
-  } else twist=0;
+    P.pop=Math.max(0,P.pop-dt); const u=1-P.pop/.62, a2=clamp((u-.16)/.54,0,1), inAir=u>.16&&u<.7;
+    lift=inAir?Math.sin(a2*Math.PI)*.075:0;
+    bodyPitch+=keyf(u,[[0,0],[.12,.08],[.18,-.3],[.4,-.05],[.6,.28],[.72,.12],[.85,-.03],[1,0]]);
+    bodyRoll=Math.sign(P.popTw)*keyf(u,[[0,0],[.3,.05],[.45,.3],[.62,.15],[.75,0],[1,0]]);
+    twist=P.popTw*keyf(u,[[0,0],[.25,.05],[.55,.85],[.7,1],[1,1]]);
+    kick=keyf(u,[[0,0],[.35,0],[.47,1],[.58,-.6],[.68,.4],[.8,0],[1,0]]);
+    stretchAir=Math.max(stretchAir,keyf(u,[[0,0],[.16,.2],[.3,1],[.6,.6],[.72,0],[1,0]]));
+    if(u>.12&&!P.popLaunch){ P.popLaunch=1; P.sq.v=(P.sq.v||0)-2.2; }
+    if(u>.7&&!P.popLand){ P.popLand=1; P.sq.v=(P.sq.v||0)+3.4; }
+    P.popAirW=inAir?1:0; P.popP=a2;
+    if(P.pop===0){ m.heading+=P.popTw; P.g.rotation.y=m.heading; P.prevHead=m.heading; twist=0; P.popTw=0; P.popLaunch=P.popLand=0; }
+  } else P.popAirW=0;
   P.popY=lift;
+  // squash is a spring: winding up pulls it down, landings kick it, and it rebounds a touch past zero
+  const squash=spring(P.sq,P.wind>0?1:0,300,17,dt);
+  // tumbling off a wheel: a full roll with legs flailing; dead = lies still on his side once he lands
+  P.tumble=Math.max(0,(P.tumble||0)-dt); if(P.tumble>0){ const tl=P.tumbleMax=Math.max(P.tumbleMax||0,P.tumble); bodyRoll+=(P.tumbleDir||1)*(1-P.tumble/tl)*Math.PI*2; kick+=Math.sin(P.t*34)*.9; } else P.tumbleMax=0;
+  P.deadW=damp(P.deadW||0,m.state==='dead'&&!P.air?1:0,6,dt); bodyRoll+=(P.tumbleDir||1)*1.45*P.deadW;
   const re=P.rear>0?smooth(Math.min(1,Math.min((1.6-P.rear)/.3,P.rear/.35))):0;
-  if(P.air){ const up=m.vy>0; bodyPitch+=up?-.32:clamp(-m.vy*.12,-.05,.42); stretchAir=Math.max(stretchAir,up?1:.5); }
-  if(P.wind>0) squash=Math.max(squash,1);
-  if(P.land>0) squash=Math.max(squash,P.land/.14*.9);
   const bump=P.bump>0?Math.sin((1-P.bump/.35)*Math.PI):0;
-  const rx=-A.rearMax*re+bodyPitch-bump*.12, hz=R.hindZ??-.06;
+  const rx=-A.rearMax*re+bodyPitch-bump*.12+squash*.06, hz=R.hindZ??-.06;
   R.inner.rotation.set(rx,twist,-P.turnS*.012*k+bodyRoll,'YXZ');
   R.inner.position.z=hz-hz*Math.cos(rx)-bump*.012;
   // body height: tiny bob, crouch when cautious/frozen/winding up, squash on landing
   const ph=P.phase, bob=(bound?.007:.0025)*k*Math.abs(Math.sin(ph)), waddle=(bound?.015:.045)*k*Math.sin(ph), rock=bound?.09*k*Math.sin(ph):0;
-  R.inner.position.y=bob-(frozen?.006:0)-(cautious&&!re?.004:0)-squash*.012+Math.abs(hz)*Math.sin(-Math.min(0,rx));
+  R.inner.position.y=bob-(frozen?.006:0)-(cautious&&!re?.004:0)-squash*.014+Math.abs(hz)*Math.sin(-Math.min(0,rx));
   // ---- spine: posture (the model was made sitting up), rock, turn bend, breathing, stretch ----
   const pc=A.postChest*(1-re), ph0=A.postHips*(1-re), phd=A.postHead*(1-re);
   const bend=clamp(P.turnS*.06,-.35,.35), lurch=P.brake*.16, lunge=P.nip>0?Math.sin((1-P.nip/.28)*Math.PI):0;
@@ -659,7 +680,7 @@ function animRig(P,m,dt){
   const nib=P.eat>0?.35+Math.abs(Math.sin(P.t*Math.PI*2*A.chewHz))*.06:0;
   const steady=-(sHips+sSpine+sChest)-rx*(1-re)*.7;             // cancels body pitch so the eyes stay level
   bRot(B.neck,[[Y_,P.headYaw*.45],[X_,phd*.5+steady*.5+nib*.5-re*.2-lunge*.05]]);
-  bRot(B.head,[[Y_,P.headYaw*.55],[X_,phd*.5+steady*.5+nib*.5+P.headPitch-re*.25-(frozen?.08:0)+(P.air&&m.vy>0?-.15:0)],[Z_,-waddle*.5-bodyRoll*.5]]);
+  bRot(B.head,[[Y_,P.headYaw*.55],[X_,phd*.5+steady*.5+nib*.5+P.headPitch-re*.25-(frozen?.08:0)+P.airW*keyf(jp,[[0,-.18],[.5,-.05],[1,.1]])],[Z_,-waddle*.5-bodyRoll*.5]]);
   const tw=sniffing?Math.sin(P.t*Math.PI*2*A.sniffHz):0;
   bRot(B.nose,[[X_,tw*.22],[Y_,tw*.05]]);
   // ---- ears: base follows the head, tips flop with a spring (they never tear off the head) ----
@@ -668,40 +689,151 @@ function animRig(P,m,dt){
   const vyNow=(R.inner.position.y+(P.popY||0)-(P.prevIY??0))/Math.max(dt,1e-3); P.prevIY=R.inner.position.y+(P.popY||0);
   R.eS=R.eS||[{},{}];
   ['L','R'].forEach((S,i)=>{ const sg=i?-1:1, e=R.eS[i];
-    const flop=spring(e,clamp(-vyNow*.5+(P.air?(m.vy>0?.5:-.3):0)+bump*.6-P.turnS*.05*sg,-.8,.8),220,12,dt);
+    const flop=spring(e,clamp(-vyNow*.5+P.airW*keyf(jp,[[0,.6],[.5,0],[1,-.4]])+squash*.3+bump*.6-P.turnS*.05*sg,-.8,.8),220,11,dt);
     bRot(B['ear'+S+'1'],[[X_,-back*.5],[Z_,sg*(.05+P.headYaw*.1)]]);
     bRot(B['ear'+S+'2'],[[Z_,sg*(flop*.8-(i===0&&R.flickSide||i===1&&!R.flickSide?fl:0))],[X_,-back*.5]]); });
-  // ---- legs ----
-  const L=[['L',1],['R',-1]];
-  for(const n of ['fUpL','fLoL','fPawL','fUpR','fLoR','fPawR','hThL','hShL','hFtL','hThR','hShR','hFtR']) B[n].scale.set(1,1,1);
-  const bodyF=sSpine+sChest, bodyH=sHips;
-  if(re>0||P.air||P.pop>0||squash>0||kick){
-    for(const [S,sg] of L){
-      // front: reared = upper arm forward, forearm hangs from the elbow; air = reach forward then brace for landing
-      const up=P.air&&m.vy>0, air=P.air||stretchAir>.2;
-      const fu=re>0?-.55*re:air?(up?-.7:-.35):squash*.25, fl2=re>0?1.15*re:air?(up?.3:-.15):-squash*.45;
-      bRot(B['fUp'+S],[[X_,fu-bodyF-bodyH*.2]]); bRot(B['fLo'+S],[[X_,fl2]]); bRot(B['fPaw'+S],[[X_,re>0?.5*re:air?.2:-squash*.2]]);
-      // hind: reared = crouched on the haunches; air = legs trail straight back; popcorn kicks out sideways
-      const ht=re>0?.35*re:air?(up?.95:.5):-squash*.5, hs=re>0?-.6*re:air?-.2:squash*.6, hf=re>0?.25*re:air?.5:-squash*.1;
-      bRot(B['hTh'+S],[[X_,ht-bodyH],[Z_,kick*sg*.45]]); bRot(B['hSh'+S],[[X_,hs]]); bRot(B['hFt'+S],[[X_,hf]]);
-    }
-    return;
-  }
+  // ---- legs: a target pose from the gait / jump / rear, then each bone follows on a spring with gravity ----
+  // In the air the springs go soft and the targets lean toward "hanging straight down", so the feet swing and
+  // settle under gravity and lag behind when the body pitches (they don't just lock into one pose).
+  const L=[['L',1],['R',-1]], NAMES=['fUp','fLo','fPaw','hTh','hSh','hFt'];
+  const bodyF=sSpine+sChest, bodyH=sHips, Af=rx+bodyH+bodyF, Ah=rx+bodyH;
   const turnStep=Math.min(1,Math.abs(P.turnS)/3)*(1-k), kk=Math.max(k,turnStep*.7);
   const duty=bound?.45:.6, U=x=>((x/(Math.PI*2))%1+1)%1;
   const offs=bound?{fUpL:.08,fUpR:.2,hThL:.62,hThR:.62}:{fUpL:0,fUpR:.5,hThL:.5,hThR:0};
-  const g=bound?1.25:1;
+  const g=bound?1.25:1, airW=Math.max(P.airW,P.popAirW?1:0), jq=P.popAirW?P.popP:jp;
+  const gW=airW*keyf(jq,[[0,.15],[.3,.7],[.6,.75],[.85,.35],[1,.15]]);     // how much the legs just hang
+  R.ls=R.ls||{}; const st=n=>R.ls[n]||(R.ls[n]={x:0,v:0});
+  const dAf=Af-(R.pAf??Af), dAh=Ah-(R.pAh??Ah); R.pAf=Af; R.pAh=Ah;
+  const kS=lerp(700,95,airW), cS=lerp(52,7.5,airW);
   for(const [S,sg] of L){
-    // front leg: upper swings, elbow folds during the forward swing (lifts the paw), paw stays flat-ish
+    // ground gait
     let u=U(ph+offs['fUp'+S]*Math.PI*2); let a=legSwing(u,duty,.42*g,.22*g)*kk, sw=u>=duty?Math.sin(Math.PI*(u-duty)/(1-duty))*kk:0;
-    if(turnStep>.1&&k<.2){ a+=sg*.0; }
-    bRot(B['fUp'+S],[[X_,a-bodyF-bodyH*.2-sw*.25]]); bRot(B['fLo'+S],[[X_,sw*.9]]); bRot(B['fPaw'+S],[[X_,-a*.5+sw*.3]]);
-    // hind leg: thigh drives, shin folds in the swing, foot pushes off at the end of stance
+    const G={fUp:a-bodyF-bodyH*.2-sw*.25, fLo:sw*.9, fPaw:-a*.5+sw*.3};
     u=U(ph+offs['hTh'+S]*Math.PI*2); a=legSwing(u,duty,.25*g,.6*g)*kk; sw=u>=duty?Math.sin(Math.PI*(u-duty)/(1-duty))*kk:0;
     const push=u<duty?smooth(u/duty)*kk:0;
-    bRot(B['hTh'+S],[[X_,a-bodyH+sw*.15]]); bRot(B['hSh'+S],[[X_,-sw*.7+push*.15]]); bRot(B['hFt'+S],[[X_,-a*.6+push*.35+sw*.3]]);
+    Object.assign(G,{hTh:a-bodyH+sw*.15, hSh:-sw*.7+push*.15, hFt:-a*.6+push*.35+sw*.3});
+    // squash (wind-up / landing): elbows and knees fold
+    G.fUp+=squash*.22; G.fLo-=squash*.5; G.fPaw-=squash*.15; G.hTh-=squash*.45; G.hSh+=squash*.6; G.hFt-=squash*.12;
+    // air "muscle" pose along the jump: push-off, tuck, reach for the ground
+    const M={fUp:keyf(jq,[[0,-.75],[.4,-.35],[.8,-.6],[1,-.45]])-bodyF-bodyH*.2, fLo:keyf(jq,[[0,.35],[.45,.55],[.85,-.1],[1,-.2]]), fPaw:keyf(jq,[[0,.3],[.5,.45],[1,.1]]),
+             hTh:keyf(jq,[[0,1.05],[.3,.75],[.7,.35],[1,.1]])-bodyH, hSh:keyf(jq,[[0,-.15],[.4,-.45],[1,-.2]]), hFt:keyf(jq,[[0,.55],[.5,.7],[1,.2]])};
+    // gravity: the angles that let each segment hang straight down from its parent
+    const Hg={}; Hg.fUp=-Af; Hg.fLo=-(Af+st('fUp'+S).x)+.1; Hg.fPaw=-(Af+st('fUp'+S).x+st('fLo'+S).x)+.55;
+    Hg.hTh=-Ah; Hg.hSh=-(Ah+st('hTh'+S).x)-.55; Hg.hFt=-(Ah+st('hTh'+S).x+st('hSh'+S).x)+.9;
+    // rearing: upper arm forward, forearm hanging from the elbow, sitting on the haunches
+    const Rr={fUp:-.55-bodyF-bodyH*.2, fLo:1.15, fPaw:.5, hTh:.35-bodyH, hSh:-.6, hFt:.25};
+    for(const n of NAMES){
+      let t=G[n]; t=lerp(t,lerp(M[n],Hg[n],gW),airW); t=lerp(t,Rr[n],re);
+      const o=st(n+S);
+      if(n==='fUp') o.x-=dAf*airW*.85; if(n==='hTh') o.x-=dAh*airW*.85;   // inertia: legs stay put in the world for a moment when the body swings
+      o.v+=((t-o.x)*kS-o.v*cS)*dt; o.x+=o.v*dt;
+      const z=n==='hTh'?kick*sg*.5:n==='hSh'?-kick*sg*.2:0;
+      bRot(B[n+S],[[X_,o.x],[Z_,z]]); B[n+S].scale.set(1,1,1);
+    }
+  }
+  footIK(P,m,dt,{ph,duty,offs,U,airW,re,sp,moving:kk>.3&&sp>.05,hz:gaitHz(sp)});
+  jiggle(P,dt);
+}
+// ---- secondary motion: belly, backpack and chest fur lag behind the body on springs ----
+// Each jiggle bone watches how its attachment point accelerates (footfalls, surges, bobs, landings, turns)
+// and a damped spring lets it lag and overshoot. The belly slides; the pack and the chest fur swing from where they hang.
+//   k = stiffness (higher = quicker, smaller wobble), c = damping, lim = most it can move (m), drag = how much it trails when moving fast
+const JIG={belly:{k:200,c:7,len:.035,lim:.005,gain:1.1,mode:'move',drag:0},
+           pack:{k:90,c:4.5,len:.065,lim:.016,gain:1.3,mode:'swing',bounce:.5,drag:.003},
+           bib:{k:150,c:5,len:.054,lim:.016,gain:1.35,mode:'swing',bounce:.25,drag:.004}};
+const _jq=new THREE.Quaternion(),_jq2=new THREE.Quaternion();
+function jiggle(P,dt){
+  const R=P.rig, B=R.B; if(!B.belly||dt<=0) return;
+  if(DATA.pig.anim.jiggle===false){ for(const n in JIG){ B[n].position.copy(R.restPos[n]); B[n].quaternion.copy(R.rest[n]); } R.jg=null; return; }
+  P.g.updateMatrixWorld(true); R.jg=R.jg||{};
+  for(const n in JIG){ const b=B[n], J=JIG[n];
+    b.position.copy(R.restPos[n]); b.quaternion.copy(R.rest[n]); b.updateMatrixWorld(true);
+    const hd=b.getWorldPosition(V3()), tl=b.localToWorld(V3(0,J.len,0)), a=J.mode==='move'?hd:tl;
+    let s=R.jg[n]; if(!s||s.pa.distanceTo(a)>.3){ s=R.jg[n]={o:V3(),v:V3(),pa:a.clone(),pv:V3()}; }
+    const av=V3().subVectors(a,s.pa).divideScalar(dt), acc=V3().subVectors(av,s.pv).divideScalar(dt); s.pa.copy(a); s.pv.copy(av);
+    if(acc.length()>80) acc.setLength(80);
+    const eq=V3().copy(av).multiplyScalar(-J.drag); if(eq.length()>.008) eq.setLength(.008);
+    const nS=Math.ceil(dt*240), h=dt/nS;
+    for(let i=0;i<nS;i++){ s.v.x+=(-J.k*(s.o.x-eq.x)-J.c*s.v.x-acc.x)*h; s.v.y+=(-J.k*(s.o.y-eq.y)-J.c*s.v.y-acc.y)*h; s.v.z+=(-J.k*(s.o.z-eq.z)-J.c*s.v.z-acc.z)*h; s.o.addScaledVector(s.v,h); }
+    if(s.o.length()>J.lim){ s.o.setLength(J.lim); const out=s.v.dot(s.o)/J.lim; if(out>0) s.v.addScaledVector(s.o,-out/J.lim); }
+    const o=V3().copy(s.o).multiplyScalar(J.gain);
+    if(J.mode==='move'){ b.position.copy(b.parent.worldToLocal(hd.add(o))); }
+    else {
+      const ax=V3().subVectors(tl,hd), L=ax.length(); ax.divideScalar(L);
+      const along=o.dot(ax);                                          // along the bone: a bounce; across it: a swing
+      const to=V3().copy(tl).add(o).addScaledVector(ax,-along).sub(hd).normalize();
+      _jq.setFromUnitVectors(ax,to); b.parent.getWorldQuaternion(_jq2); b.quaternion.premultiply(_jq2.clone().invert().multiply(_jq).multiply(_jq2));
+      b.position.copy(b.parent.worldToLocal(hd.addScaledVector(ax,along*J.bounce)));
+    }
+    b.updateMatrixWorld(true);
   }
 }
+// ---- planted feet: a foot on the ground stays put in the world until it steps ----
+// Each foot is either planted (locked to a spot on the ground) or stepping (travelling from its old spot to where
+// the animated leg wants it). A two-bone solve bends the elbow/knee so the paw reaches that spot. At a walk or
+// trot the steps follow the gait; standing or pivoting, a foot re-steps when the body has drifted too far off it.
+const _ia=V3(),_ib=V3(),_ic=V3(),_id=V3(),_iax=V3(),_iq=new THREE.Quaternion(),_iq2=new THREE.Quaternion(),_iq3=new THREE.Quaternion(),_iq4=new THREE.Quaternion();
+function ikRot(bone,ef,T,axis,maxA){
+  bone.getWorldPosition(_ia); ef.getWorldPosition(_ib); const v1=_ib.sub(_ia), v2=_ic.copy(T).sub(_ia);
+  if(axis){ v1.addScaledVector(axis,-v1.dot(axis)); v2.addScaledVector(axis,-v2.dot(axis)); if(v1.lengthSq()<1e-8||v2.lengthSq()<1e-8) return;
+    const a=clamp(Math.atan2(axis.dot(_id.crossVectors(v1,v2)),v1.dot(v2)),-maxA,maxA); _iq.setFromAxisAngle(axis,a); }
+  else { if(v1.lengthSq()<1e-8||v2.lengthSq()<1e-8) return; _iq.setFromUnitVectors(v1.normalize(),v2.normalize()); const a=2*Math.acos(clamp(_iq.w,-1,1)); if(a>maxA) _iq.slerp(_iq2.identity(),1-maxA/a); }
+  bone.parent.getWorldQuaternion(_iq2); _iq3.copy(_iq2).invert().multiply(_iq).multiply(_iq2); bone.quaternion.premultiply(_iq3); bone.updateMatrixWorld(true); }
+// analytic two-bone solve: set the elbow/knee angle for the reach (law of cosines), keeping the way it already bends, then aim the upper bone
+function twoBone(up,lo,ef,T,sag,fwd,kneeFwd){
+  const J0=up.getWorldPosition(V3()), J1=lo.getWorldPosition(V3()), E=ef.getWorldPosition(V3());
+  const a=J0.distanceTo(J1), b=J1.distanceTo(E); if(a<1e-5||b<1e-5) return;
+  const D=V3().subVectors(T,J0); let d=D.length(); if(d<1e-5) return; D.divideScalar(d); d=clamp(d,Math.abs(a-b)+1e-4,(a+b)*.998);
+  const al=Math.acos(clamp((a*a+d*d-b*b)/(2*a*d),-1,1));
+  const p=V3().crossVectors(sag,D).normalize(); if((p.dot(fwd)>0)!==kneeFwd) p.negate();    // knees bend forward, elbows back
+  const K=V3().copy(J0).addScaledVector(D,a*Math.cos(al)).addScaledVector(p,a*Math.sin(al));
+  const Tc=V3().copy(J0).addScaledVector(D,d);
+  ikRot(up,lo,K,null,Math.PI); ikRot(lo,ef,Tc,null,Math.PI); ef.updateMatrixWorld(true); }
+function footIK(P,m,dt,I){
+  const R=P.rig, B=R.B;
+  const ok=DATA.pig.anim.ik!==false&&!['riding','leap','caught','dead'].includes(m.state)&&!(P.tumble>0);
+  R.ikW=damp(R.ikW??0,ok?Math.max(0,1-I.airW*1.5)*(1-.65*clamp((I.sp-1)/2.1,0,1)):0,I.airW>.3?30:9,dt);   // full at a walk/trot, lighter in a flat-out run
+  P.g.updateMatrixWorld(true);
+  // body velocity over the ground (for placing the next step ahead of the hip)
+  const gp=P.g.position, jumpd=R.pg?Math.hypot(gp.x-R.pg.x,gp.z-R.pg.z)>.3:true;
+  if(!R.vel||jumpd){ R.vel=V3(); R.pg=gp.clone(); R.ft=null; }
+  R.vel.x=damp(R.vel.x,(gp.x-R.pg.x)/Math.max(dt,1e-4),12,dt); R.vel.z=damp(R.vel.z,(gp.z-R.pg.z)/Math.max(dt,1e-4),12,dt); R.pg.copy(gp);
+  if(R.ikW<.01){ R.ft=null; return; }
+  R.ft=R.ft||{};
+  const gy=gp.y-(P.popY||0)+.05, fx=Math.sin(P.g.rotation.y), fz=Math.cos(P.g.rotation.y);
+  R.inner.getWorldQuaternion(_iq4); _iax.set(1,0,0).applyQuaternion(_iq4); const fwdW=V3(0,0,1).applyQuaternion(_iq4);      // his left: the axis elbows and knees hinge on
+  const stanceT=I.duty/Math.max(I.hz,.5), swingT=(1-I.duty)/Math.max(I.hz,.5);
+  for(const S of ['L','R']) for(const fr of [1,0]){
+    const up=B[(fr?'fUp':'hTh')+S], lo=B[(fr?'fLo':'hSh')+S], ef=B[(fr?'fPaw':'hFt')+S], key=(fr?'f':'h')+S, off=fr?.012:.010;
+    const fk=ef.getWorldPosition(V3()), J=up.getWorldPosition(V3());
+    // neutral spot: under the shoulder / just behind the hip
+    const N=V3(J.x+fx*(fr?.009:-.025),0,J.z+fz*(fr?.009:-.025)); N.y=heightAt(N.x,N.z,gy)+off;
+    const reach=fr?.06:.075, w=R.ikW*(1-I.re);   // rearing sits on the haunches: that pose is hand-set
+    let f=R.ft[key]; if(!f||w<.05) f=R.ft[key]={P:V3(fk.x,heightAt(fk.x,fk.z,gy)+off,fk.z),from:V3(),sw:0};
+    if(w<.05) continue;
+    const u=I.U(I.ph+I.offs[(fr?'fUp':'hTh')+S]*Math.PI*2), gaitSw=I.moving&&u>=I.duty;
+    const err=Math.hypot(f.P.x-N.x,f.P.z-N.z);
+    if(!f.sw&&((gaitSw&&!f.was)||err>(I.moving?reach:.022))){ f.sw=1; f.gait=gaitSw; f.t=0; f.dur=I.moving?(gaitSw?swingT:Math.min(.1,swingT)):.13; f.from.copy(f.P); }
+    f.was=gaitSw;
+    const T=V3();
+    if(f.sw){
+      f.t+=dt; const s=f.gait&&I.moving?(gaitSw?clamp((u-I.duty)/(1-I.duty),0,1):1):clamp(f.t/f.dur,0,1), e=smooth(s);
+      // land a little ahead so the foot passes under the hip mid-stance
+      const lead=Math.min(1,(fr?.028:.04)/Math.max(1e-4,Math.hypot(R.vel.x,R.vel.z)*stanceT*.5)), lx=N.x+R.vel.x*stanceT*.5*lead, lz=N.z+R.vel.z*stanceT*.5*lead, ly=heightAt(lx,lz,gy)+off;
+      const lift=I.moving?(I.hz>6.5?.022:.014):.012;
+      T.set(lerp(f.from.x,lx,e),lerp(f.from.y,ly,e)+lift*Math.sin(Math.PI*s),lerp(f.from.z,lz,e));
+      if(s>=1){ f.sw=0; f.P.set(lx,ly,lz); }
+    } else T.copy(f.P);
+    { const mh=fr?.035:.05, dx=T.x-N.x, dz=T.z-N.z, hh=Math.hypot(dx,dz); if(hh>mh){ T.x=N.x+dx*mh/hh; T.z=N.z+dz*mh/hh; } }   // never over-reach: past this the foot slides rather than the leg over-stretching (tears the mesh)
+    T.lerpVectors(fk,T,w);
+    const q0=ef.getWorldQuaternion(new THREE.Quaternion());                // keep the paw flat as the leg bends
+    twoBone(up,lo,ef,T,_iax,fwdW,true);
+    ef.parent.getWorldQuaternion(_iq2); _iq3.copy(_iq2).invert().multiply(q0); ef.quaternion.slerp(_iq3,w); ef.updateMatrixWorld(true);
+  }
+}
+// footfall surge: the body speeds up a touch with each push-off and eases between them
+function gaitPulse(P,sp){ const k=clamp(sp/.6,0,1); return sp>DATA.pig.anim.boundAt?1+.32*k*Math.sin(P.phase-4.1):1+.16*k*Math.sin(2*P.phase-2.8); }
+function keyf(t,K){ if(t<=K[0][0]) return K[0][1]; for(let i=1;i<K.length;i++){ if(t<=K[i][0]){ const [t0,v0]=K[i-1],[t1,v1]=K[i]; return lerp(v0,v1,smooth((t-t0)/(t1-t0))); } } return K[K.length-1][1]; }
 function animPig(P,m,dt){ if(P.rig){ animRig(P,m,dt); return; }
   P.t+=dt; const sp=m.speed, run=m.speed>1.2, k=clamp(sp/.8,0,1);
   P.phase+=dt*(8+sp*9)*(sp>.03?1:0);
@@ -852,7 +984,7 @@ function tryEat(){
   for(const f of FOOD){ if(f.eaten) continue; const d=Math.hypot(PG.pos.x-f.pos.x,PG.pos.z-f.pos.z); if(d<.42&&Math.abs(PG.y-f.pos.y)<.45){
     f.eaten=true; PG.eating=f; PG.eatTimer=1.2; PIG.eat=1.2; sndPig('eat');
     PG.food=Math.min(100,PG.food+f.value); DAY.eaten.push(f.kind); dlog('eat',f.kind);
-    setTimeout(()=>{ scene.remove(f.g); PIG.pop=.55; sndPig('wheek'); },1100); return true; } }
+    setTimeout(()=>{ scene.remove(f.g); PIG.pop=.62; sndPig('wheek'); },1100); return true; } }
   return false; }
 function nearFood(r=.42){ return FOOD.find(f=>!f.eaten&&Math.hypot(PG.pos.x-f.pos.x,PG.pos.z-f.pos.z)<r&&Math.abs(PG.y-f.pos.y)<.45); }
 function atWindow(){ return PG.y>.68&&PG.pos.x>3.55&&PG.pos.x<5.05&&PG.pos.z>-8.3&&PG.pos.z<-7.95; }
@@ -869,6 +1001,24 @@ function act(){
   if(DAY.benHome&&atWindow()){ tapWindow(); return; }
   if(tryEat()) return; sniff(); }
 function jump(){ unlockAudio(); if(PG.state==='caught'){ act(); return; } if(PG.state==='free'||PG.state==='riding') PG.jumpReq=true; }
+/* ---- wheels: a reflex leap that the wheel clips; when he's worn down, a car is the end ---- */
+function wheelClip(src,v,dmg,canKill){
+  if(PG.inv>0||PG.god||DAY.ended||PG.state!=='free') return;
+  const car=canKill, side=car?(PG.pos.z<20.5?-1:1):(PG.pos.z<-22.5?-1:1), along=(v.lane?v.lane.dir:0)*(v.curSpeed||v.speed||0);
+  if(canKill&&PG.hearts<=DATA.fate.carKillAt){ death(src,side,along); return; }
+  hurt(dmg,'clipped by '+src,null); if(PG.state!=='free') return;          // hearts ran out: the usual collapse
+  PG.air=true; PG.vy=car?2.9:2.2; PG.fallFrom=PG.y; PG.knock.set(along*.3,0,side*(car?3.4:2.4)); PG.speed=0;
+  PIG.tumble=car?.75:.55; PIG.tumbleDir=side; PG.dazed=car?DATA.fate.dazed:DATA.fate.dazed*.6; shake=car?.6:.35;
+  sndPig('bump'); dlog('hurt',src+' clipped him — he leapt clear, just'); toast(car?'Clipped by the wheel! He\'s dazed…':'Clipped by a bike wheel!',2200);
+  if(canKill&&PG.hearts<=DATA.fate.carKillAt) setTimeout(()=>say('(He\'s worn out. Another car would be the end of him.)'),1400);
+}
+function death(src,side,along){
+  PG.state='dead'; DAY.dead=src; PG.air=true; PG.vy=3.2; PG.fallFrom=PG.y; PG.knock.set(along*.4,0,side*4); PG.speed=0;
+  PIG.tumble=1.4; PIG.tumbleDir=side; shake=1; setSlowmo(.2,1.4); sndPig('hurt'); dlog('dead','hit by '+src+' — gone');
+  $('fade').style.transition='opacity 2.2s'; setTimeout(()=>{ $('fade').style.opacity=1; },900);
+  setTimeout(()=>endDay('gone'),3400);
+}
+
 /* ---- hitching a ride: a slow-motion leap onto a bike's panniers ---- */
 function panPoint(e,ahead=0){ const d=e.lane.dir, x=e.pos.x+d*(ahead*(e.curSpeed||0))-d*.5; return V3(x,.76,e.lane.z); }
 function tryBikeLeap(){
@@ -901,14 +1051,16 @@ function dismount(){ const e=PG.ride, sp=e?.curSpeed||0; PG.state='free'; PG.rid
 
 function nip(){ if(PG.state==='caught'){ act(); return; } if(PG.state!=='free') return; PIG.nip=.28; sndPig('nip');
   const fx=Math.sin(PG.heading), fz=Math.cos(PG.heading);
-  for(const c of CHICKENS){ const dx=c.pos.x-PG.pos.x, dz=c.pos.z-PG.pos.z, d=Math.hypot(dx,dz); if(d<.55&&(dx*fx+dz*fz)/d>.2){ c.hits++; c.knock=V3(dx/d,0,dz/d).multiplyScalar(2.2); sndAt('squawk',c.pos); c.state=c.hits>=DATA.chicken.hits?'flee':'angry'; c.t=0; if(c.state==='flee'){ dlog('fight','chased off a chicken'); PIG.pop=.55; } return; } }
-  for(const r of RATS){ if(r.state==='gone') continue; const dx=r.pos.x-PG.pos.x, dz=r.pos.z-PG.pos.z, d=Math.hypot(dx,dz); if(d<.45&&(dx*fx+dz*fz)/d>.2){ r.hits++; r.knock=V3(dx/d,0,dz/d).multiplyScalar(1.8); sndAt('ratsq',r.pos); if(r.hits>=DATA.rat.hits){ r.state='flee'; r.t=0; dlog('fight','drove off a rat'); PIG.pop=.55; } return; } } }
+  for(const c of CHICKENS){ const dx=c.pos.x-PG.pos.x, dz=c.pos.z-PG.pos.z, d=Math.hypot(dx,dz); if(d<.55&&(dx*fx+dz*fz)/d>.2){ c.hits++; c.knock=V3(dx/d,0,dz/d).multiplyScalar(2.2); sndAt('squawk',c.pos); c.state=c.hits>=DATA.chicken.hits?'flee':'angry'; c.t=0; if(c.state==='flee'){ dlog('fight','chased off a chicken'); PIG.pop=.62; } return; } }
+  for(const r of RATS){ if(r.state==='gone') continue; const dx=r.pos.x-PG.pos.x, dz=r.pos.z-PG.pos.z, d=Math.hypot(dx,dz); if(d<.45&&(dx*fx+dz*fz)/d>.2){ r.hits++; r.knock=V3(dx/d,0,dz/d).multiplyScalar(1.8); sndAt('ratsq',r.pos); if(r.hits>=DATA.rat.hits){ r.state='flee'; r.t=0; dlog('fight','drove off a rat'); PIG.pop=.62; } return; } } }
 
 function pigUpdate(dt,ix,iz,camYaw){
   const P=DATA.pig; PG.inv=Math.max(0,PG.inv-dt);
   if(PG.state==='down'){ PG.downT+=dt; if(PG.downT>2.5){ PG.pos.set(-6.2,0,0); PG.y=0; PG.hearts=1.5; PG.state='free'; PG.inv=3; DAY.h+=.5; dlog('recover','back on his feet (lost half an hour)'); } return; }
   if(PG.state==='leap'||PG.state==='riding'){ rideUpdate(dt); return; }
   if(PG.state==='caught'){ const k=PG.caught; if(k){ k.p.hips.getWorldPosition(_tv2); PG.pos.set(_tv2.x,0,_tv2.z); PG.y=_tv2.y+.1; } PG.speed=0; PG.noise=3; return; }
+  if(PG.state==='dead'){ ix=iz=0; }
+  if(PG.dazed>0&&!PG.air){ PG.dazed=Math.max(0,PG.dazed-dt); PG.heading+=Math.sin(T*4.3)*.9*dt*Math.min(1,PG.dazed); }
   if(PG.eatTimer>0){ PG.eatTimer-=dt; ix=iz=0; }
   PG.frozen=PG.freezeHeld||keys.has('f'); if(PG.frozen){ ix=iz=0; }
   let il, dx=0, dz=0, steerBehind=CFG.steer!=='free';
@@ -930,17 +1082,17 @@ function pigUpdate(dt,ix,iz,camYaw){
     const fx=Math.sin(camYaw), fz=Math.cos(camYaw), rx=-Math.cos(camYaw), rz=Math.sin(camYaw);
     PG.turnCmd=0; dx=rx*ix+fx*(-iz); dz=rz*ix+fz*(-iz); il=Math.min(1,Math.hypot(dx,dz)); if(il>.001){ dx/=Math.hypot(dx,dz); dz/=Math.hypot(dx,dz)||1; }
   }
-  const wantRun=(runToggle||keys.has('Shift'))&&il>.2;
+  const wantRun=(runToggle||keys.has('Shift'))&&il>.2&&!(PG.dazed>0);
   PG.running=wantRun; if(wantRun) PG.stam=Math.max(0,PG.stam-P.runCost*dt); else PG.stam=Math.min(P.stamina,PG.stam+P.stamRegen*(PG.food<20?.5:1)*dt);
   const winded=PG.stam<=1?P.winded:1;
   const hungry=PG.food<20?.8:1;
-  const target=il>.15?(wantRun?P.run*winded:P.walk)*hungry*Math.max(.35,il):0;
+  const target=il>.15?(wantRun?P.run*winded:P.walk)*hungry*Math.max(.35,il)*(PG.dazed>0?.45:1):0;
   if(!steerBehind&&il>.15){ const want=Math.atan2(dx,dz); PG.heading+=clamp(angDiff(PG.heading,want),-P.turn*dt,P.turn*dt); }
   PG.speed=target>PG.speed?Math.min(target,PG.speed+P.accel*dt):Math.max(target,PG.speed-P.accel*1.6*dt);
   // pivoting on the spot: keep the hind feet planted, so the front swings round
   const hp=Math.abs(PIG.rig?.hindZ??.06), dH=angDiff(PG.lastHead??PG.heading,PG.heading); PG.lastHead=PG.heading;
   if(Math.abs(dH)>1e-4&&PG.speed<.6){ const h0=PG.heading-dH; PG.pos.x+=(Math.sin(PG.heading)-Math.sin(h0))*hp; PG.pos.z+=(Math.cos(PG.heading)-Math.cos(h0))*hp; }
-  const want=V3(Math.sin(PG.heading)*PG.speed*dt,0,Math.cos(PG.heading)*PG.speed*dt), before=PG.pos.clone();
+  const pl=PG.air?1:gaitPulse(PIG,PG.speed), want=V3(Math.sin(PG.heading)*PG.speed*pl*dt,0,Math.cos(PG.heading)*PG.speed*pl*dt), before=PG.pos.clone();
   PG.pos.x+=want.x+PG.knock.x*dt; PG.pos.z+=want.z+PG.knock.z*dt; PG.knock.multiplyScalar(Math.pow(.02,dt));
   collide(PG.pos,P.radius,PG.y,P.height);
   // ran into something: stop dead with a little recoil
@@ -980,7 +1132,7 @@ function spawnPeople(){
     const e={p,pos:V3(rnd(-35,35),0,lane),heading:dir>0?Math.PI/2:-Math.PI/2,dir,lane,state:'walk',t:0,say:0,speed:DATA.peds.speed*rnd(.85,1.15)}; p.g.position.copy(e.pos); PEDS.push(e); }
 }
 function kidSay(k,lines){ if(k.say>0) return; k.say=rnd(5,9); speak(pick(lines),{pitch:1.75+k.id*.15,rate:1.15},k.pos); }
-function escapeKid(){ const k=PG.caught; PG.state='free'; PG.caught=null; PG.wriggle=0; PG.inv=2.5; PIG.pop=.55; PG.y=0;
+function escapeKid(){ const k=PG.caught; PG.state='free'; PG.caught=null; PG.wriggle=0; PG.inv=2.5; PIG.pop=.62; PG.y=0;
   if(k){ k.state='stunned'; k.stun=3.6; kidSay(k,['Ow! He nipped me!','Hey! Come back!']); PG.pos.set(k.pos.x+Math.sin(k.heading)*.7,0,k.pos.z+Math.cos(k.heading)*.7); }
   dlog('escape','wriggled free'); sndPig('squeal'); }
 function kidsUpdate(dt){
@@ -1116,7 +1268,7 @@ function vehiclesUpdate(dt){
     const dx=(PG.pos.x-c.pos.x)*c.lane.dir, dz=Math.abs(PG.pos.z-c.lane.z);
     if(PG.state==='free'&&PG.pos.z>17.1&&PG.pos.z<23.9){
       if(dx>0&&dx<20&&dz<1.2&&c.honk<=0&&!PG.cover){ c.honk=4; sndAt('horn',c.pos); }
-      if(Math.abs(dx)<2.2&&dz<1.0){ if(hurt(DATA.damage.car,'hit by a car',c.pos)){ PG.pos.z=PG.pos.z<20.5?16.4:24.8; PG.knock.set(0,0,0); } }
+      if(Math.abs(dx)<2.2&&dz<1.0&&PG.inv<=0&&!PG.air) wheelClip('a car',c,DATA.damage.car,true);
       else if(Math.abs(dx)<3&&dz<1.6&&!c.close){ c.close=1; DAY.closeCalls++; dlog('close','a car missed him by inches'); } }
     if(Math.abs(PG.pos.x-c.pos.x)>6) c.close=0;
     c.g.visible=Math.abs(c.pos.x-PG.pos.x)<70; }
@@ -1126,7 +1278,7 @@ function vehiclesUpdate(dt){
     const dx=(PG.pos.x-e.pos.x)*e.lane.dir, dz=Math.abs(PG.pos.z-e.lane.z);
     if(PG.state==='free'&&PG.y<.3){
       if(dx>0&&dx<12&&PG.pos.z<-20.85&&PG.pos.z>-24.15&&e.bell<=0&&PG.cover!=='grass'&&sp>0){ e.bell=5; sndAt('bell2',e.pos); }
-      if(Math.abs(dx)<DATA.bike.hitR+.1&&dz<.4&&sp>1) hurt(DATA.damage.bike,'hit by a bicycle',e.pos);
+      if(Math.abs(dx)<DATA.bike.hitR+.1&&dz<.4&&sp>1&&PG.inv<=0&&!PG.air) wheelClip('a bicycle',e,DATA.damage.bike,false);
       else if(Math.abs(dx)<1.5&&dz<.9&&sp>1&&!e.close){ e.close=1; DAY.closeCalls++; dlog('close','a bike whizzed past'); } }
     if(Math.abs(PG.pos.x-e.pos.x)>4) e.close=0; }
 }
@@ -1384,6 +1536,7 @@ function endDay(kind){
   const L={
     home:['Home',['"Hey, little buddy. Got a carrot for you. How was your day?"','*squeak squeak*','"Oh, you want to come in with me, little fella? I don\'t know, man… wouldn\'t you be happier out here?"','*squeak… please…*','"…Okay, buddy. But if you wake me up, it\'s gonna be… come on. Come inside."','*Squee!*']],
     rough:['Rough day',['"Hey… hey, buddy. What happened to you? You\'re all scratched up."','*a small, tired squeak*','"Rough day, huh? Yeah. Me too. I never get out of these things for free either."','"Come on. You\'re sleeping in here tonight. No arguments."']],
+    gone:['Gone',['The car never slowed down.','Ben waited at his window with a carrot until long after dark, calling for his little friend.','<i>There are no second chances on Kūhiō Highway. This day is over for good — start a new one.</i>']],
     late:['After dark',['"There you are! I\'ve been out here with the torch for an hour, little fella…"','"Don\'t do that to me, man. Come on. Inside."']] }[kind];
   $('endT').textContent=L[0]; $('endBen').innerHTML=L[1].map(l=>`<p class="ben">${l}</p>`).join('');
   $('endSum').innerHTML=summary().join('<br>'); setTimeout(()=>{ $('endcard').hidden=false; },600); }
@@ -1393,6 +1546,7 @@ function summary(){ const by={}; for(const h of DAY.hurts) by[h.src]=(by[h.src]|
     `<b>Caught by kids:</b> ${DAY.caughtN} · <b>spotted:</b> ${DAY.seenN} times · <b>close calls on the road and path:</b> ${DAY.closeCalls}`]; }
 function dayText(){ return ['Guinea pig day log',BUILD,new Date().toString(),'Device: '+navigator.userAgent,'',...summary().map(s=>s.replace(/<[^>]+>/g,'')),'','Timeline:',...DAY.log.map(e=>e.t+'  '+e.type+': '+e.msg)].join('\n'); }
 function restartDay(){
+  $('fade').style.transition='none'; $('fade').style.opacity=0; PG.dazed=0; PIG.tumble=0; PIG.deadW=0;
   Object.assign(PG,{pos:W.start.clone(),y:0,vy:0,spin:0,downHeld:false,heading:Math.PI*1.3,speed:0,hearts:DATA.pig.hearts,food:DATA.pig.food,stam:DATA.pig.stamina,state:'free',caught:null,inv:0,knock:V3(),eatTimer:0});
   Object.assign(DAY,{h:DATA.day.start,ended:false,log:[],eaten:[],hurts:[],caughtN:0,closeCalls:0,seenN:0,warned:false,benHome:false});
   placeFood(); for(const k of KIDS){ k.state='play'; k.pos.set(rnd(-8,8),0,rnd(4,12)); k.p.g.visible=true; }
@@ -1426,7 +1580,7 @@ getBuf(PIGGLB).then(b=>new Promise((res,rej)=>new GLTFLoader().parse(b,'',res,re
     const gl=await new Promise((res,rej)=>new GLTFLoader().parse(buf,'',res,rej));
     CAST.src=gl.scene; CAST.tex=tex; CAST.clips={}; gl.animations.forEach(c=>CAST.clips[c.name]=c);
     spawnPeople(); ready=true; lighting(); log('event','loaded; grass clumps '+W.grassCount);
-    window.GP={jump,DATA,PG,DAY,KIDS,PEDS,DOG,CAT,CHICKENS,RATS,SHADE,CARS,BIKES,FOOD,W,CFG,act,nip,restartDay,endDay,keys,cam,heightAt,
+    window.GP={twoBone,footIK,jump,DATA,PG,DAY,KIDS,PEDS,DOG,CAT,CHICKENS,RATS,SHADE,CARS,BIKES,FOOD,W,CFG,act,nip,restartDay,endDay,keys,cam,heightAt,
       SIM:s=>{ for(let t=0;t<s;t+=1/30) update(1/30); }, tp:(x,y,z)=>{ PG.pos.set(x,0,z); PG.y=y; }, face:a=>{ PG.heading=a; camYaw=a; camOff=0; }, orbit:a=>{ camOff=a; camHold=true; }, PIG, showOpen, showSet, SHOW, setSlowmo, tryBikeLeap:()=>tryBikeLeap(), pause:v=>{PAUSED=v;}, stepShow:dt=>showUpdate(dt), step:dt=>update(dt), camYaw:()=>camYaw+camOff, start:()=>{ started=true; $('card').hidden=true; }};
   }catch(e){ log('error','load: '+e.message); $('card').querySelector('p').textContent='Could not load the people: '+e.message; } })();
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); cam.aspect=innerWidth/innerHeight; cam.fov=cam.aspect<.8?72:DATA.camera.fov; cam.updateProjectionMatrix(); }
@@ -1471,12 +1625,12 @@ function showUpdate(rdt){
   const dt=rdt*(SHOW.slow?.25:1); SHOW.t+=dt; const mv=MOVES[SHOW.i][2](SHOW.t);
   if(mv.turn) SHOW.head+=mv.turn*dt;
   if(mv.spin&&!SHOW.spin){ SHOW.spin=Math.PI; } if(SHOW.spin){ const st=Math.min(SHOW.spin,11*dt); SHOW.head+=st; SHOW.spin-=st; if(SHOW.spin<1e-3) SHOW.spin=0; }
-  if(mv.rear) PIG.rear=1.6; if(mv.eat) PIG.eat=1.2; if(mv.pop) PIG.pop=.55; if(mv.nip) PIG.nip=.28;
+  if(mv.rear) PIG.rear=1.6; if(mv.eat) PIG.eat=1.2; if(mv.pop) PIG.pop=.62; if(mv.nip) PIG.nip=.28;
   if(mv.jump&&!SHOW.air&&!(SHOW.wind>0)){ SHOW.wind=.08; PIG.wind=.08; }
   if(SHOW.wind>0){ SHOW.wind-=dt; if(SHOW.wind<=0){ SHOW.vy=DATA.pig.jump; SHOW.air=true; } }
   if(SHOW.air){ SHOW.vy-=DATA.pig.gravity*dt; SHOW.y+=SHOW.vy*dt; if(SHOW.y<=0){ SHOW.y=0; SHOW.air=false; SHOW.vy=0; PIG.land=.14; } }
   SHOW.sp=damp(SHOW.sp||0,mv.speed,mv.speed>(SHOW.sp||0)?13:18,dt);
-  SHOW.d+=SHOW.sp*dt; if(SHOW.d>4.5) SHOW.d=0;
+  SHOW.d+=SHOW.sp*dt*(SHOW.air?1:gaitPulse(PIG,SHOW.sp)); if(SHOW.d>4.5) SHOW.d=0;
   const x=SHOW.x0+Math.sin(Math.PI/2)*SHOW.d-2.2, z=SHOW.z0, g=heightAt(x,z,0);
   PIG.g.position.set(x,g+SHOW.y+(PIG.popY||0),z); PIG.g.rotation.y=SHOW.head; PIG.air=SHOW.air;
   const mm={speed:SHOW.sp,frozen:!!mv.frozen,vy:SHOW.vy,heading:SHOW.head,state:'free',spin:SHOW.spin,turnCmd:mv.turn?-Math.sign(mv.turn)*.8:(SHOW.spin?-.8:0)}; animPig(PIG,mm,dt); SHOW.head=mm.heading; PIG.g.rotation.y=SHOW.head; blobUpdate();
@@ -1506,6 +1660,7 @@ function update(dt){
   for(const [i,l] of W.laundry.entries()) l.rotation.x=Math.sin(T*1.3+i)*.12;
   if(scentT>0){ scentT-=dt; scent.material.opacity=Math.min(.9,scentT)*.9; } else scent.material.opacity=0;
   if(ASTRAL.flash>0){ ASTRAL.flash=Math.max(0,ASTRAL.flash-dt*.6); renderer.toneMappingExposure=1-ASTRAL.flash*.45; }
+  { const d=PG.dazed>0?Math.min(1,PG.dazed/1.5):0; renderer.domElement.style.filter=d>.01?`blur(${(d*1.6).toFixed(2)}px) saturate(${(1-d*.45).toFixed(2)})`:''; }
   const yaw=cameraUpdate(dt); blobUpdate(); audioUpdate(dt); ripplesDraw(dt,yaw); hud(dt);
   sun.target.position.set(PG.pos.x,PG.y,PG.pos.z); sun.position.copy(sun.target.position).addScaledVector(sunDir,25);
 }
