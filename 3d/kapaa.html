@@ -140,7 +140,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 const $ = id => document.getElementById(id);
-const BUILD = 'Kapaʻa town v0.5 · 26 Sep 2026';
+const BUILD = 'Kapaʻa town v0.6 · 26 Sep 2026';
 const TOWN_SRC = 'url:assets/kapaa/town.json?v=k02', HEIGHTS_SRC = 'url:assets/kapaa/heights.bin?v=k01', GROUND_SRC = 'url:assets/kapaa/ground.jpg?v=k01';
 const BEN_GLB = 'url:assets/ben.glb?v=k02', BEN_SKIN = 'url:assets/ben-skin.jpg?v=k02', ANT_GLB = 'url:assets/anthony.glb?v=k02', ANT_SKIN = 'url:assets/anthony-skin.jpg?v=k02', PIG_GLB = 'url:assets/kapaa/pig-town.glb?v=k03', PIG_SKIN = 'url:assets/kapaa/pig-town-skin.jpg?v=k03', PIG_NORM = 'url:assets/kapaa/pig-town-normal.jpg?v=k03';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
@@ -209,7 +209,7 @@ const MAT = {
   path: new THREE.MeshStandardMaterial({ map: TX.concrete, roughness: .95, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -3 }),
   cycle: new THREE.MeshStandardMaterial({ map: TX.concrete, color: 0xe8e2d4, roughness: .9, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -5 }),
   dirt: new THREE.MeshStandardMaterial({ map: TX.dirt, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
-  side: new THREE.MeshStandardMaterial({ map: TX.concrete, roughness: .9 }),
+  side: new THREE.MeshStandardMaterial({ map: TX.concrete, roughness: .9, side: THREE.DoubleSide }),
   yellow: new THREE.MeshStandardMaterial({ color: 0xe0b43a, roughness: .7, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -8 }),
   white: new THREE.MeshStandardMaterial({ color: 0xeeeeea, roughness: .7, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -8 }),
   wall: new THREE.MeshStandardMaterial({ map: TX.wall, vertexColors: true, roughness: .85 }),
@@ -294,17 +294,24 @@ function buildOcean() {
 
 /* ================= roads ================= */
 const roadGrid = new Map();          // 40 m cells → [roadIndex, segIndex]
-function ribbon(out, pts, w, off, lift, vScale = 6, flatY = null) {
-  const n = pts.length; if (n < 2) return; const base = out.pos.length / 3; let acc = 0;
+// split long polyline segments so ribbons follow the terrain (a 60 m chord would cut through a rise or float over a dip)
+function densify(pts, step = 8) {
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i], n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / step); for (let k = 1; k <= n; k++) out.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]); }
+  return out;
+}
+// wound so the faces point UP (they were wound downward before, so every road, footpath and road line was culled and people seemed to float)
+function ribbon(out, pts, w, off, lift, vScale = 6, flatY = null, acc0 = 0) {
+  pts = densify(pts); const n = pts.length; if (n < 2) return; const base = out.pos.length / 3; let acc = acc0;
   for (let i = 0; i < n; i++) {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)]; let tx = b[0] - a[0], tz = b[1] - a[1]; const tl = Math.hypot(tx, tz) || 1; tx /= tl; tz /= tl;
     const nx = -tz, nz = tx; if (i > 0) acc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
     for (const s of [-1, 1]) { const o = off + s * w / 2, x = pts[i][0] + nx * o, z = pts[i][1] + nz * o; out.pos.push(x, (flatY ?? hAt(x, z)) + lift, z); out.uv.push((s + 1) / 2 * w / 4, acc / vScale); }
-    if (i > 0) { const p = base + (i - 1) * 2; out.idx.push(p, p + 2, p + 1, p + 1, p + 2, p + 3); }
+    if (i > 0) { const p = base + (i - 1) * 2; out.idx.push(p, p + 1, p + 2, p + 1, p + 3, p + 2); }
   }
 }
-function curb(out, pts, off, h, lift) {       // vertical strip along a line, from lift to lift+h
-  const n = pts.length; const base = out.pos.length / 3; let acc = 0;
+function curb(out, pts, off, h, lift) {       // vertical strip along a line, from lift to lift+h (double-sided material)
+  pts = densify(pts); const n = pts.length; const base = out.pos.length / 3; let acc = 0;
   for (let i = 0; i < n; i++) {
     const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)]; let tx = b[0] - a[0], tz = b[1] - a[1]; const tl = Math.hypot(tx, tz) || 1; tx /= tl; tz /= tl;
     const x = pts[i][0] - tz * off, z = pts[i][1] + tx * off, y = hAt(x, z) + lift; if (i > 0) acc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
@@ -318,26 +325,33 @@ function bufMesh(b, mat, shadow = true) {
   geo.setAttribute('position', new THREE.Float32BufferAttribute(b.pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2)); geo.setIndex(b.idx); geo.computeVertexNormals();
   const m = new THREE.Mesh(geo, mat); m.receiveShadow = shadow; scene.add(m); return m;
 }
+// roads are built in 500 m cells (one mesh per surface per cell) so the far ones can be culled
+const ROADC = 500, roadCells = new Map();
 function buildRoads() {
-  const B = { asphalt: newBuf(), minor: newBuf(), path: newBuf(), cycle: newBuf(), dirt: newBuf(), yellow: newBuf(), white: newBuf(), side: newBuf() };
+  const cellB = (x, z) => { const key = Math.floor(x / ROADC) + ',' + Math.floor(z / ROADC); let c = roadCells.get(key);
+    if (!c) { c = { cx: (Math.floor(x / ROADC) + .5) * ROADC, cz: (Math.floor(z / ROADC) + .5) * ROADC, B: { asphalt: newBuf(), minor: newBuf(), path: newBuf(), cycle: newBuf(), dirt: newBuf(), yellow: newBuf(), white: newBuf(), side: newBuf() }, meshes: [] }; roadCells.set(key, c); }
+    return c.B; };
+  const pieces = pts => { const d = densify(pts), out = []; let acc = 0; for (let i = 0; i < d.length - 1; i += 40) { const pc = d.slice(i, i + 41); out.push({ pc, acc, B: cellB(pc[pc.length >> 1][0], pc[pc.length >> 1][1]) }); for (let j = i + 1; j < Math.min(d.length, i + 41); j++) acc += Math.hypot(d[j][0] - d[j - 1][0], d[j][1] - d[j - 1][1]); } return out; };
   const shopPts = T.bld.filter(b => b.shop).map(b => b.p[0]);
   const nearShop = (x, z) => shopPts.some(p => Math.abs(p[0] - x) < 45 && Math.abs(p[1] - z) < 45);
   T.roads.forEach((r, ri) => {
     const k = r.k, p = r.p;
     const bucket = k === 'primary' || k === 'secondary' || k === 'tertiary' || k === 'tertiary_link' ? 'asphalt' : (k === 'cycleway' ? 'cycle' : (k === 'footway' || k === 'pedestrian' || k === 'path' ? (k === 'path' ? 'dirt' : 'path') : (k === 'track' ? 'dirt' : 'minor')));
     const lift = { asphalt: .12, minor: .1, cycle: .14, path: .13, dirt: .07 }[bucket];
-    ribbon(B[bucket], p, r.w, 0, lift, bucket === 'asphalt' ? 6 : 5);
-    if (bucket === 'asphalt' && k !== 'tertiary_link') { ribbon(B.yellow, p, .12, .13, lift + .01); ribbon(B.yellow, p, .12, -.13, lift + .01); }
-    if (k === 'primary') { ribbon(B.white, p, .14, r.w / 2 - .45, lift + .01); ribbon(B.white, p, .14, -r.w / 2 + .45, lift + .01); }
-    if (k === 'cycleway') { ribbon(B.yellow, p, .1, 0, lift + .01); }
+    for (const { pc, acc, B } of pieces(p)) {
+      ribbon(B[bucket], pc, r.w, 0, lift, bucket === 'asphalt' ? 6 : 5, null, acc);
+      if (bucket === 'asphalt' && k !== 'tertiary_link') { ribbon(B.yellow, pc, .12, .13, lift + .01); ribbon(B.yellow, pc, .12, -.13, lift + .01); }
+      if (k === 'primary') { ribbon(B.white, pc, .14, r.w / 2 - .45, lift + .01); ribbon(B.white, pc, .14, -r.w / 2 + .45, lift + .01); }
+      if (k === 'cycleway') { ribbon(B.yellow, pc, .1, 0, lift + .01); }
+    }
     if (k === 'primary') {                  // sidewalks + curbs where there are shops
       let run = [];
-      const flush = () => { if (run.length > 1) { for (const s of [-1, 1]) { ribbon(B.side, run, 2.4, s * (r.w / 2 + 1.2), lift + .15); curb(B.side, run, s * r.w / 2, .15, lift); } addSide(run, r.w / 2, lift + .15); } run = []; };
+      const flush = () => { if (run.length > 1) { for (const { pc, acc, B } of pieces(run)) for (const s of [-1, 1]) { ribbon(B.side, pc, 2.4, s * (r.w / 2 + 1.2), lift + .15, 6, null, acc); curb(B.side, pc, s * r.w / 2, .15, lift); curb(B.side, pc, s * (r.w / 2 + 2.4), lift + .15, 0); } addSide(run, r.w / 2, lift + .15); } run = []; };
       for (const q of p) { if (nearShop(q[0], q[1])) run.push(q); else flush(); } flush();
     }
     for (let i = 0; i < p.length - 1; i++) { const key = Math.floor(p[i][0] / 40) + ',' + Math.floor(p[i][1] / 40); if (!roadGrid.has(key)) roadGrid.set(key, []); roadGrid.get(key).push([ri, i]); }
   });
-  for (const k in B) bufMesh(B[k], MAT[k]);
+  for (const c of roadCells.values()) { for (const k in c.B) { const m = bufMesh(c.B[k], MAT[k]); if (m) c.meshes.push(m); } c.B = null; }
 }
 // raised footpaths (the kerbed sidewalks along Kūhiō Hwy by the shops): walkers and the guinea pig stand on top of them
 const sideGrid = new Map();
@@ -349,7 +363,7 @@ function sideLift(x, z) {
   return null;
 }
 // the height you walk on: terrain, plus the road surface or the raised footpath
-function surfY(x, z) { const h = hAt(x, z), s = sideLift(x, z); return h + (s !== null ? s + .01 : onRoad(x, z) ? .12 : 0); }
+function surfY(x, z) { const pd = padAt(x, z); if (pd !== null) return pd; const h = hAt(x, z), s = sideLift(x, z); return h + (s !== null ? s + .01 : onRoad(x, z) ? .12 : 0); }
 function nearestRoad(x, z, maxD = 14) {
   let best = null, bd = maxD;
   for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
@@ -693,7 +707,7 @@ $('mini').onclick = () => setMode(P.mode === 'map' ? 'walk' : 'map');
 $('perfBtn').onclick = () => { const on = $('perf').hidden; $('perf').hidden = !on; $('perfBtn').setAttribute('aria-pressed', on); };
 $('placesBtn').onclick = () => { const o = $('places').hidden; $('places').hidden = !o; $('placesBtn').setAttribute('aria-expanded', o); };
 function goTo(x, z, faceX, faceZ) {
-  const [cx, cz] = collide(x, z, .5); P.x = cx; P.z = cz; P.y = hAt(cx, cz);
+  const [cx, cz] = collide(x, z, .5); P.x = cx; P.z = cz; P.y = surfY(cx, cz);
   if (faceX !== undefined) P.yaw = Math.atan2(-(faceX - cx), -(faceZ - cz)); P.pitch = 0;
   if (P.mode === 'map') { MAPV.x = cx; MAPV.z = cz; MAPV.dist = 260; }
   $('places').hidden = true; $('placesBtn').setAttribute('aria-expanded', false);
@@ -745,7 +759,8 @@ let whereT = 0; function updateWhere(dt) {
 let shadowSize = 24; function setShadowBox(sz) { if (sz === shadowSize) return; shadowSize = sz; Object.assign(sun.shadow.camera, { left: -sz, right: sz, top: sz, bottom: -sz }); sun.shadow.camera.updateProjectionMatrix(); }
 function updateSun() { setShadowBox(P.mode === 'pig' || PR.on ? 7 : RIDE.on ? 12 : 24); const cx = P.mode === 'map' ? MAPV.x : P.x, cz = P.mode === 'map' ? MAPV.z : P.z, cy = hAt(cx, cz); sun.target.position.set(cx, cy, cz); sun.position.set(cx + SUNDIR.x * 300, cy + SUNDIR.y * 300, cz + SUNDIR.z * 300); sky.position.copy(cam.position); }
 // chunk visibility by distance
-function updateChunks() { const cx = cam.position.x, cz = cam.position.z, far = scene.fog.far + CH; for (const ch of chunks.values()) { const v = Math.hypot(ch.cx - cx, ch.cz - cz) < far; for (const m of ch.meshes) m.visible = v; } }
+function updateChunks() { const cx = cam.position.x, cz = cam.position.z, far = scene.fog.far + CH; for (const ch of chunks.values()) { const v = Math.hypot(ch.cx - cx, ch.cz - cz) < far; for (const m of ch.meshes) m.visible = v; }
+  const rfar = scene.fog.far + ROADC * .75; for (const c of roadCells.values()) { const v = Math.hypot(c.cx - cx, c.cz - cz) < rfar; for (const m of c.meshes) m.visible = v; } }
 
 
 /* ---------------- procedural seated pose (rig-agnostic) ----------------
@@ -947,12 +962,12 @@ function chestW(ch, out = V3()) { const a = boneW(ch.R.lArm, V3()), b = boneW(ch
 /* ---- Ben in the town (third person) ---- */
 const BEN = { ch: null, heading: 0, speed: 0, visible: true };
 function initBen() {
-  BEN.ch = makeChar('ben', { cal: { head: -.1, spine: .05 } }); scene.add(BEN.ch.g); play(BEN.ch, 'Idle');
+  BEN.ch = makeChar('ben', { cal: { head: -.1, spine: .05 } }); scene.add(BEN.ch.g); play(BEN.ch, 'Idle'); addContact(BEN.ch);
 }
 function benTownUpdate(dt, moving, sp, dirYaw) {
   const ch = BEN.ch; if (!ch) return;
   ch.g.visible = BEN.visible;
-  if (!ch.g.visible) return;
+  if (!ch.g.visible) { contactUpdate(ch, surfY, false); return; }
   if (moving) BEN.heading = dirYaw;
   const cur = ch.g.rotation.y, d = Math.atan2(Math.sin(BEN.heading - cur), Math.cos(BEN.heading - cur));
   ch.g.rotation.y = cur + d * (1 - Math.exp(-10 * dt));
@@ -960,7 +975,7 @@ function benTownUpdate(dt, moving, sp, dirYaw) {
   ch.g.position.set(P.x, P.y, P.z);
   BEN.speed = damp(BEN.speed, moving ? sp : 0, 8, dt); breathe(dt, BEN.speed > 3 ? .8 : BEN.speed > .3 ? .35 : .15);
   if (BEN.speed < .15) play(ch, 'Idle'); else if (BEN.speed < 3) play(ch, 'Walk', { speed: clamp(BEN.speed / 1.4, .6, 1.6) }); else play(ch, 'Run', { speed: clamp(BEN.speed / 4.5, .7, 1.8) });
-  ch.sitW = 0; poseChar(ch, dt);
+  ch.sitW = 0; poseChar(ch, dt); contactUpdate(ch, surfY);
 }
 
 /* ---- baking: posed people become one static mesh (one draw call, no skeletons) ----
@@ -982,13 +997,42 @@ function bakeChars(list, space) {
   const out = geos.length ? mergeGeometries(geos) : null; for (const g of geos) g.dispose(); return out;
 }
 let _crowdMat = null; function crowdMat() { return _crowdMat ||= new THREE.MeshStandardMaterial({ map: MODELS.ant.tex, vertexColors: true, metalness: 0, roughness: .85, side: THREE.DoubleSide }); }
-function disposeChar(ch) { if (!ch) return; ch.g.parent?.remove(ch.g); for (const m of ch.meshes) m.skeleton?.dispose(); ch.mixer.stopAllAction(); ch.mat.dispose(); }
+function disposeChar(ch) { if (!ch) return; dropContact(ch); ch.g.parent?.remove(ch.g); for (const m of ch.meshes) m.skeleton?.dispose(); ch.mixer.stopAllAction(); ch.mat.dispose(); }
 
 /* ---- footsteps + breathing for Ben ---- */
 const STEP = { d: 0, side: 0 };
 function footsteps(dist, running, surface) {
   STEP.d += dist; const stride = running ? 1.25 : .72;
   if (STEP.d >= stride) { STEP.d -= stride; STEP.side ^= 1; sfx(surface === 'grass' ? 'stepGrass' : running ? 'stepRun' : 'step', STEP.side); }
+}
+
+/* ---- contact shadows: a soft dark patch under each foot and a faint one under the body ----
+   The sun's shadow map is too coarse to darken the exact spot where a sole meets the ground, and without that
+   people read as hovering. These fade as a foot lifts (walking) and follow whatever the feet stand on. */
+const CONTACT = { tex: null, geo: null };
+function contactBlob(op) {
+  if (!CONTACT.tex) { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.45, 'rgba(0,0,0,.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    CONTACT.tex = new THREE.CanvasTexture(c); CONTACT.geo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2); }
+  const m = new THREE.Mesh(CONTACT.geo, new THREE.MeshBasicMaterial({ map: CONTACT.tex, color: 0x000000, transparent: true, depthWrite: false, opacity: op, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
+  m.renderOrder = 2; m.frustumCulled = false; m.userData.op = op; m.castShadow = m.receiveShadow = false; return m;
+}
+function addContact(ch, space = scene) { const C = { l: contactBlob(.62), r: contactBlob(.62), b: contactBlob(.3), space }; for (const k of ['l', 'r', 'b']) space.add(C[k]); ch.contact = C; return C; }
+function dropContact(ch) { const C = ch?.contact; if (!C) return; for (const k of ['l', 'r', 'b']) { C.space.remove(C[k]); C[k].material.dispose(); } ch.contact = null; }
+const _ca = V3(), _ct = V3();
+// ground(x, z) gives the surface height in the contact's space (world, or the bus)
+function contactUpdate(ch, ground, on = true) {
+  const C = ch.contact; if (!C) return; const vis = on && ch.g.visible, k = ch.g.scale.x, sp = C.space, loc = sp !== scene;
+  for (const [key, fb, tb] of [['l', ch.R.lFoot, ch.R.lToe], ['r', ch.R.rFoot, ch.R.rToe]]) {
+    const m = C[key]; m.visible = vis; if (!vis) continue;
+    fb.getWorldPosition(_ca); (tb || fb).getWorldPosition(_ct); if (loc) { sp.worldToLocal(_ca); sp.worldToLocal(_ct); }
+    const cx = _ca.x * .45 + _ct.x * .55, cz = _ca.z * .45 + _ct.z * .55, gy = ground(cx, cz), lift = Math.max(0, Math.min(_ca.y, _ct.y + .04) - gy - .06 * k);
+    const f = clamp(1 - lift / (.22 * k), 0, 1);
+    m.position.set(cx, gy + .012, cz); m.rotation.y = Math.atan2(_ct.x - _ca.x, _ct.z - _ca.z); m.scale.set(.2 * k * (1 + lift), 1, .36 * k * (1 + lift)); m.material.opacity = m.userData.op * f * f;
+  }
+  const b = C.b; b.visible = vis && ch.sitW < .7; if (!b.visible) return;
+  ch.R.hips.getWorldPosition(_ca); if (loc) sp.worldToLocal(_ca); const gy = ground(_ca.x, _ca.z), h = _ca.y - gy;
+  b.position.set(_ca.x, gy + .01, _ca.z); b.rotation.y = ch.g.rotation.y; b.scale.set(.62 * k, 1, .5 * k); b.material.opacity = b.userData.op * clamp(1.6 - h / (.75 * k), 0, 1) * (1 - ch.sitW);
 }
 
 
@@ -1283,7 +1327,7 @@ const DATA = {
     cruise: 12.5,                      // m/s entering / leaving the mapped area
     lane: 3.35,                        // bus centre from the road centre line (pulls in to the curb)
     shelterOff: 8.6,                   // shelter from the road centre line
-    boardRange: 9,                     // metres from the doors to board
+    boardRange: 12,                    // metres from the doors to board
     ffRate: 420,                       // fast-forward: game seconds per real second while waiting
     ffLead: 14,                        // stop fast-forwarding this many seconds before the bus pulls in (it's in sight by then)
     length: 10.7, width: 2.55, height: 3.05,
@@ -1302,10 +1346,12 @@ function initClock() {
   const now = new Date(Date.now() - 10 * 3600e3);                 // HST = UTC-10, no daylight saving
   let t = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds(), day = now.getUTCDay();
   const inService = BUSD.serviceDays.includes(day) && t > 5.5 * 3600 && t < 19.9 * 3600;
-  if (qs.get('t')) { t = hm(qs.get('t')) * 60; day = 1; CLOCK.note = 'Clock set from the link.'; }
+  if (qs.get('t')) { t = hm(qs.get('t')) * 60; day = 1; CLOCK.note = 'Clock set from the link.'; CLOCK.fixed = true; }
+  else if (qs.get('real')) CLOCK.fixed = true;
   else if (!inService) { day = BUSD.serviceDays.includes(day) && t < 5.5 * 3600 ? day : (day + 1) % 7; if (!BUSD.serviceDays.includes(day)) day = (day + 1) % 7; t = 8 * 3600 + 52 * 60;
     CLOCK.note = `It's ${fmtT(now.getUTCHours() * 3600 + now.getUTCMinutes() * 60)} on a ${DAYS[now.getUTCDay()]} in Kapaʻa — no buses run then, so the test starts at 8:52 AM on ${DAYS[day]}.`; }
   else CLOCK.note = 'Running on real Hawaiʻi time.';
+  if (!CLOCK.fixed) CLOCK.note = 'Ben starts at his stop, Across Kapaʻa Neighborhood Center, with the 400 to Līhuʻe about to pull in. ' + (inService ? '(Hawaiʻi time, moved on to the next bus.)' : `(No buses run at ${fmtT(now.getUTCHours() * 3600 + now.getUTCMinutes() * 60)} on a ${DAYS[now.getUTCDay()]}, so it's the next service morning.)`);
   CLOCK.t = t; CLOCK.day = day;
 }
 function clockUpdate(dt) {                  // dt is already slow-motion scaled
@@ -1350,13 +1396,20 @@ function initStops() {
   // shelters (drop OSM shelters that are the same stop)
   for (const st of STOPS) for (const p of T.pois) if (p.k === 'bus' && Math.hypot(p.x - st.x, p.z - st.z) < 45) p.k = 'bus-dup';
 }
+// the shelter stands on a concrete pad level with the footpath in front of it (or a kerb-height pad where there's no footpath)
+function stopBase(st) { const [fx, fz] = stopLocal(st, 0, -1.7), sl = sideLift(fx, fz); let h = -1e9; for (const [lx, lz] of [[-2.5, -1.5], [2.5, -1.5], [-2.5, 1.25], [2.5, 1.25], [0, 0]]) { const [x, z] = stopLocal(st, lx, lz); h = Math.max(h, hAt(x, z)); } return sl !== null ? Math.max(h + .03, hAt(fx, fz) + sl) : h + .12; }
+function padAt(x, z) {
+  for (const st of STOPS) { if (st.base === undefined) continue; const dx = x - st.x, dz = z - st.z; if (dx * dx + dz * dz > 16) continue; const c = Math.cos(st.face), s = Math.sin(st.face), lx = c * dx - s * dz, lz = s * dx + c * dz;
+    if (lx > -2.5 && lx < 2.5 && lz > -1.5 && lz < 1.25) return st.base; }
+  return null;
+}
 function buildShelters() {
-  const S = newCBuf(), green = new THREE.Color(0x3d6b5a), glass = new THREE.Color(0x9fb8c0), bench = new THREE.Color(0x7a5a3c), blue = new THREE.Color(0x2c5ea8);
+  const PAD = new THREE.Color(0xa9a59b), S = newCBuf(), green = new THREE.Color(0x3d6b5a), glass = new THREE.Color(0x9fb8c0), bench = new THREE.Color(0x7a5a3c), blue = new THREE.Color(0x2c5ea8);
   boxInto(S, -1.8, 1.8, 2.4, 2.55, -.9, .9, green); boxInto(S, -1.8, 1.8, .35, 2.4, .82, .9, glass);
   for (const x of [-1.75, 1.75]) boxInto(S, x - .05, x + .05, -.5, 2.4, -.9, .9, green);
-  boxInto(S, -1.4, 1.4, .45, .52, .35, .8, bench); boxInto(S, 2.4, 2.46, -.5, 2.6, -.56, -.5, DK); boxInto(S, 2.2, 2.66, 2.1, 2.6, -.58, -.5, blue);
+  boxInto(S, -1.4, 1.4, .45, .52, .35, .8, bench); boxInto(S, -2.5, 2.5, -.6, 0, -1.5, 1.25, PAD);   // bench; the concrete pad the shelter stands on boxInto(S, 2.4, 2.46, -.5, 2.6, -.56, -.5, DK); boxInto(S, 2.2, 2.66, 2.1, 2.6, -.58, -.5, blue);
   const geo = cbufGeo(S), m = new THREE.Matrix4(), q = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0), list = [];
-  for (const st of STOPS) { q.setFromAxisAngle(UPV, st.face); m.compose(new THREE.Vector3(st.x, hAt(st.x, st.z), st.z), q, new THREE.Vector3(1, 1, 1)); st.base = hAt(st.x, st.z); list.push({ m: m.clone() });
+  for (const st of STOPS) { q.setFromAxisAngle(UPV, st.face); st.base = stopBase(st); m.compose(new THREE.Vector3(st.x, st.base, st.z), q, new THREE.Vector3(1, 1, 1)); list.push({ m: m.clone() });
     addCollider([stopLocal(st, -1.85, .76), stopLocal(st, 1.85, .76), stopLocal(st, 1.85, .95), stopLocal(st, -1.85, .95)]);   // the back panel
     for (const [x0, x1, z0, z1] of [[-1.85, 1.85, .76, .95], [-1.85, -1.65, -.95, .95], [1.65, 1.85, -.95, .95]])        // back glass + the two side walls
       camPolys.push([stopLocal(st, x0, z0), stopLocal(st, x1, z0), stopLocal(st, x1, z1), stopLocal(st, x0, z1)]); }
@@ -1497,6 +1550,11 @@ const POOL = { '400': [], '500': [] };
 function busUpdate(dt) {
   if (CLOCK.day !== tripsDay) { TRIPS = tripsFor(CLOCK.day); tripsDay = CLOCK.day; }
   const t = CLOCK.t, live = new Set();
+  // the driver waits for Ben if he's at the doors (or nearly) when it's time to go: holds up to a minute
+  for (const e of BUSES.values()) { const tr = e.tr; if (!e.st.dwell || tr.dir !== DATA.ben.dir || RIDE.on || ACTIVE !== 'walk' || P.mode !== 'walk' || (tr.held || 0) > 60) continue;
+    const i = tr.keys.findIndex(k => k.kind === 'dep' && k.n === e.st.dwell); if (i < 0 || tr.keys[i].t - t > 3 || tr.id === RIDE.leftTrip) continue;
+    const door = e.bus.g.localToWorld(V3(-BW / 2 - .6, 0, BL / 2 - .75)); if (Math.hypot(door.x - P.x, door.z - P.z) > 16) continue;
+    for (let j = i; j < tr.keys.length; j++) tr.keys[j].t += dt; tr.t1 += dt; tr.held = (tr.held || 0) + dt; }
   for (const tr of TRIPS) {
     const st = tripState(tr, t); if (!st) continue; live.add(tr.id);
     let e = BUSES.get(tr.id); if (!e) { const b = POOL[tr.rid].pop() || makeBus(tr.rid); b.g.visible = true; e = { bus: b, tr, st }; BUSES.set(tr.id, e); }
@@ -1560,12 +1618,34 @@ function guideUpdate(dt) {
   GUIDE.board = can; $('boardBtn').hidden = !can; if (can) $('boardBtn').textContent = `Board the ${BUSD.routes[can.tr.rid].label}`;
   $('waitBtn').disabled = !nx.length || (nx[0] && nx[0].dep - BUSD.dwell - CLOCK.t < BUSD.ffLead + 3);
 }
+/* ---- the game starts at Ben's stop with his bus due (Anthony, 26 Sep: "the map should start at the bus stop") ----
+   Clock: Hawaiʻi time, moved on to 50 s before the next 400 pulls in (outside service hours, the next service morning).
+   ?t=HH:MM or ?real=1 in the link keeps the clock as given. */
+const START = { stop: 'Kapaa Neighborhood Center', lead: 50 };
+function benStop() { return STOPS.find(s => s.name === START.stop && s.dir === DATA.ben.dir); }
+function arrivalAt(st, t, day) { let best = null; for (const tr of tripsFor(day)) if (tr.dir === st.dir) for (const k of tr.keys) if (k.kind === 'arr' && k.n === st.name && k.t >= t && (best === null || k.t < best)) best = k.t; return best; }
+function cueFirstBus() {
+  const st = benStop(); if (CLOCK.fixed || !st) return;
+  let arr = arrivalAt(st, CLOCK.t + START.lead, CLOCK.day);
+  if (arr === null) { let d = (CLOCK.day + 1) % 7; while (!BUSD.serviceDays.includes(d)) d = (d + 1) % 7; CLOCK.day = d; CLOCK.t = 6 * 3600; arr = arrivalAt(st, CLOCK.t, d); }
+  if (arr !== null) CLOCK.t = arr - START.lead;
+}
+// stand Ben on the stop's pad, by the kerb, looking up the road the bus comes along
+function placeAtStop(st) {
+  const f = routeFrame(st.s, st.dir, 0), tx = Math.sin(f.yaw), tz = Math.cos(f.yaw);   // direction of travel
+  const x = st.x - f.rx * 2.2 - tx * 5.4, z = st.z - f.rz * 2.2 - tz * 5.4;
+  P.x = x; P.z = z; P.y = surfY(x, z);
+  const lx = -tx - f.rx * .3, lz = -tz - f.rz * .3, l = Math.hypot(lx, lz);
+  P.pitch = .12; BEN.heading = Math.atan2(lx / l, lz / l); if (BEN.ch) BEN.ch.g.rotation.y = BEN.heading;
+  P.yaw = Math.atan2(-lx / l, -lz / l);
+}
 function waitForBus() {
   const nx = nextAt(GUIDE.stop, CLOCK.t, 1)[0]; if (!nx) { toast('No more buses from here today'); return; }
   // skip straight there (a quick fade), rather than fast-forwarding frame by frame (slow on a phone)
   const tArr = nx.dep - BUSD.dwell, until = Math.max(CLOCK.t, tArr - BUSD.ffLead), mins = Math.round((until - CLOCK.t) / 60);
   const f = $('astralFx'); f.style.transition = 'opacity .35s'; f.style.background = '#0c1510'; f.style.opacity = '1';
-  setTimeout(() => { CLOCK.t = until; f.style.opacity = '0'; setTimeout(() => { f.style.transition = ''; f.style.background = ''; }, 400);
+  const st = GUIDE.stop, far = ACTIVE === 'walk' && Math.hypot(st.x - P.x, st.z - P.z) > 12;       // he walks over to the stop while we skip
+  setTimeout(() => { CLOCK.t = until; if (far) placeAtStop(st); f.style.opacity = '0'; setTimeout(() => { f.style.transition = ''; f.style.background = ''; }, 400);
     toast(mins > 0 ? `${mins} minute${mins > 1 ? 's' : ''} later… here comes the ${BUSD.routes[nx.rid].label}` : `Here comes the ${BUSD.routes[nx.rid].label}`, 3500); }, 380);
 }
 let toastT = null; function toast(msg, ms = 2600) { const el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, ms); }
@@ -1577,7 +1657,7 @@ const WAIT = { list: [] };
 function stopLocal(st, lx, lz) { const c = Math.cos(st.face), s = Math.sin(st.face); return [st.x + lx * c + lz * s, st.z - lx * s + lz * c]; }
 function spawnWaiter(st) {
   const tint = new THREE.Color(...CLOTH[(Math.random() * CLOTH.length) | 0]).multiplyScalar(.9 + Math.random() * .15), ch = makeChar('ant', { tint, scale: .95 + Math.random() * .1 });
-  const lx = (Math.random() - .5) * 1.8, [x, z] = stopLocal(st, lx, .62); ch.g.position.set(x, st.base ?? hAt(st.x, st.z), z); ch.g.rotation.y = st.face + Math.PI; ch.sitW = 1; scene.add(ch.g);
+  const lx = (Math.random() - .5) * 1.8, [x, z] = stopLocal(st, lx, .62); ch.g.position.set(x, st.base ?? hAt(st.x, st.z), z); ch.g.rotation.y = st.face + Math.PI; ch.sitW = 1; scene.add(ch.g); addContact(ch);
   const w = { st, ch, lx, state: 'sit', t: 0, lookT: 1, base: presetChan(Math.random() < .5 ? 'thighs' : 'phone', 0), n: 0 }; w.cur = cloneChan(w.base); WAIT.list.push(w);
 }
 function waitingUpdate(dt) {
@@ -1588,7 +1668,8 @@ function waitingUpdate(dt) {
   for (const st of near) if (!WAIT.list.some(w => w.st === st) && !(st.cool > CLOCK.t)) spawnWaiter(st);
   for (const w of WAIT.list) waiterUpdate(w, dt);
 }
-function waiterUpdate(w, dt) {
+function waiterUpdate(w, dt) { waiterUpdate0(w, dt); if (!w.dead) contactUpdate(w.ch, surfY); }
+function waiterUpdate0(w, dt) {
   const ch = w.ch, d = ch.g.position.distanceTo(cam.position); ch.g.visible = d < 140 && P.mode !== 'map'; if (!ch.g.visible) return;
   if (w.state === 'shoo') return waiterShoo(w, dt);
   if (w.state === 'sitback') return waiterSitBack(w, dt);
@@ -1603,7 +1684,7 @@ function waiterUpdate(w, dt) {
   if (w.state === 'stand') { w.t += dt; ch.sitW = Math.max(0, 1 - w.t / .8); play(ch, 'Idle'); poseChar(ch, dt); if (w.t > .8) { w.state = 'walk'; w.t = 0; } return; }
   if (w.state === 'walk') {
     const g = w.bus.bus.g, door = g.localToWorld(V3(-BW / 2 - .3, 0, BL / 2 - .75)), dx = door.x - ch.g.position.x, dz = door.z - ch.g.position.z, L = Math.hypot(dx, dz);
-    w.t += dt; ch.sitW = 0; play(ch, 'Walk'); ch.g.rotation.y = Math.atan2(dx, dz); const stp = Math.min(L, 1.3 * dt); ch.g.position.x += dx / L * stp; ch.g.position.z += dz / L * stp; ch.g.position.y = hAt(ch.g.position.x, ch.g.position.z) + .12; poseChar(ch, dt);
+    w.t += dt; ch.sitW = 0; play(ch, 'Walk'); ch.g.rotation.y = Math.atan2(dx, dz); const stp = Math.min(L, 1.3 * dt); ch.g.position.x += dx / L * stp; ch.g.position.z += dz / L * stp; ch.g.position.y = surfY(ch.g.position.x, ch.g.position.z); poseChar(ch, dt);
     if (L < 3) WAIT.boarding = { e: w.bus, t: performance.now(), x: ch.g.position.x, z: ch.g.position.z };
     if (L < .35 || w.t > 12 || !w.bus.st.dwell) { WAIT.boarding = { e: w.bus, t: performance.now(), x: door.x, z: door.z, inside: true }; disposeChar(ch); w.dead = true; w.st.cool = CLOCK.t + 180 + Math.random() * 420; WAIT.list = WAIT.list.filter(q => !q.dead); }
   }
@@ -1750,12 +1831,12 @@ function boardBus(e) {
 function enterUpdate(dt) {
   const g = RIDE.e.bus.g, door = g.localToWorld(V3(-BW / 2 - .45, 0, BL / 2 - .75)), dx = door.x - P.x, dz = door.z - P.z, L = Math.hypot(dx, dz);
   RIDE.enterT += dt;
-  const stp = Math.min(L, 1.7 * dt); P.x += dx / Math.max(L, 1e-3) * stp; P.z += dz / Math.max(L, 1e-3) * stp; P.y = hAt(P.x, P.z) + .12;
+  const stp = Math.min(L, 1.7 * dt); P.x += dx / Math.max(L, 1e-3) * stp; P.z += dz / Math.max(L, 1e-3) * stp; P.y = surfY(P.x, P.z);
   benTownUpdate(dt, L > .05, 1.7, Math.atan2(dx, dz));
   const cp = g.localToWorld(V3(-BW / 2 - 3.6, 1.75, BL / 2 + 2.6)), lk = g.localToWorld(V3(-BW / 2 - .8, 1.15, BL / 2 - 1.4));   // on the kerb ahead of the bus, looking back at the doors
   cam.position.copy(cp); cam.position.y = Math.max(cp.y, hAt(cp.x, cp.z) + 1.2); cam.lookAt(lk);
   if (L < .3 || RIDE.enterT > 5) {
-    BEN.visible = false; if (BEN.ch) BEN.ch.g.visible = false; $('meters').hidden = false;
+    BEN.visible = false; if (BEN.ch) { BEN.ch.g.visible = false; contactUpdate(BEN.ch, surfY, false); } $('meters').hidden = false;
     RIDE.phase = 'choose'; $('seatUI').hidden = false; sfx('card');
     sub(`Beep — card tapped. The ${BUSD.routes[RIDE.trip.rid].label}. Four seats free: pick one (tap its ring) — or stand.`, 5);
   }
@@ -2010,7 +2091,7 @@ function alight(stopName, forced) {
   const msg = RIDE.kickedOff ? 'The driver waits with the doors open until you step off.' : forced ? `The bus carries on to ${RIDE.trip.dir === DATA.ben.dir ? DATA.ben.heading : 'Hanalei'} — that's off the map for now, so the test ride ends here.` : 'You step off.';
   RIDE.leftTrip = RIDE.trip.id;
   endRide(); const rx = -Math.sin(st.face), rz = -Math.cos(st.face);             // step out between the shelter and the kerb
-  P.x = st.x + rx * 2.2 + rz * 1.5; P.z = st.z + rz * 2.2 - rx * 1.5; P.y = hAt(P.x, P.z); P.yaw = st.face + Math.PI / 2; P.pitch = .15; BEN.heading = st.face + Math.PI; sfx('doors');
+  P.x = st.x + rx * 2.2 + rz * 1.5; P.z = st.z + rz * 2.2 - rx * 1.5; P.y = surfY(P.x, P.z); P.yaw = st.face + Math.PI / 2; P.pitch = .15; BEN.heading = st.face + Math.PI; sfx('doors');
   sub(`${prettyStop(stopName)}. ${msg}`, 4);
 }
 function endRide() {
@@ -2109,7 +2190,7 @@ function idleOthers(dt) {
     const ch = BEN.ch; ch.g.visible = true; ch.g.position.set(SLOT.walk.x, SLOT.walk.y, SLOT.walk.z);
     // Ben keeps an eye on the little guy when he's close
     const G = PIGM.PIG, d = Math.hypot(G.g.position.x - ch.g.position.x, G.g.position.z - ch.g.position.z);
-    BEN.speed = 0; play(ch, 'Idle'); ch.sitW = 0; poseChar(ch, dt);
+    BEN.speed = 0; play(ch, 'Idle'); ch.sitW = 0; poseChar(ch, dt); contactUpdate(ch, surfY);
     if (d < 2.5) { const hb = ch.R.head, want = Math.atan2(G.g.position.x - ch.g.position.x, G.g.position.z - ch.g.position.z) - ch.g.rotation.y;
       const a = Math.atan2(Math.sin(want), Math.cos(want)); hb.rotateY(clamp(a, -1, 1) * .6); ch.R.neck?.rotateX(.35); }
   }
@@ -2117,32 +2198,67 @@ function idleOthers(dt) {
   if (G.ready && ACTIVE !== 'pig' && SLOT.pig && !PR.on) {
     G.g.visible = P.mode !== 'map' || true; G.g.position.set(SLOT.pig.x, SLOT.pig.y, SLOT.pig.z); G.g.rotation.y = G.head || 0;
     if (G.g.position.distanceTo(cam.position) < 40) PIGM.animRig(G, { speed: 0, heading: G.head || 0, frozen: false, vy: 0, state: 'free', turnCmd: 0 }, dt);
-  }
+    pigContact(SLOT.pig.x, SLOT.pig.y, SLOT.pig.z, 0, G.head || 0);
+  } else if (ACTIVE !== 'pig' && !PR.on) pigContact(0, 0, 0, 0, 0, false);
 }
 
-/* ---- bounds: feet and shins are posts the pig can't walk through (but there's room between the legs) ---- */
-const _lv = V3(), _lk = V3();
-function legPosts(ch, toLocal, out) {
+// the pig's contact shadow (one soft oval under his belly; fades as he jumps)
+const PIGSH = { m: null };
+function pigContact(x, gy, z, h, yaw, on = true) {
+  if (!PIGSH.m) { PIGSH.m = contactBlob(.6); scene.add(PIGSH.m); } const m = PIGSH.m; m.visible = on; if (!on) return;
+  const s = 1 + Math.max(0, h) * 1.2; m.position.set(x, gy + .008, z); m.rotation.y = yaw; m.scale.set(.2 * s, 1, .34 * s); m.material.opacity = .6 * clamp(1 - h / .55, 0, 1);
+}
+
+/* ---- bounds: the whole body is solid (feet, shins, thighs, hips, torso, head, arms) as capsules between bones.
+   The pig is a short upright capsule, so he can still go between and around legs, pass under a seated person's
+   thighs, and stand on a lap or a seat (those are surfaces; see townGround / busGround). ---- */
+const BODY_CAPS = [['lThigh', 'lShin', .075], ['lShin', 'lFoot', .06], ['lFoot', 'lToe', .055, .6], ['rThigh', 'rShin', .075], ['rShin', 'rFoot', .06], ['rFoot', 'rToe', .055, .6],
+  ['hips', 'chest', .15], ['chest', 'neck', .16], ['neck', 'head', .09], ['head', 'headEnd', .11], ['lArm', 'lFore', .05], ['lFore', 'lHand', .045], ['rArm', 'rFore', .05], ['rFore', 'rHand', .045]];
+function bodyCaps(ch, toLocal, out) {
   if (!ch || !ch.g.visible) return out;
-  for (const s of ['l', 'r']) {
-    for (const [b, r] of [[ch.R[s + 'Foot'], .07], [ch.R[s + 'Toe'], .055]]) { if (!b) continue; b.getWorldPosition(_lv); if (toLocal) toLocal(_lv); out.push({ x: _lv.x, z: _lv.z, r, top: _lv.y + .09, ch }); }
-    if (ch.R[s + 'Shin']) { ch.R[s + 'Shin'].getWorldPosition(_lk); ch.R[s + 'Foot'].getWorldPosition(_lv); _lv.lerp(_lk, .5); if (toLocal) { toLocal(_lv); toLocal(_lk); } out.push({ x: _lv.x, z: _lv.z, r: .055, top: _lk.y, ch }); }
-  }
+  const R = ch.R, k = ch.g.scale.x, pos = {};
+  const W = n => { if (pos[n]) return pos[n]; let v;
+    if (n === 'chest') { const a = R.lArm.getWorldPosition(V3()), b = R.rArm.getWorldPosition(V3()); v = a.add(b).multiplyScalar(.5); v.y -= .1 * k; }
+    else if (n === 'headEnd' && !R.headEnd) { v = R.head.getWorldPosition(V3()); v.y += .2 * k; }
+    else { const b = R[n]; if (!b) return null; v = b.getWorldPosition(V3()); }
+    if (toLocal) toLocal(v); return pos[n] = v; };
+  for (const [an, bn, r, ext] of BODY_CAPS) { const a = W(an), b0 = W(bn); if (!a || !b0) continue; const b = ext ? b0.clone().sub(a).multiplyScalar(1 + ext).add(a) : b0; out.push({ a, b, r: r * k, ch }); }
   return out;
 }
+const legPosts = bodyCaps;   // (old name)
+// closest points between segment a-b and the vertical segment (x, y0..y1, z): returns {px,py,pz (on a-b), y (on the column)}
+function segVsColumn(a, b, x, y0, y1, z) {
+  const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z; let best = null;
+  // sample-free: minimise over t in [0,1] the distance to the column (horizontal part is quadratic in t; vertical is clamped)
+  const h2 = dx * dx + dz * dz; let t = h2 > 1e-8 ? ((x - a.x) * dx + (z - a.z) * dz) / h2 : 0; t = clamp(t, 0, 1);
+  for (const tt of [t, 0, 1, clamp(t + .15, 0, 1), clamp(t - .15, 0, 1)]) {
+    const px = a.x + dx * tt, py = a.y + dy * tt, pz = a.z + dz * tt, cy = clamp(py, y0, y1), d2 = (px - x) ** 2 + (pz - z) ** 2 + (py - cy) ** 2;
+    if (!best || d2 < best.d2) best = { px, py, pz, y: cy, d2 };
+  }
+  return best;
+}
+const PIG_COL = { r: .085, lo: .085, hi: .13, half: .075 };   // the pig as two upright capsules (rump and chest, ±half along his heading): radius, axis lo..hi above his feet
 
 /* ---- one physics step for the pig, in any frame (town = world, bus = bus space) ---- */
 function pigMove(G, dt, vx, vz, jump, env) {
   G.vy ??= 0; G.air ??= false; G.landed = null;
+  if (G.kick) { vx += G.kick.x; vz += G.kick.z; G.kick.t -= dt; if (G.kick.t <= 0) G.kick = null; }       // tipped off a lap
   let nx = G.x + vx * dt, nz = G.z + vz * dt; G.bump = null;
-  for (const c of env.posts) { if (G.y >= c.top - .02) continue; const dx = nx - c.x, dz = nz - c.z, d = Math.hypot(dx, dz), m = c.r + PGB.radius;
-    if (d < m) { const k = d > 1e-4 ? m / d : 0; nx = d > 1e-4 ? c.x + dx * k : nx - vx * dt; nz = d > 1e-4 ? c.z + dz * k : nz - vz * dt; G.bump = c; } }
+  const hx0 = Math.sin(env.head ?? G.head ?? 0) * PIG_COL.half, hz0 = Math.cos(env.head ?? G.head ?? 0) * PIG_COL.half;
+  for (let pass = 0; pass < 3; pass++) for (const c of env.posts) for (const s of [1, -1]) {
+    const ox = hx0 * s, oz = hz0 * s, q = segVsColumn(c.a, c.b, nx + ox, G.y + PIG_COL.lo, G.y + PIG_COL.hi, nz + oz), m = c.r + PIG_COL.r; if (q.d2 >= m * m) continue;
+    const dy = q.py - q.y, need = Math.sqrt(Math.max(0, m * m - dy * dy)), hx = nx + ox - q.px, hz = nz + oz - q.pz, hd = Math.hypot(hx, hz);
+    if (hd > 1e-4) { nx = q.px + hx / hd * need - ox; nz = q.pz + hz / hd * need - oz; } else { nx = G.x; nz = G.z; }
+    G.bump = c;
+  }
   [nx, nz] = env.clamp(nx, nz, G.y);
   const moved = Math.hypot(nx - G.x, nz - G.z); G.x = nx; G.z = nz;
   if (jump && !G.air) { G.vy = PGB.jump; G.air = true; G.y += .01; sfx('hop'); }
-  const under = env.ground(G.x, G.z, G.y);
+  const under = env.ground(G.x, G.z, G.y); G.gy = under.top;
   if (G.air) {
-    G.vy -= PGB.gravity * dt; const ny = G.y + G.vy * dt;
+    G.vy -= PGB.gravity * dt; let ny = G.y + G.vy * dt;
+    // bump your head on someone (a thigh, an arm) on the way up
+    if (G.vy > 0) outer: for (const c of env.posts) for (const s of [1, -1]) { const q = segVsColumn(c.a, c.b, G.x + hx0 * s, ny + PIG_COL.lo, ny + PIG_COL.hi, G.z + hz0 * s), m = c.r + PIG_COL.r; if (q.d2 < m * m && q.py > ny + PIG_COL.hi) { G.vy = 0; ny = G.y; break outer; } }
     if (G.vy <= 0 && ny <= under.top) { G.y = under.top; G.air = false; G.vy = 0; G.landed = under; sfx('step'); }
     else G.y = ny;
   } else if (G.y - under.top > .04) { G.air = true; G.vy = 0; }       // walked off an edge
@@ -2180,7 +2296,7 @@ function pigTownUpdate(dt, vx, vz, sp, moveYaw) {
   if (sp > .05) G.head = (G.head ?? moveYaw) + Math.atan2(Math.sin(moveYaw - (G.head ?? moveYaw)), Math.cos(moveYaw - (G.head ?? moveYaw))) * (1 - Math.exp(-9 * dt));
   G.head ??= P.yaw + Math.PI;
   G.sp = damp(G.sp || 0, Math.min(speed, sp + .01), 10, dt);
-  G.g.position.set(G.x, G.y, G.z); G.g.rotation.y = G.head;
+  G.g.position.set(G.x, G.y, G.z); G.g.rotation.y = G.head; pigContact(G.x, G.gy ?? G.y, G.z, G.y - (G.gy ?? G.y), G.head);
   PIGM.animRig(G, { speed: G.air ? 0 : G.sp, heading: G.head, frozen: false, vy: G.vy, state: 'free', turnCmd: 0 }, dt);
   if (!G.air) footsteps(G.sp * dt * .35, G.sp > 1.5, 'grass');
   // someone reacts to a guinea pig on their bench or their lap
@@ -2191,9 +2307,12 @@ function pigTownUpdate(dt, vx, vz, sp, moveYaw) {
   const [ccx, ccy, ccz] = camUnblock(P.x, P.y + h, P.z, cx, cy, cz, dt); cam.position.set(ccx, Math.max(ccy, surfY(ccx, ccz) + .08), ccz); cam.lookAt(P.x, P.y + h, P.z);
 }
 // the man at the stop: stands up and shoos him off; sits back down once the pig has gone
+// someone standing up with the pig on their lap tips him off (a little hop away from them)
+function tipOff(G, fx, fz) { const l = Math.hypot(fx, fz) || 1; G.kick = { x: fx / l * 1.4, z: fz / l * 1.4, t: .45 }; G.vy = 2.1; G.air = true; G.y += .01; sfx('squeak'); }
 function waiterReact(w, kind) {
   if (w.state !== 'sit' || (w.reactT && performance.now() - w.reactT < PGB.reactCooldown * 1000)) return;
   w.reactT = performance.now(); w.state = 'shoo'; w.t = 0;
+  if (kind === 'lap') { const G = PIGM.PIG, h = w.ch.R.hips.getWorldPosition(V3()); tipOff(G, G.x - h.x, G.z - h.z); }
   sub(kind === 'lap' ? 'He jumps up — "Whoa! Shoo! Shoo!"' : '"Hey — shoo! Go on, shoo!"', 2.8); sfx('shoo');
 }
 function waiterShoo(w, dt) {
@@ -2213,8 +2332,8 @@ function waiterSitBack(w, dt) {
 function busPassengersLive(bus) {
   const list = [];
   for (const c of BUSM.crowdSeats || []) {
-    const ch = makeChar('ant', { tint: c.tint }); ch.sitW = 1; ch.g.position.set(c.seat.x, c.seat.y - .02, c.seat.z); ch.g.scale.setScalar(c.scale); bus.g.add(ch.g);
-    const base = presetChan(c.preset, c.look); writeSeat(ch, base, false); poseChar(ch, 0);
+    const ch = makeChar('ant', { tint: c.tint }); ch.sitW = 1; ch.g.position.set(c.seat.x, c.seat.y - .02, c.seat.z); ch.g.scale.setScalar(c.scale); bus.g.add(ch.g); addContact(ch, bus.g);
+    const base = presetChan(c.preset, c.look); writeSeat(ch, base, false); poseChar(ch, 0); contactUpdate(ch, () => c.seat.y);
     list.push({ ch, seat: c.seat, base, cur: cloneChan(base), pet: Math.random() < PGB.petChance, state: 'sit', t: 0, reactT: 0 });
   }
   if (bus.crowd) bus.crowd.visible = false;
@@ -2238,10 +2357,13 @@ function paxReact(p, kind) {
   if (p.state !== 'sit' || performance.now() - p.reactT < PGB.reactCooldown * 1000) return;
   p.reactT = performance.now(); p.t = 0;
   if (p.pet) { p.state = 'pet'; sub(pickR(['"Hey little pig…"', '"Aww — hey, little guy."', '"Hey little pig, where you going?"']), 2.8); PR.expo = Math.max(0, PR.expo - PGB.petCalm); sfx('coo'); }
-  else { p.state = 'shoo'; sub(kind === 'lap' ? '"Ugh! Get off me — shoo!"' : '"Shoo! Shoo! Get out of here!"', 2.8); PR.expo = Math.min(1, PR.expo + PGB.shooNotice); sfx('shoo'); }
+  else { p.state = 'shoo'; if (kind === 'lap') { const G = PIGM.PIG, h = PR.e.bus.g.worldToLocal(p.ch.R.hips.getWorldPosition(V3())); tipOff(G, G.x - h.x, G.z - h.z); } sub(kind === 'lap' ? '"Ugh! Get off me — shoo!"' : '"Shoo! Shoo! Get out of here!"', 2.8); PR.expo = Math.min(1, PR.expo + PGB.shooNotice); sfx('shoo'); }
 }
 function paxUpdateLive(p, dt, bus) {
   if (p.state === 'sit') return;
+  paxUpdateLive0(p, dt, bus); contactUpdate(p.ch, () => p.seat.y);
+}
+function paxUpdateLive0(p, dt, bus) {
   const ch = p.ch; p.t += dt;
   if (p.state === 'pet') {                                 // lean forward and reach down to the pig
     const lp = PR.pos.clone(), c = ch.g.worldToLocal(bus.g.localToWorld(lp)); const w = cloneChan(p.base), k = Math.min(1, p.t / .6) * (p.t > 3.4 ? Math.max(0, 1 - (p.t - 3.4) / .6) : 1);
@@ -2315,13 +2437,14 @@ function pigRideUpdate(dt) {
     vx = (rx * ix - fx * iz) / n * sp; vz = (rz * ix - fz * iz) / n * sp; dirYaw = Math.atan2(vx, vz); }
   // physics in bus space: legs are posts, seats and laps are things to jump onto
   G.x ??= PR.pos.x; G.z ??= PR.pos.z; G.y ??= PR.pos.y;
-  const env = { posts: busPosts(e.bus), ground: busGround, clamp: (x, z, y) => pigBusClamp(x, z) };
+  const env = { posts: busPosts(e.bus), ground: busGround, clamp: (x, z, y) => pigBusClamp(x, z), head: PR.head };
   const speed = pigMove(G, dt, vx, vz, keys.has(' ') && !G.jumpHeld, env); G.jumpHeld = keys.has(' ');
   PR.pos.set(G.x, G.y, G.z); const moved = l > .1;
   PR.head += Math.atan2(Math.sin(dirYaw - PR.head), Math.cos(dirYaw - PR.head)) * (moved ? 1 - Math.exp(-9 * dt) : 0);
   PR.sp = damp(PR.sp, Math.min(speed, (run ? PRD.run : PRD.speed) * l + .01), 10, dt);
   // place + animate (world = bus space × bus transform)
   const wp = g.localToWorld(PR.pos.clone()); G.g.position.copy(wp); G.g.rotation.y = g.rotation.y + PR.head; G.g.visible = true;
+  { const gw = g.localToWorld(V3(G.x, G.gy ?? G.y, G.z)); pigContact(gw.x, gw.y, gw.z, G.y - (G.gy ?? G.y), G.g.rotation.y); }
   PIGM.animRig(G, { speed: G.air ? 0 : PR.sp, heading: G.g.rotation.y, frozen: false, vy: G.vy, state: 'free', turnCmd: 0 }, dt);
   // people react when he lands on their seat or their lap
   if (G.on && G.on.owner && (G.on.kind === 'lap' || G.landed)) paxReact(G.on.owner, G.on.kind);
@@ -2809,12 +2932,12 @@ function frame(dt) {
     initClock(); initRoute(); initStops();
     for (const p of T.pois) if (p.k === 'bus' && p.n === 'Bus stop') { const r = nearestRoad(p.x, p.z, 40); if (r && r.n) p.n = 'Bus stop, ' + r.n.replace('Highway', 'Hwy'); } buildBuildings(); buildHouses(); buildTrees(); buildBen(); buildProps(); buildPlaces(); buildLabels();
     buildShelters(); initBusModel(); initGuide(); initBen(); $('clockNote').textContent = CLOCK.note; $('busPanel').hidden = false;
-    if (T.ben) { const [x, z, fx, fz] = benFront(); goTo(x, z, fx, fz); P.yaw += Math.PI * .75; }
+    { const st = benStop(); if (st) placeAtStop(st); else if (T.ben) { const [x, z, fx, fz] = benFront(); goTo(x, z, fx, fz); } }   // start at Ben's stop
     resize(); setMode('walk'); $('load').hidden = true; $('card').hidden = false; loop();
-    window.KT = { P, MAPV, setMode, goTo, T, hAt, renderer, update, cam, toggleFast, benFront, CLOCK, STOPS, BUSES, TRIPS: () => TRIPS, RIDE, METER, SHIELD, GUIDE, DATA, frame, pause: v => { PAUSED = v; }, boardBus, chooseSeat, shieldSet, fire, roll, requestStop, waitForBus, nextAt, keys, startCinematic, renderFrame, routeAt, ROUTE, makeChar, MODELS, sideLift, surfY, PIGM, PR, SLOT, STOPSX: () => STOPS, sneakOn, pigNip, WAIT, rayDown: (x, z) => { const rc = new THREE.Raycaster(new THREE.Vector3(x, 400, z), new THREE.Vector3(0, -1, 0)); const h = rc.intersectObjects(scene.children.filter(o => o.isMesh && !o.isInstancedMesh && o !== sky), false); return h.slice(0, 3).map(q => +q.point.y.toFixed(3)); } };
+    window.KT = { bodyCaps, segVsColumn, PIG_COL, townGround, BEN, sun, scene, legPosts, sideGrid, onRoad, nearestRoad, P, MAPV, setMode, goTo, T, hAt, renderer, update, cam, toggleFast, benFront, CLOCK, STOPS, BUSES, TRIPS: () => TRIPS, RIDE, METER, SHIELD, GUIDE, DATA, frame, pause: v => { PAUSED = v; }, boardBus, chooseSeat, shieldSet, fire, roll, requestStop, waitForBus, nextAt, keys, startCinematic, renderFrame, routeAt, ROUTE, makeChar, MODELS, sideLift, surfY, PIGM, PR, SLOT, STOPSX: () => STOPS, sneakOn, pigNip, WAIT, rayDown: (x, z) => { const rc = new THREE.Raycaster(new THREE.Vector3(x, 400, z), new THREE.Vector3(0, -1, 0)); const h = rc.intersectObjects(scene.children.filter(o => o.isMesh && !o.isInstancedMesh && o !== sky), false); return h.slice(0, 3).map(q => +q.point.y.toFixed(3)); } };
   } catch (e) { console.error(e); $('load').textContent = 'Could not build the town: ' + e.message; }
 })();
-$('go').onclick = () => { $('card').hidden = true; audioInit(); };
+$('go').onclick = () => { $('card').hidden = true; audioInit(); cueFirstBus(); CLOCK.cued = true; };
 
 
 </script>
