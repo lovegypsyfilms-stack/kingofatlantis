@@ -70,6 +70,14 @@
   #astralFx{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(220,240,255,.9),rgba(120,170,230,.55) 45%,rgba(10,20,40,.9));opacity:0;z-index:3;}
   #astralTint{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(8,16,34,.85));opacity:0;z-index:2;}
   @media (max-width:640px){ #busPanel{width:calc(100vw - 140px);} #shieldBtn{width:76px;height:76px;} #sub{font-size:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 170px);} }
+
+  #sneakBtn{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 86px);font-size:16px;padding:13px 20px;border-color:var(--gold);color:var(--gold);}
+  #pigHud{position:fixed;left:16px;top:calc(env(safe-area-inset-top,0px) + 56px);width:min(230px,45%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:12px;z-index:4;}
+  #pigHearts{color:#e7707a;font-size:16px;letter-spacing:2px;} #pigHid{color:var(--dim);font-size:11.5px;}
+  #pigNoticeBar i{background:linear-gradient(90deg,#d9b45a,#e7707a);}
+  #jumpBtn{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 104px);width:74px;height:74px;border-radius:50%;z-index:4;touch-action:none;}
+  #nipBtn{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);width:74px;height:74px;border-radius:50%;z-index:4;touch-action:none;}
+  body.pigride .hud.br, body.pigride .hud.tr, body.pigride #where, body.pigride #busPanel, body.pigride #clock{display:none!important;}
 </style>
 <canvas id="gl"></canvas>
 <div id="labels"></div>
@@ -87,6 +95,9 @@
 </div>
 <button id="boardBtn" hidden>Board</button>
 <div id="toast" hidden></div>
+<button id="sneakBtn" hidden>Sneak on behind them</button>
+<button id="jumpBtn" hidden>Jump</button>
+<div id="pigHud" hidden><div id="pigHearts">♥♥♥♥♥</div><div class="meter">Noticed<div class="bar" id="pigNoticeBar"><i id="pigNotice" style="width:0%"></i></div></div><div id="pigHid">out in the open</div><button id="nipBtn">Nip (N)</button></div>
 <div id="sub" hidden></div>
 <div id="readFx"></div>
 <div id="astralTint"></div><div id="astralFx"></div>
@@ -111,9 +122,10 @@
 <div id="load">Building Kapaʻa…</div>
 <div id="card" hidden><div class="in">
   <h2>Kapaʻa — catch the bus</h2>
-  <p>Real Kapaʻa streets from OpenStreetMap, and The Kauaʻi Bus on its real timetable along Kūhiō Hwy (400 to Līhuʻe, 500 to Hanalei). You're Ben, outside his place. Follow the gold arrow to a stop — someone's usually already waiting — then "Wait for bus" skips ahead until it's pulling in. When the doors open, board.</p>
+  <p>Real Kapaʻa streets from OpenStreetMap, and The Kauaʻi Bus on its real timetable along Kūhiō Hwy (400 to Līhuʻe, 500 to Hanalei). You're Ben, outside his place, heading to <b>Līhuʻe</b> — that's the 400, from the stop across the road. Follow the gold arrow — someone's usually already waiting — then "Wait for bus" skips ahead until it's pulling in. When the doors open, board.</p>
   <p class="small" id="clockNote"></p>
   <p class="small">On the bus: pick one of the four free seats. Watch the people near you; when something's coming, hold <b>Shield</b> (Space). Do that a couple of times and you'll go into the astral. There: move (WASD / left thumb), strike by tapping where to aim (or F — aim ahead of it), hold Shield when it winds up (that's a read), Roll (R) to dodge. Request a stop to get off.</p>
+  <p class="small"><b>Guinea pig:</b> he can only get on when someone else does — stay close behind a passenger as they board and tap <b>Sneak on</b>. Then hide under a seat before anyone notices. Space / Jump to hop up onto a seat, a bench — or someone's lap (they'll react). Something else lives under those seats: <b>N</b> to nip. Sneak off when the doors open at a later stop.</p>
   <p class="small">Houses on the residential streets are placeholders the map doesn't record yet, placed by the street layout. Hill heights are approximate until we load real elevation data. Ben's place is our pick, not a real address.</p>
   <p class="small">Move: WASD / arrows or drag on the left · Look: drag on the right · Run: Shift · Fast travel: T · Map: M</p>
   <button id="go" style="margin-top:6px">Start</button>
@@ -128,7 +140,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 const $ = id => document.getElementById(id);
-const BUILD = 'Kapaʻa town v0.3 (buses) · 25 Sep 2026';
+const BUILD = 'Kapaʻa town v0.5 · 26 Sep 2026';
 const TOWN_SRC = 'url:assets/kapaa/town.json?v=k02', HEIGHTS_SRC = 'url:assets/kapaa/heights.bin?v=k01', GROUND_SRC = 'url:assets/kapaa/ground.jpg?v=k01';
 const BEN_GLB = 'url:assets/ben.glb?v=k02', BEN_SKIN = 'url:assets/ben-skin.jpg?v=k02', ANT_GLB = 'url:assets/anthony.glb?v=k02', ANT_SKIN = 'url:assets/anthony-skin.jpg?v=k02', PIG_GLB = 'url:assets/kapaa/pig-town.glb?v=k03', PIG_SKIN = 'url:assets/kapaa/pig-town-skin.jpg?v=k03', PIG_NORM = 'url:assets/kapaa/pig-town-normal.jpg?v=k03';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
@@ -150,8 +162,8 @@ const cam = new THREE.PerspectiveCamera(68, 1, .1, 30000); cam.rotation.order = 
 scene.fog = new THREE.Fog(0xbcd3e0, 120, 1500);
 const hemi = new THREE.HemisphereLight(0xcfe6ff, 0x6a7a4a, 1.25); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff1dc, 2.4); sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 1, far: 600 });
-sun.shadow.bias = -0.0004; sun.shadow.normalBias = .04; scene.add(sun, sun.target);
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 600 });
+sun.shadow.bias = -0.00015; sun.shadow.normalBias = .012; scene.add(sun, sun.target);   // small biases so shadows meet feet (a big normalBias made everything look like it hovered)
 const SUNDIR = new THREE.Vector3(.55, .72, .42).normalize();          // morning sun from the east-south-east over the sea
 // sky dome
 const sky = new THREE.Mesh(new THREE.SphereGeometry(25000, 32, 16), new THREE.ShaderMaterial({
@@ -216,7 +228,9 @@ let T, HGT, META;
 function hAt(x, z) {
   const fx = (x - META.x0) / META.g, fz = (z - META.z0) / META.g;
   const i = clamp(Math.floor(fx), 0, META.gx - 2), j = clamp(Math.floor(fz), 0, META.gz - 2), u = clamp(fx - i, 0, 1), v = clamp(fz - j, 0, 1), W = META.gx;
-  return HGT[j * W + i] * (1 - u) * (1 - v) + HGT[j * W + i + 1] * u * (1 - v) + HGT[(j + 1) * W + i] * (1 - u) * v + HGT[(j + 1) * W + i + 1] * u * v;
+  // same split as the terrain mesh (triangles a-c-b and b-c-d), so what you stand on is exactly what's drawn
+  const a = HGT[j * W + i], b = HGT[j * W + i + 1], c = HGT[(j + 1) * W + i], d = HGT[(j + 1) * W + i + 1];
+  return u + v <= 1 ? a + (b - a) * u + (c - a) * v : d + (c - d) * (1 - u) + (b - d) * (1 - v);
 }
 function inside(x, z) { return x > META.x0 && x < META.x1 && z > META.z0 && z < META.z1; }
 
@@ -636,6 +650,11 @@ function update(dt) {
   if (!joy && !look && Math.abs(ix) > 0 && !keys.has('ArrowLeft') && !keys.has('ArrowRight')) { /* strafe with A/D */ }
   if (keys.has('ArrowLeft')) { P.yaw += dt * 1.8; ix -= -1; } if (keys.has('ArrowRight')) { P.yaw -= dt * 1.8; ix -= 1; }
   const l = Math.min(1, Math.hypot(ix, iz)); let moved = false, spNow = 0, dirYaw = 0;
+  if (P.mode === 'pig') {                                   // the guinea pig has his own body (jumping, legs in the way, benches, laps)
+    let vx = 0, vz = 0, sp = 0; if (l > .1) { sp = (keys.has('Shift') ? M.run : M.speed) * l; if (P.fast) sp = 12; const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw), n = Math.hypot(ix, iz); vx = (rx * ix - fx * iz) / n * sp; vz = (rz * ix - fz * iz) / n * sp;
+      if (joy && Math.abs(joy.dx) > .2) P.yaw -= joy.dx * dt * 1.2; }
+    pigTownUpdate(dt, vx, vz, sp, Math.atan2(vx, vz)); return;
+  }
   if (l > .1) {
     let sp = (keys.has('Shift') ? M.run : M.speed) * l; if (P.fast) sp = P.mode === 'pig' ? 12 : 22;
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw), n = Math.hypot(ix, iz);
@@ -646,17 +665,6 @@ function update(dt) {
     if (joy && Math.abs(joy.dx) > .2) P.yaw -= joy.dx * dt * 1.2 * (P.fast ? 1.5 : 1);           // gentle auto-turn when steering sideways with the thumb
   }
   const g = surfY(P.x, P.z); P.y = Math.abs(g - P.y) > .5 ? g : damp(P.y, g, 18, dt);
-  if (P.mode === 'pig' && PIGM.PIG.ready) {                  // third person, low behind the guinea pig
-    const G = PIGM.PIG; G.g.visible = true;
-    if (moved) G.head = G.head === undefined ? dirYaw : G.head + Math.atan2(Math.sin(dirYaw - G.head), Math.cos(dirYaw - G.head)) * (1 - Math.exp(-9 * dt)); G.head ??= P.yaw + Math.PI;
-    G.sp = damp(G.sp || 0, moved ? spNow : 0, moved ? 10 : 14, dt); const turn = Math.atan2(Math.sin(dirYaw - G.head), Math.cos(dirYaw - G.head));
-    G.g.position.set(P.x, P.y, P.z); G.g.rotation.y = G.head;
-    PIGM.animRig(G, { speed: G.sp, heading: G.head, frozen: false, vy: 0, state: 'free', turnCmd: moved ? clamp(-turn * 2, -1, 1) : 0 }, dt);
-    const pitch = clamp(P.pitch, -.6, .5), dist = P.fast ? 2.2 : .95, h = .16;
-    const cx = P.x + Math.sin(P.yaw) * Math.cos(pitch) * dist, cz = P.z + Math.cos(P.yaw) * Math.cos(pitch) * dist, cy = P.y + h - Math.sin(pitch) * dist + .2;
-    const [ccx, ccy, ccz] = camUnblock(P.x, P.y + h, P.z, cx, cy, cz, dt); cam.position.set(ccx, Math.max(ccy, surfY(ccx, ccz) + .08), ccz); cam.lookAt(P.x, P.y + h, P.z);
-    return;
-  }
   if (P.mode === 'walk' && BEN.ch) {                       // third person: the camera sits behind and above Ben; drag to look around
     benTownUpdate(dt, moved, spNow, dirYaw);
     const pitch = clamp(P.pitch, -.9, .5), dist = P.fast ? 6 : 3.4, h = 1.45;
@@ -671,11 +679,11 @@ function onRoad(x, z) { const r = nearestRoad(x, z, .01); return !!r; }
 /* ================= modes, UI ================= */
 function setMode(m) {
   if (m === 'map' && P.mode !== 'map') { MAPV.x = P.x; MAPV.z = P.z; MAPV.yaw = P.yaw; }
-  if (m !== 'map' && P.mode === 'map') { const [x, z] = collide(MAPV.x, MAPV.z, .4); if (hAt(x, z) > .15) { P.x = x; P.z = z; } P.y = hAt(P.x, P.z); }
+  if (m !== 'map' && P.mode === 'map') { const [x, z] = collide(MAPV.x, MAPV.z, .4); if (hAt(x, z) > .15 && Math.hypot(x - P.x, z - P.z) > 30) { P.x = x; P.z = z; P.y = surfY(x, z); if (ACTIVE === 'pig') { const G = PIGM.PIG; G.x = x; G.z = z; G.y = P.y; } } }
+  modeSwap(m);
   P.mode = m; cam.near = MODES[m].near; cam.updateProjectionMatrix();
   scene.fog.near = m === 'map' ? 4000 : m === 'pig' ? 40 : 120; scene.fog.far = m === 'map' ? 16000 : m === 'pig' ? 700 : 1500;
   sun.castShadow = m !== 'map';
-  if (PIGM.PIG.ready) PIGM.PIG.g.visible = m === 'pig';
   $('mWalk').setAttribute('aria-pressed', m === 'walk'); $('mPig').setAttribute('aria-pressed', m === 'pig'); $('mMap').setAttribute('aria-pressed', m === 'map');
   $('modeName').textContent = MODES[m].name;
 }
@@ -734,7 +742,8 @@ let whereT = 0; function updateWhere(dt) {
   $('where').innerHTML = ''; $('where').append(street); if (near) { const s = document.createElement('small'); s.textContent = 'Near ' + near.n; $('where').append(s); }
 }
 // sun + shadow box follows the player
-function updateSun() { const cx = P.mode === 'map' ? MAPV.x : P.x, cz = P.mode === 'map' ? MAPV.z : P.z, cy = hAt(cx, cz); sun.target.position.set(cx, cy, cz); sun.position.set(cx + SUNDIR.x * 300, cy + SUNDIR.y * 300, cz + SUNDIR.z * 300); sky.position.copy(cam.position); }
+let shadowSize = 24; function setShadowBox(sz) { if (sz === shadowSize) return; shadowSize = sz; Object.assign(sun.shadow.camera, { left: -sz, right: sz, top: sz, bottom: -sz }); sun.shadow.camera.updateProjectionMatrix(); }
+function updateSun() { setShadowBox(P.mode === 'pig' || PR.on ? 7 : RIDE.on ? 12 : 24); const cx = P.mode === 'map' ? MAPV.x : P.x, cz = P.mode === 'map' ? MAPV.z : P.z, cy = hAt(cx, cz); sun.target.position.set(cx, cy, cz); sun.position.set(cx + SUNDIR.x * 300, cy + SUNDIR.y * 300, cz + SUNDIR.z * 300); sky.position.copy(cam.position); }
 // chunk visibility by distance
 function updateChunks() { const cx = cam.position.x, cz = cam.position.z, far = scene.fog.far + CH; for (const ch of chunks.values()) { const v = Math.hypot(ch.cx - cx, ch.cz - cz) < far; for (const m of ch.meshes) m.visible = v; } }
 
@@ -942,7 +951,7 @@ function initBen() {
 }
 function benTownUpdate(dt, moving, sp, dirYaw) {
   const ch = BEN.ch; if (!ch) return;
-  ch.g.visible = BEN.visible && P.mode === 'walk';
+  ch.g.visible = BEN.visible;
   if (!ch.g.visible) return;
   if (moving) BEN.heading = dirYaw;
   const cur = ch.g.rotation.y, d = Math.atan2(Math.sin(BEN.heading - cur), Math.cos(BEN.heading - cur));
@@ -991,7 +1000,8 @@ const PIGM = (() => {
   const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z), smooth = t => t * t * (3 - 2 * t), rnd = (a, b) => a + Math.random() * (b - a);
   const angDiff = (a, b) => { const d = b - a; return Math.atan2(Math.sin(d), Math.cos(d)); };
   const PIG = { g: new THREE.Group(), t: 0, phase: 0, hop: 0, pop: 0, nip: 0, eat: 0, hurt: 0, look: 0, lookT: 2, ready: false };
-  function heightAt(x, z) { return surfY(x, z); }
+  let groundFn = null;                                          // inside a bus the floor replaces the town ground
+  function heightAt(x, z) { return groundFn ? groundFn(x, z) : PIG.g.position.y; }       // his feet plant on whatever he's standing on (ground, seat, lap)
 const _pq=new THREE.Quaternion(), _rq=new THREE.Quaternion(), _mq=new THREE.Quaternion();
 function attachPigModel(gl){
   const model=gl.scene; model.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.frustumCulled=false; if(o.material){ o.material.metalness=0; o.material.roughness=.88; } } });
@@ -1248,7 +1258,7 @@ function keyf(t,K){ if(t<=K[0][0]) return K[0][1]; for(let i=1;i<K.length;i++){ 
   async function load() {
     const gl = await parseGLB(await getBuf(PIG_GLB)); scene.add(PIG.g); attachPigModel(gl); PIG.ready = true; PIG.g.visible = false;
   }
-  return { PIG, load, animRig };
+  return { PIG, load, animRig, setGround: f => { groundFn = f; } };
 })();
 
 
@@ -1280,6 +1290,7 @@ const DATA = {
   },
 };
 const BUSD = DATA.bus;
+DATA.ben = { heading: 'Līhuʻe', dir: 1 };        // today Ben is going to Līhuʻe: the 400, from the stops on the mauka-bound (southbound) side
 const hm = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
 const fmtT = (sec, withSec = false) => { sec = ((sec % 86400) + 86400) % 86400; let h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60; const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(m).padStart(2, '0')}${withSec ? ':' + String(Math.floor(sec % 60)).padStart(2, '0') : ''} ${ap}`; };
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1345,7 +1356,7 @@ function buildShelters() {
   for (const x of [-1.75, 1.75]) boxInto(S, x - .05, x + .05, -.5, 2.4, -.9, .9, green);
   boxInto(S, -1.4, 1.4, .45, .52, .35, .8, bench); boxInto(S, 2.4, 2.46, -.5, 2.6, -.56, -.5, DK); boxInto(S, 2.2, 2.66, 2.1, 2.6, -.58, -.5, blue);
   const geo = cbufGeo(S), m = new THREE.Matrix4(), q = new THREE.Quaternion(), UPV = new THREE.Vector3(0, 1, 0), list = [];
-  for (const st of STOPS) { q.setFromAxisAngle(UPV, st.face); m.compose(new THREE.Vector3(st.x, hAt(st.x, st.z) + .1, st.z), q, new THREE.Vector3(1, 1, 1)); list.push({ m: m.clone() });
+  for (const st of STOPS) { q.setFromAxisAngle(UPV, st.face); m.compose(new THREE.Vector3(st.x, hAt(st.x, st.z), st.z), q, new THREE.Vector3(1, 1, 1)); st.base = hAt(st.x, st.z); list.push({ m: m.clone() });
     addCollider([stopLocal(st, -1.85, .76), stopLocal(st, 1.85, .76), stopLocal(st, 1.85, .95), stopLocal(st, -1.85, .95)]);   // the back panel
     for (const [x0, x1, z0, z1] of [[-1.85, 1.85, .76, .95], [-1.85, -1.65, -.95, .95], [1.65, 1.85, -.95, .95]])        // back glass + the two side walls
       camPolys.push([stopLocal(st, x0, z0), stopLocal(st, x1, z0), stopLocal(st, x1, z1), stopLocal(st, x0, z1)]); }
@@ -1455,7 +1466,8 @@ function initBusModel() {
   { const tmp = new THREE.Group(), seats = seatList().sort(() => Math.random() - .5).slice(0, 11), list = [];
     seats.forEach((st, i) => { const tint = new THREE.Color(...CLOTH[i % CLOTH.length]).multiplyScalar(.9 + Math.random() * .15), ch = makeChar('ant', { tint });
       ch.sitW = 1; ch.g.position.set(st.x, st.y - .02, st.z); ch.g.scale.setScalar(.95 + Math.random() * .1); tmp.add(ch.g);
-      const pr = ['thighs', 'phone', 'phone', 'elbows', 'lap'][i % 5]; writeSeat(ch, presetChan(pr, st.c === 0 ? .9 : st.c === 3 ? -.9 : 0), false); poseChar(ch, 0); list.push({ ch, tint }); });
+      const pr = ['thighs', 'phone', 'phone', 'elbows', 'lap'][i % 5], look = st.c === 0 ? .9 : st.c === 3 ? -.9 : 0; writeSeat(ch, presetChan(pr, look), false); poseChar(ch, 0); list.push({ ch, tint });
+      (BUSM.crowdSeats ||= []).push({ seat: st, tint, scale: ch.g.scale.x, preset: pr, look }); });
     BUSM.crowdGeo = bakeChars(list, tmp); for (const { ch } of list) disposeChar(ch); }
   BUSM.wheelGeo = new THREE.CylinderGeometry(.5, .5, .32, 18); BUSM.wheelGeo.rotateZ(Math.PI / 2); BUSM.hubGeo = new THREE.CylinderGeometry(.25, .25, .34, 10); BUSM.hubGeo.rotateZ(Math.PI / 2);
 }
@@ -1490,7 +1502,7 @@ function busUpdate(dt) {
     let e = BUSES.get(tr.id); if (!e) { const b = POOL[tr.rid].pop() || makeBus(tr.rid); b.g.visible = true; e = { bus: b, tr, st }; BUSES.set(tr.id, e); }
     e.st = st; placeBus(e, dt);
   }
-  for (const [id, e] of BUSES) if (!live.has(id) && !(RIDE.on && RIDE.trip === e.tr)) { e.bus.g.visible = false; POOL[e.tr.rid].push(e.bus); BUSES.delete(id); }
+  for (const [id, e] of BUSES) if (!live.has(id) && !(RIDE.on && RIDE.trip === e.tr) && !(PR.on && PR.e === e)) { e.bus.g.visible = false; POOL[e.tr.rid].push(e.bus); BUSES.delete(id); }
 }
 function placeBus(e, dt) {
   const { bus, tr, st } = e, f = routeFrame(st.s, tr.dir, BUSD.lane), y = Math.max(hAt(f.x, f.z), 0) + .12;
@@ -1529,7 +1541,7 @@ function stopsByDistance(x, z) { return STOPS.map(st => ({ st, d: Math.hypot(st.
 function guideUpdate(dt) {
   const show = P.mode === 'walk' && !RIDE.on;
   $('busPanel').hidden = !show && P.mode !== 'map';
-  const list = stopsByDistance(P.x, P.z); GUIDE.stop = list[GUIDE.pick % 3].st; const st = GUIDE.stop, d = list[GUIDE.pick % 3].d;
+  const list = stopsByDistance(P.x, P.z).filter(o => o.st.dir === DATA.ben.dir); GUIDE.stop = list[GUIDE.pick % 3].st; const st = GUIDE.stop, d = list[GUIDE.pick % 3].d;
   GUIDE.beacon.visible = show; GUIDE.beacon.position.set(st.x, hAt(st.x, st.z), st.z); GUIDE.beacon.userData.cone.position.y = 4.2 + Math.sin(performance.now() / 300) * .25; GUIDE.beacon.userData.cone.rotation.y += dt;
   GUIDE.beacon.children[0].material.opacity = clamp(d / 60, .05, .22);
   // HUD arrow: direction to the stop relative to the camera
@@ -1538,19 +1550,23 @@ function guideUpdate(dt) {
   $('busArrow').style.transform = `rotate(${(-a) * 180 / Math.PI}deg)`;
   const nx = nextAt(st, CLOCK.t, 2);
   const lines = nx.map(n => { const mins = Math.round((n.dep - CLOCK.t) / 60); return `<b>${BUSD.routes[n.rid].label}</b> ${fmtT(n.dep)} <small>${mins <= 0 ? 'boarding now' : 'in ' + mins + ' min'}</small>`; });
-  $('busStop').innerHTML = `<b>${st.label}</b>${st.approx ? ' <small>(approx. spot)</small>' : ''} <small>· ${d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1) + ' km'}</small>`;
+  $('busStop').innerHTML = `<small>To ${DATA.ben.heading} ·</small> <b>${st.label}</b>${st.approx ? ' <small>(approx. spot)</small>' : ''} <small>· ${d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1) + ' km'}</small>`;
   $('busNext').innerHTML = lines.length ? lines.join('<br>') : 'No more buses from this stop today';
   $('clock').textContent = `${DAYS[CLOCK.day].slice(0, 3)} ${fmtT(CLOCK.t)}` + (CLOCK.ff ? ' ⏩' : '');
   // boarding
   let can = null;
   if (show && !CLOCK.ff) for (const e of BUSES.values()) { if (!e.st.dwell || e.st.doors < .6 || e.tr.id === RIDE.leftTrip) continue; const g = e.bus.g, door = g.localToWorld(new THREE.Vector3(-BW / 2 - .6, 0, BL / 2 - .75));
-    if (Math.hypot(door.x - P.x, door.z - P.z) < BUSD.boardRange) { can = e; break; } }
+    if (Math.hypot(door.x - P.x, door.z - P.z) < BUSD.boardRange) { if (e.tr.dir !== DATA.ben.dir) { if (GUIDE.wrongT !== e.tr.id) { GUIDE.wrongT = e.tr.id; toast(`That's the ${BUSD.routes[e.tr.rid].label} — Ben's going to ${DATA.ben.heading}. His bus goes from across the road.`, 4200); } continue; } can = e; break; } }
   GUIDE.board = can; $('boardBtn').hidden = !can; if (can) $('boardBtn').textContent = `Board the ${BUSD.routes[can.tr.rid].label}`;
-  $('waitBtn').disabled = !!CLOCK.ff || !nx.length || (nx[0] && nx[0].dep - CLOCK.t < BUSD.ffLead + 5);
+  $('waitBtn').disabled = !nx.length || (nx[0] && nx[0].dep - BUSD.dwell - CLOCK.t < BUSD.ffLead + 3);
 }
 function waitForBus() {
   const nx = nextAt(GUIDE.stop, CLOCK.t, 1)[0]; if (!nx) { toast('No more buses from here today'); return; }
-  const tArr = nx.dep - BUSD.dwell; CLOCK.ff = { until: Math.max(CLOCK.t, tArr - BUSD.ffLead) }; toast(`Waiting for the ${BUSD.routes[nx.rid].label}…`);
+  // skip straight there (a quick fade), rather than fast-forwarding frame by frame (slow on a phone)
+  const tArr = nx.dep - BUSD.dwell, until = Math.max(CLOCK.t, tArr - BUSD.ffLead), mins = Math.round((until - CLOCK.t) / 60);
+  const f = $('astralFx'); f.style.transition = 'opacity .35s'; f.style.background = '#0c1510'; f.style.opacity = '1';
+  setTimeout(() => { CLOCK.t = until; f.style.opacity = '0'; setTimeout(() => { f.style.transition = ''; f.style.background = ''; }, 400);
+    toast(mins > 0 ? `${mins} minute${mins > 1 ? 's' : ''} later… here comes the ${BUSD.routes[nx.rid].label}` : `Here comes the ${BUSD.routes[nx.rid].label}`, 3500); }, 380);
 }
 let toastT = null; function toast(msg, ms = 2600) { const el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, ms); }
 
@@ -1561,19 +1577,21 @@ const WAIT = { list: [] };
 function stopLocal(st, lx, lz) { const c = Math.cos(st.face), s = Math.sin(st.face); return [st.x + lx * c + lz * s, st.z - lx * s + lz * c]; }
 function spawnWaiter(st) {
   const tint = new THREE.Color(...CLOTH[(Math.random() * CLOTH.length) | 0]).multiplyScalar(.9 + Math.random() * .15), ch = makeChar('ant', { tint, scale: .95 + Math.random() * .1 });
-  const lx = (Math.random() - .5) * 1.8, [x, z] = stopLocal(st, lx, .62); ch.g.position.set(x, hAt(st.x, st.z) + .1, z); ch.g.rotation.y = st.face + Math.PI; ch.sitW = 1; scene.add(ch.g);
-  const w = { st, ch, state: 'sit', t: 0, lookT: 1, base: presetChan(Math.random() < .5 ? 'thighs' : 'phone', 0), n: 0 }; w.cur = cloneChan(w.base); WAIT.list.push(w);
+  const lx = (Math.random() - .5) * 1.8, [x, z] = stopLocal(st, lx, .62); ch.g.position.set(x, st.base ?? hAt(st.x, st.z), z); ch.g.rotation.y = st.face + Math.PI; ch.sitW = 1; scene.add(ch.g);
+  const w = { st, ch, lx, state: 'sit', t: 0, lookT: 1, base: presetChan(Math.random() < .5 ? 'thighs' : 'phone', 0), n: 0 }; w.cur = cloneChan(w.base); WAIT.list.push(w);
 }
 function waitingUpdate(dt) {
   if (RIDE.on && RIDE.phase !== 'enter') { for (const w of WAIT.list) w.ch.g.visible = false; return; }
   const near = stopsByDistance(P.x, P.z).filter(o => o.d < 350).slice(0, 3).map(o => o.st);
-  for (const w of WAIT.list) if (!near.includes(w.st) && w.state === 'sit') { disposeChar(w.ch); w.dead = true; }
+  for (const w of WAIT.list) if (!near.includes(w.st) && w.state === 'sit' && !(ACTIVE === 'pig' && w.ch.g.position.distanceTo(PIGM.PIG.g.position) < 30)) { disposeChar(w.ch); w.dead = true; }
   WAIT.list = WAIT.list.filter(w => !w.dead);
   for (const st of near) if (!WAIT.list.some(w => w.st === st) && !(st.cool > CLOCK.t)) spawnWaiter(st);
   for (const w of WAIT.list) waiterUpdate(w, dt);
 }
 function waiterUpdate(w, dt) {
   const ch = w.ch, d = ch.g.position.distanceTo(cam.position); ch.g.visible = d < 140 && P.mode !== 'map'; if (!ch.g.visible) return;
+  if (w.state === 'shoo') return waiterShoo(w, dt);
+  if (w.state === 'sitback') return waiterSitBack(w, dt);
   if (w.state === 'sit') {
     // their bus is here: stand up and get on
     for (const e of BUSES.values()) if (e.st.dwell === w.st.name && e.tr.dir === w.st.dir && e.st.doors > .6 && e.tr.id !== RIDE.leftTrip) { w.state = 'stand'; w.t = 0; w.bus = e; break; }
@@ -1586,7 +1604,8 @@ function waiterUpdate(w, dt) {
   if (w.state === 'walk') {
     const g = w.bus.bus.g, door = g.localToWorld(V3(-BW / 2 - .3, 0, BL / 2 - .75)), dx = door.x - ch.g.position.x, dz = door.z - ch.g.position.z, L = Math.hypot(dx, dz);
     w.t += dt; ch.sitW = 0; play(ch, 'Walk'); ch.g.rotation.y = Math.atan2(dx, dz); const stp = Math.min(L, 1.3 * dt); ch.g.position.x += dx / L * stp; ch.g.position.z += dz / L * stp; ch.g.position.y = hAt(ch.g.position.x, ch.g.position.z) + .12; poseChar(ch, dt);
-    if (L < .35 || w.t > 12 || !w.bus.st.dwell) { disposeChar(ch); w.dead = true; w.st.cool = CLOCK.t + 180 + Math.random() * 420; WAIT.list = WAIT.list.filter(q => !q.dead); }
+    if (L < 3) WAIT.boarding = { e: w.bus, t: performance.now(), x: ch.g.position.x, z: ch.g.position.z };
+    if (L < .35 || w.t > 12 || !w.bus.st.dwell) { WAIT.boarding = { e: w.bus, t: performance.now(), x: door.x, z: door.z, inside: true }; disposeChar(ch); w.dead = true; w.st.cool = CLOCK.t + 180 + Math.random() * 420; WAIT.list = WAIT.list.filter(q => !q.dead); }
   }
 }
 
@@ -1988,7 +2007,7 @@ function rideCamera(rdt) {
 function requestStop() { if (RIDE.requested) return; RIDE.requested = true; sfx('bell'); sub('Ding. Stop requested.', 2); $('stopBtn').setAttribute('aria-pressed', true); }
 function alight(stopName, forced) {
   const st = STOPS.find(q => q.name === stopName && q.dir === RIDE.trip.dir) || STOPS[0];
-  const msg = RIDE.kickedOff ? 'The driver waits with the doors open until you step off.' : forced ? 'Last stop in town — you get off here. The bus heads out of Kapaʻa.' : 'You step off.';
+  const msg = RIDE.kickedOff ? 'The driver waits with the doors open until you step off.' : forced ? `The bus carries on to ${RIDE.trip.dir === DATA.ben.dir ? DATA.ben.heading : 'Hanalei'} — that's off the map for now, so the test ride ends here.` : 'You step off.';
   RIDE.leftTrip = RIDE.trip.id;
   endRide(); const rx = -Math.sin(st.face), rz = -Math.cos(st.face);             // step out between the shelter and the kerb
   P.x = st.x + rx * 2.2 + rz * 1.5; P.z = st.z + rz * 2.2 - rx * 1.5; P.y = hAt(P.x, P.z); P.yaw = st.face + Math.PI / 2; P.pitch = .15; BEN.heading = st.face + Math.PI; sfx('doors');
@@ -2060,6 +2079,352 @@ document.querySelectorAll('#seatUI [data-seat]').forEach(b => b.onclick = () => 
 $('boardBtn').onclick = () => { audioInit(); if (GUIDE.board) boardBus(GUIDE.board); };
 $('waitBtn').onclick = () => { audioInit(); waitForBus(); };
 $('cycleStop').onclick = () => { GUIDE.pick = (GUIDE.pick + 1) % 3; };
+
+
+/* ================= the guinea pig's body: walking, jumping, feet in the way, seats and laps, and people's reactions =================
+   Anthony (26 Sep): characters have bounds, so the pig can't walk through Ben's foot or a sitting person, but he can
+   go between and around legs, and jump up onto a seat or onto someone. If he does, they react: the man at the stop
+   stands up — "Shoo!". On the bus, some stand up and shoo him, some pet him — "Hey little pig."
+   Numbers are PLACEHOLDERS (DATA.pigBody). */
+Object.assign(DATA, { pigBody: { jump: 3.3, gravity: 9.8, radius: .09, step: .07, petChance: .5, reactCooldown: 6, shooNotice: .35, petCalm: .15 } });
+const PGB = DATA.pigBody;
+
+/* ---- the one you're not playing stays where you left them ---- */
+const SLOT = { walk: null, pig: null }; let ACTIVE = 'walk';
+function modeSwap(to) {                                 // called by setMode for 'walk' / 'pig'
+  if (to === ACTIVE || (to !== 'walk' && to !== 'pig')) return;
+  SLOT[ACTIVE] = { x: P.x, z: P.z, y: P.y, yaw: P.yaw, pitch: P.pitch };
+  const s = SLOT[to];
+  if (s) Object.assign(P, s);
+  else if (to === 'pig') {                                 // first time: he's at Ben's feet
+    const fx = Math.sin(BEN.heading || 0), fz = Math.cos(BEN.heading || 0), x = P.x + fx * .6 + fz * .5, z = P.z + fz * .6 - fx * .5;
+    P.x = x; P.z = z; P.y = surfY(x, z); const G = PIGM.PIG; G.x = x; G.z = z; G.y = P.y; G.head = BEN.heading || 0;
+  }
+  ACTIVE = to;
+  if (to === 'pig') { const G = PIGM.PIG; G.x = P.x; G.z = P.z; G.y = P.y; G.air = false; G.vy = 0; }
+}
+// the one you're not playing: Ben stands idle; the pig breathes and sniffs where he is
+function idleOthers(dt) {
+  if (ACTIVE !== 'walk' && SLOT.walk && BEN.ch && BEN.visible) {
+    const ch = BEN.ch; ch.g.visible = true; ch.g.position.set(SLOT.walk.x, SLOT.walk.y, SLOT.walk.z);
+    // Ben keeps an eye on the little guy when he's close
+    const G = PIGM.PIG, d = Math.hypot(G.g.position.x - ch.g.position.x, G.g.position.z - ch.g.position.z);
+    BEN.speed = 0; play(ch, 'Idle'); ch.sitW = 0; poseChar(ch, dt);
+    if (d < 2.5) { const hb = ch.R.head, want = Math.atan2(G.g.position.x - ch.g.position.x, G.g.position.z - ch.g.position.z) - ch.g.rotation.y;
+      const a = Math.atan2(Math.sin(want), Math.cos(want)); hb.rotateY(clamp(a, -1, 1) * .6); ch.R.neck?.rotateX(.35); }
+  }
+  const G = PIGM.PIG;
+  if (G.ready && ACTIVE !== 'pig' && SLOT.pig && !PR.on) {
+    G.g.visible = P.mode !== 'map' || true; G.g.position.set(SLOT.pig.x, SLOT.pig.y, SLOT.pig.z); G.g.rotation.y = G.head || 0;
+    if (G.g.position.distanceTo(cam.position) < 40) PIGM.animRig(G, { speed: 0, heading: G.head || 0, frozen: false, vy: 0, state: 'free', turnCmd: 0 }, dt);
+  }
+}
+
+/* ---- bounds: feet and shins are posts the pig can't walk through (but there's room between the legs) ---- */
+const _lv = V3(), _lk = V3();
+function legPosts(ch, toLocal, out) {
+  if (!ch || !ch.g.visible) return out;
+  for (const s of ['l', 'r']) {
+    for (const [b, r] of [[ch.R[s + 'Foot'], .07], [ch.R[s + 'Toe'], .055]]) { if (!b) continue; b.getWorldPosition(_lv); if (toLocal) toLocal(_lv); out.push({ x: _lv.x, z: _lv.z, r, top: _lv.y + .09, ch }); }
+    if (ch.R[s + 'Shin']) { ch.R[s + 'Shin'].getWorldPosition(_lk); ch.R[s + 'Foot'].getWorldPosition(_lv); _lv.lerp(_lk, .5); if (toLocal) { toLocal(_lv); toLocal(_lk); } out.push({ x: _lv.x, z: _lv.z, r: .055, top: _lk.y, ch }); }
+  }
+  return out;
+}
+
+/* ---- one physics step for the pig, in any frame (town = world, bus = bus space) ---- */
+function pigMove(G, dt, vx, vz, jump, env) {
+  G.vy ??= 0; G.air ??= false; G.landed = null;
+  let nx = G.x + vx * dt, nz = G.z + vz * dt; G.bump = null;
+  for (const c of env.posts) { if (G.y >= c.top - .02) continue; const dx = nx - c.x, dz = nz - c.z, d = Math.hypot(dx, dz), m = c.r + PGB.radius;
+    if (d < m) { const k = d > 1e-4 ? m / d : 0; nx = d > 1e-4 ? c.x + dx * k : nx - vx * dt; nz = d > 1e-4 ? c.z + dz * k : nz - vz * dt; G.bump = c; } }
+  [nx, nz] = env.clamp(nx, nz, G.y);
+  const moved = Math.hypot(nx - G.x, nz - G.z); G.x = nx; G.z = nz;
+  if (jump && !G.air) { G.vy = PGB.jump; G.air = true; G.y += .01; sfx('hop'); }
+  const under = env.ground(G.x, G.z, G.y);
+  if (G.air) {
+    G.vy -= PGB.gravity * dt; const ny = G.y + G.vy * dt;
+    if (G.vy <= 0 && ny <= under.top) { G.y = under.top; G.air = false; G.vy = 0; G.landed = under; sfx('step'); }
+    else G.y = ny;
+  } else if (G.y - under.top > .04) { G.air = true; G.vy = 0; }       // walked off an edge
+  else G.y = under.top;
+  G.on = G.air ? null : under;
+  return moved / Math.max(dt, 1e-4);
+}
+
+/* ---- surfaces in town: bus-stop benches and the laps of people sitting on them ---- */
+function townGround(x, z, y) {
+  let best = { top: surfY(x, z), owner: null, kind: 'ground' };
+  for (const st of STOPS) {
+    if (Math.abs(st.x - x) > 4 || Math.abs(st.z - z) > 4) continue;
+    const c = Math.cos(st.face), s = Math.sin(st.face), dx = x - st.x, dz = z - st.z, lx = dx * c - dz * s, lz = dx * s + dz * c, base = st.base ?? hAt(st.x, st.z);
+    const w = WAIT.list.find(q => q.st === st && q.state === 'sit');
+    if (w && Math.abs(lx - w.lx) < .19 && lz > .2 && lz < .6 && base + .66 <= y + PGB.step) { const t = base + .66; if (t > best.top) best = { top: t, owner: w, kind: 'lap' }; continue; }
+    if (Math.abs(lx) < 1.4 && lz > .35 && lz < .8 && base + .52 <= y + PGB.step) { const t = base + .52; if (t > best.top) best = { top: t, owner: w && Math.abs(lx - w.lx) < 1 ? w : null, kind: 'bench' }; }
+  }
+  return best;
+}
+function townPosts() {
+  const out = [];
+  if (ACTIVE !== 'walk' && BEN.ch && BEN.visible) legPosts(BEN.ch, null, out);
+  for (const w of WAIT.list) if (w.ch.g.visible && w.ch.g.position.distanceTo(P) < 6) legPosts(w.ch, null, out);
+  return out;
+}
+
+/* ---- the pig in town (called from update() in pig mode) ---- */
+function pigTownUpdate(dt, vx, vz, sp, moveYaw) {
+  const G = PIGM.PIG; if (!G.ready) return; G.g.visible = true;
+  G.x ??= P.x; G.z ??= P.z; G.y ??= P.y;
+  const env = { posts: townPosts(), ground: townGround, clamp: (x, z) => { const [cx, cz] = collide(x, z, .12); return inside(cx, cz) && hAt(cx, cz) > .15 ? [cx, cz] : [G.x, G.z]; } };
+  const speed = pigMove(G, dt, vx, vz, keys.has(' ') && !G.jumpHeld, env); G.jumpHeld = keys.has(' ');
+  P.x = G.x; P.z = G.z; P.y = G.y;
+  if (sp > .05) G.head = (G.head ?? moveYaw) + Math.atan2(Math.sin(moveYaw - (G.head ?? moveYaw)), Math.cos(moveYaw - (G.head ?? moveYaw))) * (1 - Math.exp(-9 * dt));
+  G.head ??= P.yaw + Math.PI;
+  G.sp = damp(G.sp || 0, Math.min(speed, sp + .01), 10, dt);
+  G.g.position.set(G.x, G.y, G.z); G.g.rotation.y = G.head;
+  PIGM.animRig(G, { speed: G.air ? 0 : G.sp, heading: G.head, frozen: false, vy: G.vy, state: 'free', turnCmd: 0 }, dt);
+  if (!G.air) footsteps(G.sp * dt * .35, G.sp > 1.5, 'grass');
+  // someone reacts to a guinea pig on their bench or their lap
+  if (G.on && G.on.owner && (G.on.kind === 'lap' || G.landed)) waiterReact(G.on.owner, G.on.kind);
+  // camera: low behind him
+  const pitch = clamp(P.pitch, -.6, .5), dist = P.fast ? 2.2 : .95, h = .16;
+  const cx = P.x + Math.sin(P.yaw) * Math.cos(pitch) * dist, cz = P.z + Math.cos(P.yaw) * Math.cos(pitch) * dist, cy = P.y + h - Math.sin(pitch) * dist + .2;
+  const [ccx, ccy, ccz] = camUnblock(P.x, P.y + h, P.z, cx, cy, cz, dt); cam.position.set(ccx, Math.max(ccy, surfY(ccx, ccz) + .08), ccz); cam.lookAt(P.x, P.y + h, P.z);
+}
+// the man at the stop: stands up and shoos him off; sits back down once the pig has gone
+function waiterReact(w, kind) {
+  if (w.state !== 'sit' || (w.reactT && performance.now() - w.reactT < PGB.reactCooldown * 1000)) return;
+  w.reactT = performance.now(); w.state = 'shoo'; w.t = 0;
+  sub(kind === 'lap' ? 'He jumps up — "Whoa! Shoo! Shoo!"' : '"Hey — shoo! Go on, shoo!"', 2.8); sfx('shoo');
+}
+function waiterShoo(w, dt) {
+  const ch = w.ch, G = PIGM.PIG; w.t += dt;
+  const dx = G.g.position.x - ch.g.position.x, dz = G.g.position.z - ch.g.position.z, d = Math.hypot(dx, dz);
+  if (w.t < .6) { ch.sitW = Math.max(0, 1 - w.t / .6); play(ch, 'Idle'); }
+  else if (w.t < 2.2) { ch.sitW = 0; play(ch, 'Push', { once: true, speed: 1.2 }); ch.g.rotation.y += Math.atan2(Math.sin(Math.atan2(dx, dz) - ch.g.rotation.y), Math.cos(Math.atan2(dx, dz) - ch.g.rotation.y)) * (1 - Math.exp(-6 * dt)); }
+  else { ch.sitW = 0; play(ch, 'Idle'); if (d > 1.4 && w.t > 3.5) { w.state = 'sitback'; w.t = 0; } }
+  poseChar(ch, dt);
+}
+function waiterSitBack(w, dt) {
+  const ch = w.ch; w.t += dt; ch.g.rotation.y += Math.atan2(Math.sin(w.st.face + Math.PI - ch.g.rotation.y), Math.cos(w.st.face + Math.PI - ch.g.rotation.y)) * (1 - Math.exp(-5 * dt));
+  ch.sitW = Math.min(1, w.t / .8); play(ch, 'Idle'); writeSeat(ch, w.cur, false); poseChar(ch, dt); if (w.t > .8) { w.state = 'sit'; ch.sitW = 1; }
+}
+
+/* ---- on the bus: live passengers (so they can react), seat cushions and laps as surfaces ---- */
+function busPassengersLive(bus) {
+  const list = [];
+  for (const c of BUSM.crowdSeats || []) {
+    const ch = makeChar('ant', { tint: c.tint }); ch.sitW = 1; ch.g.position.set(c.seat.x, c.seat.y - .02, c.seat.z); ch.g.scale.setScalar(c.scale); bus.g.add(ch.g);
+    const base = presetChan(c.preset, c.look); writeSeat(ch, base, false); poseChar(ch, 0);
+    list.push({ ch, seat: c.seat, base, cur: cloneChan(base), pet: Math.random() < PGB.petChance, state: 'sit', t: 0, reactT: 0 });
+  }
+  if (bus.crowd) bus.crowd.visible = false;
+  return list;
+}
+function busPassengersClear(bus, list) { for (const p of list || []) disposeChar(p.ch); if (bus?.crowd) bus.crowd.visible = true; }
+function busGround(x, z, y) {
+  let best = { top: FLOOR, owner: null, kind: 'floor' };
+  const seats = PR.seats || [];
+  for (const s of seats) {
+    const occ = (PR.pax || []).find(p => p.seat.r === s.r && p.seat.c === s.c), sitting = occ && (occ.state === 'sit' || occ.state === 'pet');
+    const cushion = s.y + .46, lap = s.y + .64;
+    if (sitting && Math.abs(x - s.x) < .19 && z > s.z + .05 && z < s.z + .42 && lap <= y + PGB.step) { if (lap > best.top) best = { top: lap, owner: occ, kind: 'lap' }; continue; }
+    if (!sitting && Math.abs(x - s.x) < .2 && z > s.z - .16 && z < s.z + .26 && cushion <= y + PGB.step) {
+      if (cushion > best.top) { const nb = (PR.pax || []).find(p => p.seat.r === s.r && p.seat.c !== s.c && Math.abs(p.seat.x - s.x) < .6 && p.state === 'sit'); best = { top: cushion, owner: nb || null, kind: 'seat' }; } }
+  }
+  return best;
+}
+function busPosts(bus) { const out = [], inv = v => bus.g.worldToLocal(v); for (const p of PR.pax || []) legPosts(p.ch, inv, out); return out; }
+function paxReact(p, kind) {
+  if (p.state !== 'sit' || performance.now() - p.reactT < PGB.reactCooldown * 1000) return;
+  p.reactT = performance.now(); p.t = 0;
+  if (p.pet) { p.state = 'pet'; sub(pickR(['"Hey little pig…"', '"Aww — hey, little guy."', '"Hey little pig, where you going?"']), 2.8); PR.expo = Math.max(0, PR.expo - PGB.petCalm); sfx('coo'); }
+  else { p.state = 'shoo'; sub(kind === 'lap' ? '"Ugh! Get off me — shoo!"' : '"Shoo! Shoo! Get out of here!"', 2.8); PR.expo = Math.min(1, PR.expo + PGB.shooNotice); sfx('shoo'); }
+}
+function paxUpdateLive(p, dt, bus) {
+  if (p.state === 'sit') return;
+  const ch = p.ch; p.t += dt;
+  if (p.state === 'pet') {                                 // lean forward and reach down to the pig
+    const lp = PR.pos.clone(), c = ch.g.worldToLocal(bus.g.localToWorld(lp)); const w = cloneChan(p.base), k = Math.min(1, p.t / .6) * (p.t > 3.4 ? Math.max(0, 1 - (p.t - 3.4) / .6) : 1);
+    w.leanZ = lerp(w.leanZ, .45, k); w.lookPitch = lerp(w.lookPitch, -.7, k); w.lookYaw = lerp(w.lookYaw, Math.atan2(c.x, Math.max(.1, c.z)), k);
+    const hand = V3(clamp(c.x, -.35, .35), clamp(c.y + .12, .25, 1), clamp(c.z, .15, .6)); (c.x >= 0 ? w.hl : w.hr).lerp(hand, k);
+    writeSeat(ch, w, false); poseChar(ch, dt); if (p.t > 4) { p.state = 'sit'; writeSeat(ch, p.base, false); poseChar(ch, 0); }
+  } else if (p.state === 'shoo') {                         // stand up in place and shoo
+    if (p.t < .6) { ch.sitW = Math.max(0, 1 - p.t / .6); play(ch, 'Idle'); }
+    else if (p.t < 2.4) { ch.sitW = 0; play(ch, 'Push', { once: true, speed: 1.2 }); }
+    else if (p.t < 4) { ch.sitW = 0; play(ch, 'Idle'); }
+    else { ch.sitW = Math.min(1, (p.t - 4) / .8); writeSeat(ch, p.base, false); if (p.t > 4.8) { p.state = 'sit'; ch.sitW = 1; } }
+    poseChar(ch, dt);
+  }
+}
+
+// jump button (phones): held like the space bar
+{ const b = $('jumpBtn'); b.addEventListener('pointerdown', e => { e.preventDefault(); keys.add(' '); }); for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => keys.delete(' ')); }
+
+/* ================= the guinea pig sneaks onto the bus =================
+   Anthony (25 Sep): the guinea pig can only get on when another passenger does — he has to sneak on behind them and
+   hide quietly under a seat. There may be a cockroach or rat to deal with.
+   Everything below that isn't in that sentence is a PLACEHOLDER to change (numbers in DATA.pigRide). */
+Object.assign(DATA, { pigRide: {
+  window: 2.2,            // seconds after someone steps on that the door gap is still there
+  doorRange: 2.0,         // how close to the doors he has to be to slip in
+  closeBehind: 1.6,       // further back than this from the passenger and the driver might see him
+  driverSees: .5,         // chance the driver spots a pig that isn't close behind someone
+  speed: .7, run: 1.8,    // inside the bus: small, careful steps
+  notice: { still: .07, walk: .16, run: .45, nearDriver: 2.2, hiddenDecay: .15 },   // "noticed" per second out in the open
+  critterAfter: [5, 10], roach: { speed: .55, nips: 1, touch: .25 }, rat: { speed: .42, nips: 3, bite: 1, touch: .2 }, hearts: 5,
+} });
+const PRD = DATA.pigRide;
+const PR = { on: false, e: null, pos: V3(), head: 0, sp: 0, camYaw: 0, expo: 0, hearts: 5, hidden: false, critter: null, t: 0, hiddenT: 0, spotted: false, hintT: 0, sneakBtn: false };
+
+/* ---- at the stop: slip in behind someone ---- */
+function pigBoardCheck(dt) {
+  PR.hintT = Math.max(0, PR.hintT - dt);
+  let near = null;
+  for (const e of BUSES.values()) { if (!e.st.dwell || e.st.doors < .6) continue; const door = e.bus.g.localToWorld(V3(-BW / 2 - .45, 0, BL / 2 - .75)); const d = Math.hypot(door.x - P.x, door.z - P.z); if (d < PRD.doorRange + 1.5) { near = { e, door, d }; break; } }
+  const b = WAIT.boarding, fresh = b && near && b.e === near.e && (performance.now() - b.t) / 1000 < PRD.window;
+  const can = near && near.d < PRD.doorRange && fresh;
+  $('sneakBtn').hidden = !can;
+  if (near && near.d < 1.2 && !fresh && PR.hintT <= 0) { PR.hintT = 5; toast('The doors are open, but the driver would see you. Wait for someone to get on — then slip in behind them.', 4200); }
+  if (can && near.d < .8) sneakOn(near.e);                 // walking right into the doorway behind them also works
+  PR.near = can ? near.e : null;
+}
+function sneakOn(e) {
+  e = e || PR.near; if (!e) return;
+  const b = WAIT.boarding, gap = b && !b.inside ? Math.hypot(b.x - P.x, b.z - P.z) : 0;
+  if (gap > PRD.closeBehind && Math.random() < PRD.driverSees) {
+    toast('The driver: "Eh! No animals on the bus, brah!" — you scuttle back.', 3500); sfx('squeak');
+    const door = e.bus.g.localToWorld(V3(-BW / 2 - 2, 0, BL / 2 - .75)); P.x = door.x; P.z = door.z; WAIT.boarding = null; return;
+  }
+  PR.seats = seatList(); PR.pax = busPassengersLive(e.bus);
+  const G0 = PIGM.PIG; G0.x = -.85; G0.z = BL / 2 - 1.05; G0.y = FLOOR; G0.air = false; G0.vy = 0;
+  PR.on = true; PR.e = e; PR.lastYaw = P.yaw; PR.pos.set(-.85, FLOOR, BL / 2 - 1.05); PR.head = Math.PI * .85; PR.camYaw = .3; PR.boardStop = e.st.dwell; PR.expo = 0; PR.hearts = PRD.hearts; PR.critter = null; PR.t = 0; PR.hiddenT = 0; PR.spotted = false; PR.exitReady = false;
+  $('sneakBtn').hidden = true; $('pigHud').hidden = false; document.body.classList.add('pigride');
+  sub('You’re on. Find a seat to hide under — quietly.', 3.5); sfx('step');
+}
+/* ---- on board ---- */
+function pigRideUpdate(dt) {
+  const e = PR.e, g = e.bus.g, G = PIGM.PIG; PR.t += dt; g.updateMatrixWorld(true);
+  // input, relative to the camera (which orbits in bus space)
+  let ix = (keys.has('d') || keys.has('ArrowRight')) - (keys.has('a') || keys.has('ArrowLeft')), iz = (keys.has('s') || keys.has('ArrowDown')) - (keys.has('w') || keys.has('ArrowUp'));
+  if (joy) { ix += joy.dx; iz += joy.dy; if (Math.abs(joy.dx) > .2) PR.camYaw -= joy.dx * dt * 1.4; }
+  if (keys.has('q')) PR.camYaw += dt * 1.6; if (keys.has('e')) PR.camYaw -= dt * 1.6;
+  PR.camYaw += P.yaw - (PR.lastYaw ?? P.yaw); PR.lastYaw = P.yaw;                     // drag on the right to look around
+  const l = Math.min(1, Math.hypot(ix, iz)), run = keys.has('Shift'), cy = PR.camYaw;
+  let vx = 0, vz = 0, dirYaw = PR.head;
+  if (l > .1) { const fx = -Math.sin(cy), fz = -Math.cos(cy), rx = Math.cos(cy), rz = -Math.sin(cy), n = Math.hypot(ix, iz), sp = (run ? PRD.run : PRD.speed) * l;
+    vx = (rx * ix - fx * iz) / n * sp; vz = (rz * ix - fz * iz) / n * sp; dirYaw = Math.atan2(vx, vz); }
+  // physics in bus space: legs are posts, seats and laps are things to jump onto
+  G.x ??= PR.pos.x; G.z ??= PR.pos.z; G.y ??= PR.pos.y;
+  const env = { posts: busPosts(e.bus), ground: busGround, clamp: (x, z, y) => pigBusClamp(x, z) };
+  const speed = pigMove(G, dt, vx, vz, keys.has(' ') && !G.jumpHeld, env); G.jumpHeld = keys.has(' ');
+  PR.pos.set(G.x, G.y, G.z); const moved = l > .1;
+  PR.head += Math.atan2(Math.sin(dirYaw - PR.head), Math.cos(dirYaw - PR.head)) * (moved ? 1 - Math.exp(-9 * dt) : 0);
+  PR.sp = damp(PR.sp, Math.min(speed, (run ? PRD.run : PRD.speed) * l + .01), 10, dt);
+  // place + animate (world = bus space × bus transform)
+  const wp = g.localToWorld(PR.pos.clone()); G.g.position.copy(wp); G.g.rotation.y = g.rotation.y + PR.head; G.g.visible = true;
+  PIGM.animRig(G, { speed: G.air ? 0 : PR.sp, heading: G.g.rotation.y, frozen: false, vy: G.vy, state: 'free', turnCmd: 0 }, dt);
+  // people react when he lands on their seat or their lap
+  if (G.on && G.on.owner && (G.on.kind === 'lap' || G.landed)) paxReact(G.on.owner, G.on.kind);
+  for (const p of PR.pax) paxUpdateLive(p, dt, e.bus);
+  // hiding: under a seat cushion nobody sees him
+  PR.hidden = !G.air && G.y < FLOOR + .05 && underSeat(PR.pos.x, PR.pos.z);
+  const N = PRD.notice, nearDriver = PR.pos.z > 3.2 ? N.nearDriver : 1;
+  if (PR.hidden) { PR.expo = Math.max(0, PR.expo - N.hiddenDecay * dt); PR.hiddenT += dt; }
+  else PR.expo = Math.min(1, PR.expo + (PR.sp < .05 ? N.still : run ? N.run : N.walk) * nearDriver * dt);
+  if (PR.expo >= 1 && !PR.spotted) { PR.spotted = true; sfx('shriek'); sub('Someone shrieks — "RAT! There’s a rat!" — the driver: "Get that thing off my bus!" Get off at the next stop.', 6); }
+  critterUpdate(dt);
+  // getting off: whenever the doors are open and he's by them (or he's been spotted and it's the next stop)
+  const st = e.st, door = V3(-BW / 2 + .15, FLOOR, BL / 2 - .75), atDoor = PR.pos.distanceTo(door) < 1.1;
+  if (!st.dwell) PR.boardStop = null;                                   // it has left the stop he got on at
+  const open = st.dwell && st.doors > .6 && st.dwell !== PR.boardStop;
+  PR.exitReady = open && (atDoor || PR.spotted) && PR.t > 2;
+  $('sneakBtn').hidden = !(open && atDoor); $('sneakBtn').textContent = 'Sneak off';
+  if (PR.spotted && open && PR.t > 2) pigAlight(true);
+  if (!st.dwell && e.tr.keys.at(-1).t - CLOCK.t < 30 && !PR.warned) { PR.warned = true; sub('This bus is about to leave town — get off at the next stop or you’ll be carried off the map.', 5); }
+  if (CLOCK.t >= e.tr.t1 - 1) pigAlight(true);
+  // HUD
+  $('pigHearts').textContent = '♥'.repeat(PR.hearts) + '♡'.repeat(Math.max(0, PRD.hearts - PR.hearts));
+  $('pigNotice').style.width = (PR.expo * 100) + '%'; $('pigHid').textContent = PR.hidden ? 'hidden under a seat' : 'out in the open';
+  // camera: low, just behind him, in bus space
+  // people are in the way of a camera this low: swing round to a clear angle (their bodies are rough capsules)
+  const bodies = PR.pax.map(p => { const hp = g.worldToLocal(p.ch.R.hips.getWorldPosition(V3())); return { x: hp.x, z: hp.z, top: p.ch.sitW > .5 ? FLOOR + 1.35 : FLOOR + 1.8, r: .26 }; });
+  const camY = PR.pos.y + .34, blocked = (x, z) => { for (let k = 1; k <= 6; k++) { const t = k / 6, px = PR.pos.x + (x - PR.pos.x) * t, pz = PR.pos.z + (z - PR.pos.z) * t, py = PR.pos.y + (camY - PR.pos.y) * t;
+    for (const b of bodies) if (py < b.top && Math.hypot(px - b.x, pz - b.z) < b.r) return true; } return false; };
+  let off = 0; for (const o of [0, .5, -.5, 1, -1, 1.5, -1.5, 2.1, -2.1, 3.1]) { const [x, z] = pigBusClamp(PR.pos.x + Math.sin(cy + o) * .8, PR.pos.z + Math.cos(cy + o) * .8, .02); if (!blocked(x, z)) { off = o; break; } }
+  PR.camOff = (PR.camOff || 0) + (off - (PR.camOff || 0)) * (1 - Math.exp(-5 * dt));
+  const cp = PR.pos.clone().add(V3(Math.sin(cy + PR.camOff) * .8, .34, Math.cos(cy + PR.camOff) * .8)); const [ccx, ccz] = pigBusClamp(cp.x, cp.z, .02);
+  cam.position.copy(g.localToWorld(V3(ccx, cp.y, ccz))); cam.lookAt(g.localToWorld(PR.pos.clone().add(V3(0, .1, 0)))); cam.near = .03; cam.updateProjectionMatrix();
+  P.x = g.position.x; P.z = g.position.z;
+}
+function pigBusClamp(x, z, pad = 0) {
+  x = clamp(x, -BW / 2 + .15 + pad, BW / 2 - .15 - pad); z = clamp(z, -3.0 + pad, 5.0 - pad);
+  if (z > 4.1 && x > -.25) z = 4.1;                         // the driver's cab
+  return [x, z];
+}
+function underSeat(x, z) {
+  for (const rz of SEAT_ROWS) for (const sx of SEAT_X) if (Math.abs(x - sx) < .16 && z > rz - .2 && z < rz + .14) return true;
+  return false;
+}
+function pigAlight(forced) {
+  const e = PR.e, g = e.bus.g, out = g.localToWorld(V3(-BW / 2 - 1.1, 0, BL / 2 - .75));
+  PR.on = false; critterClear(); busPassengersClear(e.bus, PR.pax); PR.pax = []; $('pigHud').hidden = true; $('sneakBtn').hidden = true; document.body.classList.remove('pigride');
+  P.x = out.x; P.z = out.z; P.y = surfY(out.x, out.z); const Gx = PIGM.PIG; Gx.x = P.x; Gx.z = P.z; Gx.y = P.y; Gx.air = false; Gx.vy = 0; P.yaw = g.rotation.y - Math.PI / 2; P.pitch = .1; cam.near = MODES.pig.near; cam.updateProjectionMatrix();
+  const where = e.st.dwell ? prettyStop(e.st.dwell) : 'the roadside';
+  sub(forced && PR.spotted ? `You bolt out at ${where}.` : forced ? `You hop off at ${where} before it leaves town.` : `You slip off at ${where}.`, 3.5);
+}
+$('sneakBtn').onclick = () => { if (PR.on) { if (PR.exitReady) pigAlight(false); } else sneakOn(); };
+
+/* ---- a cockroach or a rat under the seats ---- */
+function critterMesh(kind) {
+  const g = new THREE.Group(), dk = new THREE.MeshStandardMaterial({ color: kind === 'rat' ? 0x5a4f45 : 0x4a2a14, roughness: kind === 'rat' ? .9 : .35, metalness: kind === 'rat' ? 0 : .2 });
+  if (kind === 'rat') {
+    const body = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), dk); body.scale.set(.05, .05, .1); body.position.y = .05; g.add(body);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(.03, .07, 8), dk); head.rotation.x = Math.PI / 2; head.position.set(0, .05, .11); g.add(head);
+    for (const s of [-1, 1]) { const ear = new THREE.Mesh(new THREE.SphereGeometry(.013, 6, 4), new THREE.MeshStandardMaterial({ color: 0xb08080 })); ear.position.set(s * .022, .08, .085); g.add(ear); }
+    const tail = new THREE.Mesh(new THREE.CylinderGeometry(.004, .008, .16, 5), new THREE.MeshStandardMaterial({ color: 0xa08070 })); tail.rotation.x = Math.PI / 2 - .2; tail.position.set(0, .03, -.16); g.add(tail); g.userData.tail = tail;
+  } else {
+    const body = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), dk); body.scale.set(.012, .006, .024); body.position.y = .008; g.add(body);
+    const legM = new THREE.LineBasicMaterial({ color: 0x2a160a }), pts = [];
+    for (const s of [-1, 1]) for (const k of [-1, 0, 1]) pts.push(V3(s * .008, .006, k * .01), V3(s * .024, 0, k * .016 + .004));
+    pts.push(V3(-.004, .008, .022), V3(-.02, .012, .05), V3(.004, .008, .022), V3(.02, .012, .05));
+    g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), legM));
+  }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+function critterUpdate(dt) {
+  const g = PR.e.bus.g;
+  if (!PR.critter && PR.hiddenT > (PR.critAt ??= rr(...PRD.critterAfter))) {
+    const kind = Math.random() < .6 ? 'roach' : 'rat', m = critterMesh(kind); g.add(m);
+    PR.critter = { kind, m, pos: V3(Math.random() < .5 ? .88 : -.88, FLOOR, -2.7), nips: PRD[kind].nips, cd: 0, flee: 0, t: 0 };
+    sub(kind === 'rat' ? 'Something moves at the back, under the seats. A rat — and it’s seen you.' : 'A cockroach skitters out from under the back seats, straight at you.', 4); sfx(kind === 'rat' ? 'ratSqueak' : 'skitter');
+  }
+  const C = PR.critter; if (!C) return; C.t += dt; C.cd = Math.max(0, C.cd - dt);
+  const K = PRD[C.kind], to = V3(PR.pos.x - C.pos.x, 0, PR.pos.z - C.pos.z), d = to.length(); to.normalize();
+  let v = to.clone();
+  if (C.flee > 0) { C.flee -= dt; v.multiplyScalar(-1.8); if (C.flee <= 0 && C.nips <= 0) { critterClear(); sub(C.kind === 'rat' ? 'The rat gives up and slinks off under the back seat.' : 'The cockroach is gone.', 2.5); return; } }
+  else if (d < .12) v.set(0, 0, 0);
+  const wig = C.kind === 'roach' ? Math.sin(C.t * 23) * .5 : Math.sin(C.t * 9) * .25; v.applyAxisAngle(V3(0, 1, 0), wig);
+  C.pos.addScaledVector(v, K.speed * dt); const [cx, cz] = pigBusClamp(C.pos.x, C.pos.z); C.pos.x = cx; C.pos.z = cz;
+  C.m.position.copy(C.pos); C.m.rotation.y = Math.atan2(v.x, v.z); C.m.position.y = FLOOR + (C.kind === 'rat' ? Math.abs(Math.sin(C.t * 12)) * .006 : 0);
+  if (C.m.userData.tail) C.m.userData.tail.rotation.z = Math.sin(C.t * 6) * .4;
+  // it gets to him: the roach crawls on him (he squeaks — people hear), the rat bites
+  if (d < K.touch && C.cd <= 0 && C.flee <= 0) {
+    C.cd = C.kind === 'rat' ? 1.5 : 2.2; sfx('squeak'); PR.expo = Math.min(1, PR.expo + (C.kind === 'rat' ? .2 : .25));
+    if (C.kind === 'rat') { PR.hearts = Math.max(0, PR.hearts - K.bite); sub('The rat bites. (N to nip it back)', 2); if (PR.hearts <= 0) { PR.spotted = true; sub('You can’t stay — you squeal and bolt for the doors. Off at the next stop.', 4); } }
+    else sub('It’s crawling on you — you squeak. (N to nip it)', 2);
+  }
+}
+function pigNip() {
+  if (!PR.on) return; const C = PR.critter; sfx('nip'); PR.expo = Math.min(1, PR.expo + .03);
+  if (!C || C.flee > 0) return;
+  const d = Math.hypot(C.pos.x - PR.pos.x, C.pos.z - PR.pos.z); if (d > .42) return;
+  C.nips--; C.flee = C.nips <= 0 ? 1.6 : .7; sfx(C.kind === 'rat' ? 'ratSqueak' : 'skitter');
+  if (C.kind === 'rat' && C.nips > 0) sub(`Nipped. It backs off — for now. (${C.nips} more)`, 2);
+}
+function critterClear() { if (PR.critter) { PR.critter.m.parent?.remove(PR.critter.m); PR.critter = null; } PR.critAt = undefined; }
+addEventListener('keydown', e => { if (e.key.toLowerCase() === 'n' && PR.on) pigNip(); });
+$('nipBtn').addEventListener('pointerdown', e => { e.preventDefault(); pigNip(); });
 
 
 /* ================= The astral fight =================
@@ -2363,6 +2728,14 @@ function sfx(n, arg, gain = 1) {
     case 'doorsClose': noise(.4, .03, .45, 'bandpass', 2500, 700, 1.4); tone(80, 'sine', .2, .005, .2, 55, .45); break;
     case 'kneel': noise(.18, .2, .9, 'highpass', 4000, 2500, .7); break;
     case 'brake': tone(1650, 'sine', .03, .25, .5, 1500); noise(.12, .3, .6, 'bandpass', 2600, 1800, 6); break;
+    case 'hop': noise(.06, .003, .06, 'lowpass', 900, 300, 1); break;
+    case 'shoo': noise(.22, .02, .25, 'bandpass', 3000, 2400, 3); noise(.2, .02, .25, 'bandpass', 3000, 2400, 3, .32); break;       // "shh-shh"
+    case 'coo': tone(520, 'sine', .07, .05, .35, 700); tone(700, 'sine', .05, .05, .3, 560, .25); break;
+    case 'squeak': tone(1900, 'sine', .12, .01, .12, 2600); tone(2300, 'sine', .08, .01, .1, 1800, .13); break;
+    case 'shriek': tone(900, 'sawtooth', .12, .05, .7, 1400); noise(.12, .05, .6, 'bandpass', 2500, 3200, 4); break;
+    case 'ratSqueak': tone(3200, 'square', .04, .005, .06, 3800); tone(3000, 'square', .03, .005, .05, 3500, .08); break;
+    case 'skitter': for (let i = 0; i < 6; i++) noise(.05, .002, .02, 'highpass', 5000, null, 1, i * .035); break;
+    case 'nip': noise(.12, .002, .05, 'bandpass', 2200, 1200, 2); break;
     case 'card': tone(1760, 'square', .06, .003, .09); tone(2350, 'square', .05, .003, .12, null, .1); break;
     case 'step': noise(.11 * r(), .004, .09, 'lowpass', (arg ? 700 : 560) * r(), 160, 1.2); noise(.04, .002, .03, 'highpass', 3500, null, 1); break;
     case 'stepRun': noise(.16 * r(), .003, .08, 'lowpass', (arg ? 900 : 760) * r(), 200, 1.2); noise(.05, .002, .03, 'highpass', 3000, null, 1); break;
@@ -2405,7 +2778,7 @@ function resize() { renderer.setSize(innerWidth, innerHeight, false); cam.aspect
 addEventListener('resize', resize);
 addEventListener('error', e => { try { toast('Error: ' + e.message + ' — screenshot this for Claude', 9000); } catch (_) {} });
 function loop() {
-  requestAnimationFrame(loop); const now = performance.now(), dt = Math.min(.05, (now - last) / 1000); last = now;
+  requestAnimationFrame(loop); const now = performance.now(), dt = Math.min(.1, (now - last) / 1000); last = now;
   try { if (!PAUSED) frame(dt); if (oceanN) oceanN.offset.set(now * 2e-6, now * 1.3e-6); renderFrame(); drawLabels(); drawMini(); updateWhere(dt); } catch (e) { console.error(e); if (!loop.shown) { loop.shown = 1; toast('Something broke: ' + e.message + ' — screenshot this for Claude', 9000); } }
   frames++; fpsT += dt; if (fpsT > .5) { fps = frames / fpsT; frames = 0; fpsT = 0; if (!$('perf').hidden) { const i = renderer.info.render; $('perf').textContent = `${fps.toFixed(0)} fps · ${(i.triangles / 1000).toFixed(0)}k tris · ${i.calls} draws\n${BUILD}`; } }
 }
@@ -2416,12 +2789,15 @@ function frame(dt) {
   if (RIDE.on) {
     const g = RIDE.e.bus.g; if (RIDE.phase !== 'enter') { P.x = g.position.x; P.z = g.position.z; P.y = g.position.y; P.yaw = g.rotation.y + Math.PI; }
     rideUpdate(dt); engine(1, Math.abs(RIDE.e.st?.v || 0), true);
+  } else if (PR.on) {
+    pigRideUpdate(dt); engine(1, Math.abs(PR.e.st?.v || 0), true);
   } else {
     update(dt); guideUpdate(dt);
+    if (P.mode === 'pig') pigBoardCheck(dt); else $('sneakBtn').hidden = true;
     let nd = 1e9, nv = 0; for (const e of BUSES.values()) { const d = e.bus.g.position.distanceTo(cam.position); if (d < nd) { nd = d; nv = Math.abs(e.st.v); } }
     engine(clamp(1 - nd / 70, 0, 1), nv, false);
   }
-  waitingUpdate(wdt); updateSun(); updateChunks(); subUpdate(dt);
+  if (!RIDE.on) idleOthers(dt); $('jumpBtn').hidden = !(PR.on || (P.mode === 'pig' && !RIDE.on)); waitingUpdate(wdt); updateSun(); updateChunks(); subUpdate(dt);
 }
 (async () => {
   try {
@@ -2435,7 +2811,7 @@ function frame(dt) {
     buildShelters(); initBusModel(); initGuide(); initBen(); $('clockNote').textContent = CLOCK.note; $('busPanel').hidden = false;
     if (T.ben) { const [x, z, fx, fz] = benFront(); goTo(x, z, fx, fz); P.yaw += Math.PI * .75; }
     resize(); setMode('walk'); $('load').hidden = true; $('card').hidden = false; loop();
-    window.KT = { P, MAPV, setMode, goTo, T, hAt, renderer, update, cam, toggleFast, benFront, CLOCK, STOPS, BUSES, TRIPS: () => TRIPS, RIDE, METER, SHIELD, GUIDE, DATA, frame, pause: v => { PAUSED = v; }, boardBus, chooseSeat, shieldSet, fire, roll, requestStop, waitForBus, nextAt, keys, startCinematic, renderFrame, routeAt, ROUTE, makeChar, MODELS, sideLift, surfY, PIGM, rayDown: (x, z) => { const rc = new THREE.Raycaster(new THREE.Vector3(x, 400, z), new THREE.Vector3(0, -1, 0)); const h = rc.intersectObjects(scene.children.filter(o => o.isMesh && !o.isInstancedMesh && o !== sky), false); return h.slice(0, 3).map(q => +q.point.y.toFixed(3)); } };
+    window.KT = { P, MAPV, setMode, goTo, T, hAt, renderer, update, cam, toggleFast, benFront, CLOCK, STOPS, BUSES, TRIPS: () => TRIPS, RIDE, METER, SHIELD, GUIDE, DATA, frame, pause: v => { PAUSED = v; }, boardBus, chooseSeat, shieldSet, fire, roll, requestStop, waitForBus, nextAt, keys, startCinematic, renderFrame, routeAt, ROUTE, makeChar, MODELS, sideLift, surfY, PIGM, PR, SLOT, STOPSX: () => STOPS, sneakOn, pigNip, WAIT, rayDown: (x, z) => { const rc = new THREE.Raycaster(new THREE.Vector3(x, 400, z), new THREE.Vector3(0, -1, 0)); const h = rc.intersectObjects(scene.children.filter(o => o.isMesh && !o.isInstancedMesh && o !== sky), false); return h.slice(0, 3).map(q => +q.point.y.toFixed(3)); } };
   } catch (e) { console.error(e); $('load').textContent = 'Could not build the town: ' + e.message; }
 })();
 $('go').onclick = () => { $('card').hidden = true; audioInit(); };
