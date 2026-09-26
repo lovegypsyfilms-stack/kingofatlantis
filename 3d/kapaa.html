@@ -76,6 +76,7 @@
   #pigHearts{color:#e7707a;font-size:16px;letter-spacing:2px;} #pigHid{color:var(--dim);font-size:11.5px;}
   #pigNoticeBar i{background:linear-gradient(90deg,#d9b45a,#e7707a);}
   #jumpBtn{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 104px);width:74px;height:74px;border-radius:50%;z-index:4;touch-action:none;}
+  #pigNextBtn{margin-top:7px;width:100%;font-size:12px;padding:7px 8px;}
   #nipBtn{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);width:74px;height:74px;border-radius:50%;z-index:4;touch-action:none;}
   body.pigride .hud.br, body.pigride .hud.tr, body.pigride #where, body.pigride #busPanel, body.pigride #clock{display:none!important;}
 </style>
@@ -97,7 +98,7 @@
 <div id="toast" hidden></div>
 <button id="sneakBtn" hidden>Sneak on behind them</button>
 <button id="jumpBtn" hidden>Jump</button>
-<div id="pigHud" hidden><div id="pigHearts">♥♥♥♥♥</div><div class="meter">Noticed<div class="bar" id="pigNoticeBar"><i id="pigNotice" style="width:0%"></i></div></div><div id="pigHid">out in the open</div><button id="nipBtn">Nip (N)</button></div>
+<div id="pigHud" hidden><div id="pigHearts">♥♥♥♥♥</div><div class="meter">Noticed<div class="bar" id="pigNoticeBar"><i id="pigNotice" style="width:0%"></i></div></div><div id="pigHid">out in the open</div><button id="pigNextBtn">Ride to next stop ⏩</button><button id="nipBtn">Nip (N)</button></div>
 <div id="sub" hidden></div>
 <div id="readFx"></div>
 <div id="astralTint"></div><div id="astralFx"></div>
@@ -105,7 +106,7 @@
   <div id="meters"><div class="meter">Astral <b id="mAstralV">100</b><div class="bar"><i id="mAstral" style="width:100%"></i></div></div>
     <div class="meter">Emotional <b id="mEmoV">100</b><div class="bar"><i id="mEmo" style="width:100%"></i></div></div></div>
   <div id="entBar" hidden>It<div class="bar"><i id="entHp" style="width:100%"></i></div></div>
-  <div id="rideBtns"><button id="stopBtn" aria-pressed="false" title="Pull the cord (B)">Request stop 🔔</button><button id="shieldBtn" aria-pressed="false" title="Hold to shield (Space)">Shield</button></div>
+  <div id="rideBtns"><button id="nextBtn" title="Ride on to the next stop">Next stop ⏩</button><button id="stopBtn" aria-pressed="false" title="Pull the cord (B)">Request stop 🔔</button><button id="shieldBtn" aria-pressed="false" title="Hold to shield (Space)">Shield</button></div>
   <div id="fightBtns" hidden><button id="rollBtn" title="Roll away (R)">Roll</button><button id="fireBtn" title="Strike (F) — or tap where to aim">Strike</button></div>
   <div id="seatUI" hidden><h3>Choose a seat</h3><div class="seats"><button data-seat="0">Seat 1</button><button data-seat="1">Seat 2</button><button data-seat="2">Seat 3</button><button data-seat="3">Seat 4</button><button id="standBtn">Stand</button></div></div>
 </div>
@@ -119,7 +120,7 @@
   <button id="fastBtn" aria-pressed="false" title="Travel fast (T)">Fast</button>
   <button id="perfBtn" aria-pressed="false">FPS</button>
 </div>
-<div id="load">Building Kapaʻa…</div>
+<div id="load">Downloading Kapaʻa… (about 9 MB: on mobile data this can take a minute)</div>
 <div id="card" hidden><div class="in">
   <h2>Kapaʻa — catch the bus</h2>
   <p>Real Kapaʻa streets from OpenStreetMap, and The Kauaʻi Bus on its real timetable along Kūhiō Hwy (400 to Līhuʻe, 500 to Hanalei). You're Ben, outside his place, heading to <b>Līhuʻe</b> — that's the 400, from the stop across the road. Follow the gold arrow — someone's usually already waiting — then "Wait for bus" skips ahead until it's pulling in. When the doors open, board.</p>
@@ -140,7 +141,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 const $ = id => document.getElementById(id);
-const BUILD = 'Kapaʻa town v0.6 · 26 Sep 2026';
+const BUILD = 'Kapaʻa town v0.7 · 26 Sep 2026';
 const TOWN_SRC = 'url:assets/kapaa/town.json?v=k02', HEIGHTS_SRC = 'url:assets/kapaa/heights.bin?v=k01', GROUND_SRC = 'url:assets/kapaa/ground.jpg?v=k01';
 const BEN_GLB = 'url:assets/ben.glb?v=k02', BEN_SKIN = 'url:assets/ben-skin.jpg?v=k02', ANT_GLB = 'url:assets/anthony.glb?v=k02', ANT_SKIN = 'url:assets/anthony-skin.jpg?v=k02', PIG_GLB = 'url:assets/kapaa/pig-town.glb?v=k03', PIG_SKIN = 'url:assets/kapaa/pig-town-skin.jpg?v=k03', PIG_NORM = 'url:assets/kapaa/pig-town-normal.jpg?v=k03';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
@@ -148,11 +149,14 @@ const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 const rnd = (() => { let s = 12345; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();
 
 async function loadJSON(src) { if (src.startsWith('url:')) { const r = await fetch(src.slice(4)); if (!r.ok) throw new Error(src + ' ' + r.status); return r.json(); } return JSON.parse(src); }
-async function loadBin(src) { if (src.startsWith('url:')) { const r = await fetch(src.slice(4)); if (!r.ok) throw new Error(src + ' ' + r.status); return r.arrayBuffer(); } return Uint8Array.from(atob(src), c => c.charCodeAt(0)).buffer; }
+async function loadBin(src) { if (src.startsWith('url:')) { const r = await fetch(src.slice(4)); if (!r.ok) throw new Error(src + ' ' + r.status); return r.arrayBuffer(); } return b64buf(src); }
 function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('image failed')); i.src = src.startsWith('url:') ? src.slice(4) : src; }); }
 
 /* ================= renderer, scene ================= */
-const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, powerPreference: 'high-performance' });
+const PHONE = matchMedia('(pointer: coarse)').matches;
+const renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: !(PHONE && devicePixelRatio >= 2), powerPreference: 'high-performance' });   // phones: the 2× screen is sharp enough, and multisampling it costs memory
+// iOS drops the WebGL context when the page uses too much graphics memory: say so instead of sitting on a frozen picture
+$('gl').addEventListener('webglcontextlost', e => { e.preventDefault(); const l = $('load'); l.hidden = false; l.textContent = 'The phone ran out of graphics memory and stopped drawing. Close other apps or tabs and reload. (Tell Claude: "context lost")'; });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
@@ -906,7 +910,14 @@ const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const smooth = t => t * t * (3 - 2 * t);
 const dampV = (v, t, k, dt) => v.lerp(t, 1 - Math.exp(-k * dt));
 const gltf = new GLTFLoader();
-function b64buf(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer; }
+// base64 → bytes with a lookup table (Uint8Array.from(atob(s), fn) makes a string per byte: very slow in Safari for megabytes)
+const B64L = (() => { const t = new Uint8Array(128), a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'; for (let i = 0; i < 64; i++) t[a.charCodeAt(i)] = i; return t; })();
+function b64buf(s) {
+  const n = s.length, pad = s.endsWith('==') ? 2 : s.endsWith('=') ? 1 : 0, len = n / 4 * 3 - pad, out = new Uint8Array(len); let j = 0;
+  for (let i = 0; i < n; i += 4) { const v = B64L[s.charCodeAt(i)] << 18 | B64L[s.charCodeAt(i + 1)] << 12 | B64L[s.charCodeAt(i + 2)] << 6 | B64L[s.charCodeAt(i + 3)];
+    out[j++] = v >> 16; if (j < len) out[j++] = v >> 8 & 255; if (j < len) out[j++] = v & 255; }
+  return out.buffer;
+}
 async function getBuf(src) { if (src.startsWith('url:')) { const r = await fetch(src.slice(4)); if (!r.ok) throw new Error(src.slice(4) + ' ' + r.status); return r.arrayBuffer(); } return b64buf(src); }
 const parseGLB = buf => new Promise((res, rej) => gltf.parse(buf, '', res, rej));
 async function skinTex(src) { const img = await loadImg(src); const t = new THREE.Texture(img); t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t; }
@@ -1462,7 +1473,9 @@ function busGeometry() {
   const O = newCBuf(), white = new THREE.Color(0xf1f1ee), teal = new THREE.Color(0x1d7a78), green = new THREE.Color(0x5aa05a), dark = new THREE.Color(0x2b2f33), grey = new THREE.Color(0x8b9196), black = new THREE.Color(0x151515);
   const L = BL / 2, W = BW / 2, t = .06;
   // skirt, lower body, livery stripes
-  boxInto(O, -W, W, .32, .5, -L, L, dark);
+  // (the skirt used to be one solid box across the whole width, 8 cm above the floor: the pig and everyone's feet sank into it)
+  for (const sx of [-1, 1]) boxInto(O, sx > 0 ? W - t : -W, sx > 0 ? W : -W + t, .32, .5, -L, L, dark);
+  boxInto(O, -W, W, .32, .5, L - t, L, dark); boxInto(O, -W, W, .32, .5, -L, -L + t, dark);
   for (const sx of [-1, 1]) {
     const x0 = sx > 0 ? W - t : -W, x1 = sx > 0 ? W : -W + t;
     boxInto(O, x0, x1, .5, 1.22, -L, L, white);
@@ -1898,7 +1911,7 @@ let _haze = null; function hazeTex() { if (_haze) return _haze; _haze = canvasTe
 /* ---------------- per-frame ride update ---------------- */
 function rideUpdate(rdt) {
   const bus = RIDE.e.bus, dt = rdt * RIDE.ts; RIDE.t += rdt;
-  if (RIDE.phase === 'enter') { enterUpdate(rdt); for (const p of RIDE.pax) paxUpdate(p, dt); return; }
+  if (RIDE.phase === 'enter') { enterUpdate(rdt); pigWithBen(rdt); for (const p of RIDE.pax) paxUpdate(p, dt); return; }
   breathe(rdt, RIDE.fight ? .75 + (RIDE.fight.ben.roll ? .3 : 0) : .15 + (RIDE.bk || 0) * .7 + (RIDE.walk && RIDE.phase === 'walk' ? .2 : 0));
   // alighting: the bus is dwelling at a stop and we asked to get off (or it's the last stop in town)
   const st = RIDE.e.st;
@@ -1909,7 +1922,7 @@ function rideUpdate(rdt) {
   if (st && !st.dwell) RIDE.boardedAt = null;
   // people
   for (const p of RIDE.pax) paxUpdate(p, dt);
-  benRideUpdate(dt, rdt);
+  benRideUpdate(dt, rdt); pigWithBen(rdt);
   if (RIDE.phase === 'seated' || RIDE.phase === 'stand') encounterUpdate(dt);
   cineUpdate(rdt);
   if (RIDE.fight) fightUpdate(rdt);
@@ -1921,6 +1934,8 @@ function rideUpdate(rdt) {
   for (const m of RIDE.markers) { m.g.visible = RIDE.phase === 'choose'; m.ring.material.opacity = .55 + .35 * Math.sin(RIDE.t * 4 + m.i); }
   meters(rdt);
   $('rideBtns').hidden = !['seated', 'stand', 'kicked'].includes(RIDE.phase) || !!RIDE.cine || !!RIDE.fight;
+  { const here = st && st.dwell && st.dwell !== RIDE.boardedAt && st.doors > .6, lab = here ? 'Get off here' : 'Request stop 🔔'; if ($('stopBtn').textContent !== lab) $('stopBtn').textContent = lab; }
+  rideOnHud();
   rideCamera(rdt);
 }
 function paxUpdate(p, dt) {
@@ -2085,14 +2100,14 @@ function rideCamera(rdt) {
 }
 
 /* ---------------- request stop, alighting, consequences ---------------- */
-function requestStop() { if (RIDE.requested) return; RIDE.requested = true; sfx('bell'); sub('Ding. Stop requested.', 2); $('stopBtn').setAttribute('aria-pressed', true); }
+function requestStop() { const st = RIDE.e?.st; if (st && st.dwell && st.dwell !== RIDE.boardedAt && st.doors > .6 && !RIDE.fight && !RIDE.cine) { alight(st.dwell, false); return; } if (RIDE.requested) return; RIDE.requested = true; sfx('bell'); sub('Ding. Stop requested.', 2); $('stopBtn').setAttribute('aria-pressed', true); }
 function alight(stopName, forced) {
   const st = STOPS.find(q => q.name === stopName && q.dir === RIDE.trip.dir) || STOPS[0];
   const msg = RIDE.kickedOff ? 'The driver waits with the doors open until you step off.' : forced ? `The bus carries on to ${RIDE.trip.dir === DATA.ben.dir ? DATA.ben.heading : 'Hanalei'} — that's off the map for now, so the test ride ends here.` : 'You step off.';
   RIDE.leftTrip = RIDE.trip.id;
   endRide(); const rx = -Math.sin(st.face), rz = -Math.cos(st.face);             // step out between the shelter and the kerb
   P.x = st.x + rx * 2.2 + rz * 1.5; P.z = st.z + rz * 2.2 - rx * 1.5; P.y = surfY(P.x, P.z); P.yaw = st.face + Math.PI / 2; P.pitch = .15; BEN.heading = st.face + Math.PI; sfx('doors');
-  sub(`${prettyStop(stopName)}. ${msg}`, 4);
+  pigOffWithBen(); sub(`${prettyStop(stopName)}. ${msg}${PIGM.PIG.ready ? ' The guinea pig hops off after you.' : ''}`, 4);
 }
 function endRide() {
   if (RIDE.fight) endFightObjects(); clearInterior(); RIDE.on = false; RIDE.phase = ''; RIDE.enc = null; RIDE.after = null; RIDE.kickedOff = false; RIDE.ts = 1; setAstralLook(0);
@@ -2356,7 +2371,7 @@ function busPosts(bus) { const out = [], inv = v => bus.g.worldToLocal(v); for (
 function paxReact(p, kind) {
   if (p.state !== 'sit' || performance.now() - p.reactT < PGB.reactCooldown * 1000) return;
   p.reactT = performance.now(); p.t = 0;
-  if (p.pet) { p.state = 'pet'; sub(pickR(['"Hey little pig…"', '"Aww — hey, little guy."', '"Hey little pig, where you going?"']), 2.8); PR.expo = Math.max(0, PR.expo - PGB.petCalm); sfx('coo'); }
+  if (p.pet) { p.state = 'pet'; sub(p.ben ? 'Ben, under his breath: "Hey, buddy. Stay low."' : pickR(['"Hey little pig…"', '"Aww — hey, little guy."', '"Hey little pig, where you going?"']), 2.8); PR.expo = Math.max(0, PR.expo - PGB.petCalm); sfx('coo'); }
   else { p.state = 'shoo'; if (kind === 'lap') { const G = PIGM.PIG, h = PR.e.bus.g.worldToLocal(p.ch.R.hips.getWorldPosition(V3())); tipOff(G, G.x - h.x, G.z - h.z); } sub(kind === 'lap' ? '"Ugh! Get off me — shoo!"' : '"Shoo! Shoo! Get out of here!"', 2.8); PR.expo = Math.min(1, PR.expo + PGB.shooNotice); sfx('shoo'); }
 }
 function paxUpdateLive(p, dt, bus) {
@@ -2417,7 +2432,7 @@ function sneakOn(e) {
     toast('The driver: "Eh! No animals on the bus, brah!" — you scuttle back.', 3500); sfx('squeak');
     const door = e.bus.g.localToWorld(V3(-BW / 2 - 2, 0, BL / 2 - .75)); P.x = door.x; P.z = door.z; WAIT.boarding = null; return;
   }
-  PR.seats = seatList(); PR.pax = busPassengersLive(e.bus);
+  PR.seats = seatList(); PR.pax = busPassengersLive(e.bus); benBoardsToo(e);
   const G0 = PIGM.PIG; G0.x = -.85; G0.z = BL / 2 - 1.05; G0.y = FLOOR; G0.air = false; G0.vy = 0;
   PR.on = true; PR.e = e; PR.lastYaw = P.yaw; PR.pos.set(-.85, FLOOR, BL / 2 - 1.05); PR.head = Math.PI * .85; PR.camYaw = .3; PR.boardStop = e.st.dwell; PR.expo = 0; PR.hearts = PRD.hearts; PR.critter = null; PR.t = 0; PR.hiddenT = 0; PR.spotted = false; PR.exitReady = false;
   $('sneakBtn').hidden = true; $('pigHud').hidden = false; document.body.classList.add('pigride');
@@ -2455,13 +2470,13 @@ function pigRideUpdate(dt) {
   if (PR.hidden) { PR.expo = Math.max(0, PR.expo - N.hiddenDecay * dt); PR.hiddenT += dt; }
   else PR.expo = Math.min(1, PR.expo + (PR.sp < .05 ? N.still : run ? N.run : N.walk) * nearDriver * dt);
   if (PR.expo >= 1 && !PR.spotted) { PR.spotted = true; sfx('shriek'); sub('Someone shrieks — "RAT! There’s a rat!" — the driver: "Get that thing off my bus!" Get off at the next stop.', 6); }
-  critterUpdate(dt);
+  critterUpdate(dt); rideOnHud();
   // getting off: whenever the doors are open and he's by them (or he's been spotted and it's the next stop)
   const st = e.st, door = V3(-BW / 2 + .15, FLOOR, BL / 2 - .75), atDoor = PR.pos.distanceTo(door) < 1.1;
   if (!st.dwell) PR.boardStop = null;                                   // it has left the stop he got on at
   const open = st.dwell && st.doors > .6 && st.dwell !== PR.boardStop;
-  PR.exitReady = open && (atDoor || PR.spotted) && PR.t > 2;
-  $('sneakBtn').hidden = !(open && atDoor); $('sneakBtn').textContent = 'Sneak off';
+  PR.exitReady = open && PR.t > 2;                                    // from anywhere: he scurries to the doors
+  $('sneakBtn').hidden = !PR.exitReady; $('sneakBtn').textContent = atDoor ? 'Sneak off' : 'Sneak off here';
   if (PR.spotted && open && PR.t > 2) pigAlight(true);
   if (!st.dwell && e.tr.keys.at(-1).t - CLOCK.t < 30 && !PR.warned) { PR.warned = true; sub('This bus is about to leave town — get off at the next stop or you’ll be carried off the map.', 5); }
   if (CLOCK.t >= e.tr.t1 - 1) pigAlight(true);
@@ -2492,8 +2507,9 @@ function pigAlight(forced) {
   const e = PR.e, g = e.bus.g, out = g.localToWorld(V3(-BW / 2 - 1.1, 0, BL / 2 - .75));
   PR.on = false; critterClear(); busPassengersClear(e.bus, PR.pax); PR.pax = []; $('pigHud').hidden = true; $('sneakBtn').hidden = true; document.body.classList.remove('pigride');
   P.x = out.x; P.z = out.z; P.y = surfY(out.x, out.z); const Gx = PIGM.PIG; Gx.x = P.x; Gx.z = P.z; Gx.y = P.y; Gx.air = false; Gx.vy = 0; P.yaw = g.rotation.y - Math.PI / 2; P.pitch = .1; cam.near = MODES.pig.near; cam.updateProjectionMatrix();
+  Gx.head = g.rotation.y - Math.PI / 2; benOffWithPig();
   const where = e.st.dwell ? prettyStop(e.st.dwell) : 'the roadside';
-  sub(forced && PR.spotted ? `You bolt out at ${where}.` : forced ? `You hop off at ${where} before it leaves town.` : `You slip off at ${where}.`, 3.5);
+  PR.hintT = 8; sub(forced && PR.spotted ? `You bolt out at ${where}.` : forced ? `You hop off at ${where} before it leaves town.` : `You slip off at ${where}.`, 3.5);
 }
 $('sneakBtn').onclick = () => { if (PR.on) { if (PR.exitReady) pigAlight(false); } else sneakOn(); };
 
@@ -2895,6 +2911,77 @@ function breathe(dt, effort) {
   if (BR.phase === 0) { sfx('inhale', vol * .8); BR.t = period * .42; BR.phase = 1; } else { sfx('exhale', vol); BR.t = period * .58; BR.phase = 0; }
 }
 
+
+/* ================= together on the bus, and riding on to the next stop =================
+   Anthony (26 Sep): "if Ben boards or the pig, both should be on the bus" (for this test), and an option like
+   "wait for bus" when you're on it: ride on to the next or final stop, then get off when it stops.
+   Swapping between Ben and the pig while they're on the bus is NOT built: whether the one you're not playing carries on
+   on autopilot (one shared clock) or waits (separate time streams) is Anthony's call. */
+
+/* ---- ride on: skip to the next stop ---- */
+function nextArrival(e) { return e.tr.keys.find(k => k.kind === 'arr' && k.t > CLOCK.t + 1) || null; }
+function rideOnBlocked() {
+  if (RIDE.on && (RIDE.enc || RIDE.fight || RIDE.cine)) return 'Not now: something’s happening on the bus.';
+  if (RIDE.on && !['seated', 'stand'].includes(RIDE.phase)) return 'Find a seat first (or stand).';
+  if (PR.on && PR.critter) return `Deal with the ${PR.critter.kind === 'rat' ? 'rat' : 'cockroach'} first.`;
+  return null;
+}
+function rideOn() {
+  const e = RIDE.on ? RIDE.e : PR.on ? PR.e : null; if (!e) return;
+  const no = rideOnBlocked(); if (no) { toast(no); return; }
+  const k = nextArrival(e); if (!k) { toast('No more stops in town.'); return; }
+  const f = $('astralFx'); f.style.transition = 'opacity .3s'; f.style.background = '#0c1510'; f.style.opacity = '1';
+  setTimeout(() => { CLOCK.t = Math.max(CLOCK.t, k.t - 4); f.style.opacity = '0'; setTimeout(() => { f.style.transition = ''; f.style.background = ''; }, 350);
+    sub(`${prettyStop(k.n)}. The bus pulls in${RIDE.on ? ' — tap “Get off here” when the doors open, or ride on.' : ' — sneak off when the doors open, or ride on.'}`, 4); }, 330);
+}
+$('nextBtn').onclick = rideOn; $('pigNextBtn').onclick = rideOn;
+let _nextLab = '';
+function rideOnHud() {
+  const e = RIDE.on ? RIDE.e : PR.on ? PR.e : null; if (!e) return;
+  const k = nextArrival(e), last = k && e.tr.keys.filter(q => q.kind === 'arr').at(-1) === k;
+  const lab = k ? `${PR.on ? 'Ride to ' : ''}${last ? 'last stop' : 'next stop'} ⏩ ${prettyStop(k.n).replace('Kūhiō Hwy / ', '').replace('Kapaʻa ', '')}` : 'No more stops';
+  if (lab !== _nextLab) { _nextLab = lab; $('nextBtn').textContent = lab; $('pigNextBtn').textContent = lab; }
+  const blocked = !k || !!rideOnBlocked();
+  $('nextBtn').disabled = blocked; $('pigNextBtn').disabled = blocked;
+}
+
+/* ---- the pig comes along when Ben rides: he sits under Ben's seat ---- */
+function pigWithBen(dt) {
+  const G = PIGM.PIG; if (!G.ready) return;
+  const g = RIDE.e.bus.g, ph = RIDE.phase, s = RIDE.seat, b = RIDE.ben; let lp = null, head = 0;
+  if (ph === 'enter' && BEN.ch) {                          // trotting at Ben's heels to the doors
+    const bg = BEN.ch.g, h = bg.rotation.y, x = bg.position.x - Math.sin(h) * .45 + Math.cos(h) * .3, z = bg.position.z - Math.cos(h) * .45 - Math.sin(h) * .3, y = surfY(x, z);
+    const mv = Math.hypot(x - G.g.position.x, z - G.g.position.z); G.g.position.set(x, y, z); G.g.rotation.y = h; G.g.visible = true;
+    PIGM.animRig(G, { speed: clamp(mv / Math.max(dt, 1e-3), 0, 2.5), heading: h, frozen: false, vy: 0, state: 'free', turnCmd: 0 }, dt); pigContact(x, y, z, 0, h); return;
+  }
+  if (ph === 'seated' && s) lp = V3(s.x, s.y, s.z + .04);
+  else if (ph !== 'seated' && b) { lp = b.g.position.clone().add(V3(.28, 0, -.18).applyAxisAngle(V3(0, 1, 0), b.g.rotation.y)); lp.y = FLOOR; head = b.g.rotation.y; }
+  if (!lp) { G.g.visible = false; pigContact(0, 0, 0, 0, 0, false); return; }
+  g.updateMatrixWorld(true); const wp = g.localToWorld(lp.clone()); G.g.position.copy(wp); G.g.rotation.y = g.rotation.y + head; G.g.visible = true;
+  PIGM.animRig(G, { speed: 0, heading: G.g.rotation.y, frozen: false, vy: 0, state: 'free', turnCmd: 0 }, dt);
+  pigContact(wp.x, wp.y, wp.z, 0, G.g.rotation.y);
+}
+// Ben steps off: the pig hops off with him and waits at his feet
+function pigOffWithBen() {
+  const G = PIGM.PIG, fx = Math.sin(BEN.heading || 0), fz = Math.cos(BEN.heading || 0), x = P.x + fx * .55 + fz * .45, z = P.z + fz * .55 - fx * .45, y = surfY(x, z);
+  SLOT.pig = { x, z, y, yaw: P.yaw, pitch: .1 }; G.x = x; G.z = z; G.y = y; G.head = BEN.heading || 0; G.air = false; G.vy = 0;
+}
+
+/* ---- Ben comes along when the pig sneaks on: he's in a seat near the middle ---- */
+function benBoardsToo(e) {
+  const taken = new Set(PR.pax.map(p => p.seat.r + ',' + p.seat.c));
+  const s = PR.seats.filter(q => !q.rear && !taken.has(q.r + ',' + q.c)).sort((a, b) => Math.abs(a.z - .2) - Math.abs(b.z - .2) || a.c - b.c)[0]; if (!s) return;
+  const ch = makeChar('ben', { cal: { head: -.1, spine: .05 } }); ch.sitW = 1; ch.g.position.set(s.x, s.y - .02, s.z); e.bus.g.add(ch.g); addContact(ch, e.bus.g);
+  const base = presetChan('thighs', s.c === 0 ? .8 : s.c === 3 ? -.8 : 0); writeSeat(ch, base, false); poseChar(ch, 0); contactUpdate(ch, () => s.y);
+  PR.pax.push({ ch, seat: s, base, cur: cloneChan(base), pet: true, ben: true, state: 'sit', t: 0, reactT: 0 });
+  BEN.visible = false; if (BEN.ch) { BEN.ch.g.visible = false; contactUpdate(BEN.ch, surfY, false); }
+}
+// the pig gets off: Ben gets off with him
+function benOffWithPig() {
+  const G = PIGM.PIG, h = (G.head ?? 0), x = G.x - Math.sin(h) * .7 + Math.cos(h) * .5, z = G.z - Math.cos(h) * .7 - Math.sin(h) * .5;
+  SLOT.walk = { x, z, y: surfY(x, z), yaw: P.yaw, pitch: .15 }; BEN.heading = h; BEN.visible = true;
+}
+
 /* ================= boot ================= */
 let last = performance.now(), frames = 0, fpsT = 0, fps = 0, oceanN = null;
 function resize() { renderer.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.fov = cam.aspect < .8 ? 76 : 66; cam.updateProjectionMatrix(); }
@@ -2922,19 +3009,23 @@ function frame(dt) {
   }
   if (!RIDE.on) idleOthers(dt); $('jumpBtn').hidden = !(PR.on || (P.mode === 'pig' && !RIDE.on)); waitingUpdate(wdt); updateSun(); updateChunks(); subUpdate(dt);
 }
+// load timing: shown on the loading line (so a slow phone says where it is) and kept in window.__lt
+const LT = { t0: performance.now(), list: [] };
+const ltMark = (name, next) => new Promise(res => { LT.list.push([name, Math.round(performance.now() - LT.t0)]); window.__lt = LT.list; if (next) $('load').textContent = next + ` · ${((performance.now() - LT.t0) / 1000).toFixed(1)} s`; setTimeout(res, 20); });   // yield so the text paints (a timer, not requestAnimationFrame, which stops while the page is off screen)
 (async () => {
   try {
+    $('load').textContent = 'Building Kapaʻa… (map data)';
     const [town, hb, img] = await Promise.all([loadJSON(TOWN_SRC), loadBin(HEIGHTS_SRC), loadImg(GROUND_SRC)]);
     T = town; META = T.meta; const u16 = new Uint16Array(hb); HGT = new Float32Array(u16.length); for (let i = 0; i < u16.length; i++) HGT[i] = u16[i] / 100 - 10;
     groundImg = img; const gt = new THREE.Texture(img); gt.flipY = false; gt.colorSpace = THREE.SRGBColorSpace; gt.anisotropy = renderer.capabilities.getMaxAnisotropy(); gt.needsUpdate = true;
-    $('load').textContent = 'Building Kapaʻa… (loading people)'; await loadModels(); await PIGM.load();
-    buildTerrain(gt); buildFar(); oceanN = buildOcean(); buildRoads();
-    initClock(); initRoute(); initStops();
+    await ltMark('map data', 'Building Kapaʻa… (loading people)'); await loadModels(); await ltMark('people', 'Building Kapaʻa… (the guinea pig)'); await PIGM.load();
+    await ltMark('pig', 'Building Kapaʻa… (ground)'); buildTerrain(gt); buildFar(); oceanN = buildOcean(); await ltMark('terrain', 'Building Kapaʻa… (roads)'); buildRoads();
+    initClock(); initRoute(); initStops(); await ltMark('roads', 'Building Kapaʻa… (buildings and trees)');
     for (const p of T.pois) if (p.k === 'bus' && p.n === 'Bus stop') { const r = nearestRoad(p.x, p.z, 40); if (r && r.n) p.n = 'Bus stop, ' + r.n.replace('Highway', 'Hwy'); } buildBuildings(); buildHouses(); buildTrees(); buildBen(); buildProps(); buildPlaces(); buildLabels();
-    buildShelters(); initBusModel(); initGuide(); initBen(); $('clockNote').textContent = CLOCK.note; $('busPanel').hidden = false;
+    await ltMark('buildings', 'Building Kapaʻa… (bus stops and buses)'); buildShelters(); initBusModel(); initGuide(); initBen(); await ltMark('buses', 'Building Kapaʻa… (first frame)'); $('clockNote').textContent = CLOCK.note; $('busPanel').hidden = false;
     { const st = benStop(); if (st) placeAtStop(st); else if (T.ben) { const [x, z, fx, fz] = benFront(); goTo(x, z, fx, fz); } }   // start at Ben's stop
-    resize(); setMode('walk'); $('load').hidden = true; $('card').hidden = false; loop();
-    window.KT = { bodyCaps, segVsColumn, PIG_COL, townGround, BEN, sun, scene, legPosts, sideGrid, onRoad, nearestRoad, P, MAPV, setMode, goTo, T, hAt, renderer, update, cam, toggleFast, benFront, CLOCK, STOPS, BUSES, TRIPS: () => TRIPS, RIDE, METER, SHIELD, GUIDE, DATA, frame, pause: v => { PAUSED = v; }, boardBus, chooseSeat, shieldSet, fire, roll, requestStop, waitForBus, nextAt, keys, startCinematic, renderFrame, routeAt, ROUTE, makeChar, MODELS, sideLift, surfY, PIGM, PR, SLOT, STOPSX: () => STOPS, sneakOn, pigNip, WAIT, rayDown: (x, z) => { const rc = new THREE.Raycaster(new THREE.Vector3(x, 400, z), new THREE.Vector3(0, -1, 0)); const h = rc.intersectObjects(scene.children.filter(o => o.isMesh && !o.isInstancedMesh && o !== sky), false); return h.slice(0, 3).map(q => +q.point.y.toFixed(3)); } };
+    resize(); setMode('walk'); frame(1 / 60); renderFrame(); await ltMark('first frame'); $('load').hidden = true; $('card').hidden = false; loop();
+    window.KT = { rideOn, SLOTS: () => SLOT, bodyCaps, segVsColumn, PIG_COL, townGround, BEN, sun, scene, legPosts, sideGrid, onRoad, nearestRoad, P, MAPV, setMode, goTo, T, hAt, renderer, update, cam, toggleFast, benFront, CLOCK, STOPS, BUSES, TRIPS: () => TRIPS, RIDE, METER, SHIELD, GUIDE, DATA, frame, pause: v => { PAUSED = v; }, boardBus, chooseSeat, shieldSet, fire, roll, requestStop, waitForBus, nextAt, keys, startCinematic, renderFrame, routeAt, ROUTE, makeChar, MODELS, sideLift, surfY, PIGM, PR, SLOT, STOPSX: () => STOPS, sneakOn, pigNip, WAIT, rayDown: (x, z) => { const rc = new THREE.Raycaster(new THREE.Vector3(x, 400, z), new THREE.Vector3(0, -1, 0)); const h = rc.intersectObjects(scene.children.filter(o => o.isMesh && !o.isInstancedMesh && o !== sky), false); return h.slice(0, 3).map(q => +q.point.y.toFixed(3)); } };
   } catch (e) { console.error(e); $('load').textContent = 'Could not build the town: ' + e.message; }
 })();
 $('go').onclick = () => { $('card').hidden = true; audioInit(); cueFirstBus(); CLOCK.cued = true; };
